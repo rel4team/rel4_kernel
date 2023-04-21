@@ -1,0 +1,15 @@
+[package]
+name = "rel4_kernel"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "rustlib"
+path = "src/lib.rs"
+crate-type = ["staticlib"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+buddy_system_allocator = "0.6"
+riscv = { git = "https://gitee.com/rcore-os/riscv", features = ["inline-asm"] }
