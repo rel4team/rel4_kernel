@@ -23,6 +23,7 @@ pub const PADDR_BASE: usize = 0x0;
 pub const PT_INDEX_BITS: usize = 9;
 pub const PT_OFFSET_BITS: usize = 12;
 pub const CONFIG_PT_LEVELS: usize = 3;
+pub const CONFIG_TIME_SLICE:usize =5;
 pub const seL4_PageBits: usize = 12;
 pub const PAGE_BITS: usize = seL4_PageBits;
 pub const PPTR_TOP: usize = 0xFFFFFFFF80000000;
@@ -55,10 +56,15 @@ pub const tcbReply: usize = 2;
 pub const tcbCaller: usize = 3;
 pub const tcbBuffer: usize = 4;
 pub const tcbCNodeEntries: usize = 5;
+pub const TCB_SIZE_BITS: usize = seL4_TCBBits - 1;
+pub const TCB_OFFSET: usize = BIT!(TCB_SIZE_BITS);
 
 pub const SSTATUS_SPIE: usize = 0x00000020;
 pub const SSTATUS_SPP: usize = 0x00000010;
 pub const CONFIG_KERNEL_STACK_BITS: usize = 12;
+
+//FIXME:this constant is generated , maybe need to transfer from C code
+pub const CONFIG_PADDR_USER_DEVICE_TOP:usize=549755813888;
 
 pub const ksDomScheduleLength: usize = 1;
 
@@ -66,8 +72,8 @@ pub const SchedulerAction_ResumeCurrentThread: usize = 0;
 pub const SchedulerAction_ChooseNewThread: usize = 1;
 
 pub const MAX_NUM_FREEMEM_REG: usize = 16;
-pub const NUM_RESERVED_REGION: usize = 3;
-pub const MAX_NUM_RESV_REG: usize = MAX_NUM_FREEMEM_REG + NUM_RESERVED_REGION;
+pub const NUM_RESERVED_REGIONS: usize = 3;
+pub const MAX_NUM_RESV_REG: usize = MAX_NUM_FREEMEM_REG + NUM_RESERVED_REGIONS;
 
 pub const CONFIG_ROOT_CNODE_SIZE_BITS: usize = 13;
 pub const seL4_SlotBits: usize = 5;
@@ -77,7 +83,6 @@ pub const seL4_TCBBits: usize = 12;
 pub const seL4_IPCBufferSizeBits: usize = 10;
 pub const BI_FRAME_SIZE_BITS: usize = 12;
 pub const seL4_ASIDPoolBits: usize = 12;
-pub const seL4_NumInitialCaps: usize = 14;
 
 pub const seL4_CapNull: usize = 0;
 pub const seL4_CapInitThreadTCB: usize = 1;
@@ -86,8 +91,14 @@ pub const seL4_CapInitThreadVspace: usize = 3;
 pub const seL4_CapIRQControl: usize = 4;
 pub const seL4_CapASIDControl: usize = 5;
 pub const seL4_CapInitThreadASIDPool: usize = 6;
+pub const seL4_CapIOPortControl: usize = 7;
+pub const seL4_CapIOSpace: usize = 8;
+pub const seL4_CapBootInfoFrame: usize = 9;
 pub const seL4_CapInitThreadIPCBuffer: usize = 10;
 pub const seL4_CapDomain: usize = 11;
+pub const seL4_CapSMMUSIDControl: usize = 12;
+pub const seL4_CapSMMUCBControl: usize = 13;
+pub const seL4_NumInitialCaps: usize = 14;
 
 pub const SIE_STIE: usize = 5;
 pub const SIE_SEIE: usize = 9;
@@ -98,7 +109,7 @@ pub const badgeRegister: usize = 9;
 pub const seL4_MsgExtraCapBits: usize = 2;
 pub const seL4_MsgMaxExtraCaps: usize = BIT!(seL4_MsgExtraCapBits) - 1;
 pub const n_msgRegisters: usize = 4;
-pub const seL4_CapRightsBits:usize=4;
+pub const seL4_CapRightsBits: usize = 4;
 
 pub const RISCVInstructionMisaligned: usize = 0;
 pub const RISCVInstructionAccessFault: usize = 1;
@@ -175,6 +186,53 @@ pub const thread_control_update_ipc_buffer: usize = 0x2;
 pub const thread_control_update_space: usize = 0x4;
 pub const thread_control_update_mcp: usize = 0x8;
 
-pub const CONFIG_RESET_CHUNK_BITS:usize=8;
-pub const seL4_MinUntypedBits:usize=4;
-pub const seL4_MaxUntypedBits:usize=38;
+pub const CONFIG_RESET_CHUNK_BITS: usize = 8;
+pub const seL4_MinUntypedBits: usize = 4;
+pub const seL4_MaxUntypedBits: usize = 38;
+pub const seL4_WordBits: usize = 64;
+
+pub const seL4_UserTop: usize = 0x00007fffffffffff;
+pub const USER_TOP: usize = seL4_UserTop;
+
+//IRQConstants
+pub const PLIC_IRQ_OFFSET: usize = 0;
+pub const PLIC_MAX_IRQ: usize = 0;
+pub const KERNEL_TIMER_IRQ: usize = 1;
+pub const maxIRQ: usize = KERNEL_TIMER_IRQ;
+
+pub const irqInvalid: usize = 0;
+
+// irq_state
+pub const IRQInactive: usize = 0;
+pub const IRQSignal: usize = 1;
+pub const IRQTimer: usize = 2;
+pub const IRQReserved: usize = 3;
+
+pub const SEL4_BOOTINFO_HEADER_FDT: usize = 6;
+pub const SEL4_BOOTINFO_HEADER_PADDING: usize = 0;
+pub const CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS: usize = 230;
+
+// page table relevant
+pub const RISCV_4K_Page: usize = 0;
+pub const RISCV_Mega_Page: usize = 1;
+pub const RISCV_Giga_Page: usize = 2;
+pub const RISCV_Tera_Page: usize = 3;
+
+pub const VMKernelOnly: usize = 1;
+pub const VMReadOnly: usize = 2;
+pub const VMReadWrite: usize = 3;
+
+
+//thread state
+pub const ThreadStateInactive: usize = 0;
+pub const ThreadStateRunning: usize = 1;
+pub const ThreadStateRestart: usize = 2;
+pub const ThreadStateBlockedOnReceive: usize = 3;
+pub const ThreadStateBlockedOnSend: usize = 4;
+pub const ThreadStateBlockedOnReply: usize = 5;
+pub const ThreadStateBlockedOnNotification: usize = 6;
+pub const ThreadStateIdleThreadState: usize = 7;
+pub const ThreadStateExited: usize = 8;
+
+
+pub const seL4_MaxPrio:usize=255;

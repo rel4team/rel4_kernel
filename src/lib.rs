@@ -12,6 +12,9 @@
 #![feature(panic_info_message)]
 #![feature(stdsimd)]
 
+
+extern crate core;
+
 use core::arch::asm;
 use core::fmt::{self, Write};
 
@@ -25,6 +28,9 @@ mod heap_alloc;
 mod lang_items;
 mod sbi;
 mod utils;
+mod kernel;
+mod structures;
+mod object;
 
 extern crate alloc;
 
