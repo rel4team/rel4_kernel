@@ -34,6 +34,9 @@ pub struct findVSpaceForASID_ret {
     pub vspace_root: pte_t,
 }
 
+
+#[repr(C)]
+#[derive(Copy,Clone)]
 pub struct seL4_BootInfoHeader {
     pub id: usize,
     pub len: usize,
@@ -59,12 +62,14 @@ pub struct v_region_t {
 
 pub type seL4_SlotPos = usize;
 
+#[repr(C)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct seL4_SlotRegion {
     pub start: seL4_SlotPos,
     pub end: seL4_SlotPos,
 }
 
+#[repr(C)]
 #[derive(Copy, Clone)]
 pub struct seL4_IPCBuffer {
     tag: usize,
@@ -76,6 +81,7 @@ pub struct seL4_IPCBuffer {
     receiveDepth: usize,
 }
 
+#[repr(C)]
 #[derive(Copy, Clone)]
 pub struct seL4_UntypedDesc {
     pub paddr: usize,
@@ -84,6 +90,8 @@ pub struct seL4_UntypedDesc {
     pub  padding: [u8; 6],
 }
 
+
+#[repr(C)]
 #[derive(Copy, Clone)]
 pub struct seL4_BootInfo {
     pub extraLen: usize,
@@ -103,6 +111,7 @@ pub struct seL4_BootInfo {
     pub untypedList: [seL4_UntypedDesc; CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS],
 }
 
+#[repr(C)]
 #[derive(Copy, Clone)]
 pub struct ndks_boot_t {
     pub reserved: [p_region_t; MAX_NUM_RESV_REG],
@@ -112,6 +121,7 @@ pub struct ndks_boot_t {
     pub slot_pos_cur: seL4_SlotPos,
 }
 
+#[repr(C)]
 #[derive(Copy, Clone)]
 pub struct rootserver_mem_t {
     pub cnode: usize,
@@ -238,20 +248,22 @@ pub struct create_frames_of_region_ret_t {
 pub struct arch_tcb_t {
     pub registers: [usize; n_contextRegisters],
 }
-
+#[derive(Copy,Clone)]
 pub struct seL4_Fault_t {
-    words: [usize; 2],
+    pub words: [usize; 2],
 }
-
+#[derive(Copy,Clone)]
 pub struct lookup_fault_t {
-    words: [usize; 2],
+    pub words: [usize; 2],
 }
 
+#[repr(C)]
+#[derive(Copy,Clone)]
 pub struct tcb_t {
     pub tcbArch: arch_tcb_t,
     pub tcbState: thread_state_t,
     pub tcbBoundNotification: *mut notification_t,
-    pub seL4_Fault_t: seL4_Fault_t,
+    pub seL4_Fault: seL4_Fault_t,
     pub tcbLookupFailure: lookup_fault_t,
     pub domain: usize,
     pub tcbMCP: usize,

@@ -20,31 +20,40 @@ use core::arch::asm;
 
 use super::vspace::setVMRoot;
 
+#[no_mangle]
 pub static mut ksDomainTime: usize = 0;
 
+#[no_mangle]
 pub static mut ksCurDomain: usize = 0;
 
+#[no_mangle]
 pub static mut ksDomScheduleIdx: usize = 0;
 
-pub static mut ksCurThread: usize = 0;
+#[no_mangle]
+pub static mut ksCurThread: *mut tcb_t = 0 as *mut tcb_t;
 
-pub static mut ksIdleThread: usize = 0;
+#[no_mangle]
+pub static mut ksIdleThread: *mut tcb_t = 0 as *mut tcb_t;
 
-pub static mut ksSchedulerAction: usize = 1;
-
+#[no_mangle]
+pub static mut ksSchedulerAction: *mut tcb_t = 1 as *mut tcb_t;
 
 #[no_mangle]
 pub static mut kernel_stack_alloc: [[u8; BIT!(CONFIG_KERNEL_STACK_BITS)]; CONFIG_MAX_NUM_NODES] =
     [[0; BIT!(CONFIG_KERNEL_STACK_BITS)]; CONFIG_MAX_NUM_NODES];
 
+#[no_mangle]
 static mut ksReadyQueues: [tcb_queue_t; NUM_READY_QUEUES] =
     [tcb_queue_t { head: 0, tail: 0 }; NUM_READY_QUEUES];
 
+#[no_mangle]
 static mut ksReadyQueuesL2Bitmap: [[usize; L2_BITMAP_SIZE]; CONFIG_NUM_DOMAINS] =
     [[0; L2_BITMAP_SIZE]; CONFIG_NUM_DOMAINS];
 
+#[no_mangle]
 static mut ksReadyQueuesL1Bitmap: [usize; CONFIG_NUM_DOMAINS] = [0; CONFIG_NUM_DOMAINS];
 
+#[no_mangle]
 #[link_section = "._idle_thread"]
 pub static mut ksIdleThreadTCB: [[u8; BIT!(seL4_TCBBits)]; CONFIG_MAX_NUM_NODES] =
     [[0; BIT!(seL4_TCBBits)]; CONFIG_MAX_NUM_NODES];
@@ -227,8 +236,8 @@ pub fn setThreadState(tptr: *mut tcb_t, ts: usize) {
 
 pub fn scheduleTCB(tptr: *const tcb_t) {
     unsafe {
-        if tptr as usize == ksCurThread
-            && ksSchedulerAction == SchedulerAction_ResumeCurrentThread
+        if tptr as usize == ksCurThread as usize
+            && ksSchedulerAction as usize == SchedulerAction_ResumeCurrentThread
             && !isRunnable(tptr)
         {
             rescheduleRequired();
@@ -262,12 +271,12 @@ pub fn getCSpace(ptr: usize, i: usize) -> *mut cte_t {
 
 pub fn rescheduleRequired() {
     unsafe {
-        if ksSchedulerAction != SchedulerAction_ResumeCurrentThread
-            && ksSchedulerAction != SchedulerAction_ChooseNewThread
+        if ksSchedulerAction as usize != SchedulerAction_ResumeCurrentThread
+            && ksSchedulerAction as usize != SchedulerAction_ChooseNewThread
         {
             tcbSchedEnqueue(ksSchedulerAction as *mut tcb_t);
         }
-        ksSchedulerAction = SchedulerAction_ChooseNewThread;
+        ksSchedulerAction = SchedulerAction_ChooseNewThread as *mut tcb_t;
     }
 }
 
@@ -277,7 +286,7 @@ pub fn Arch_switchToThread(tcb: *const tcb_t) {
 
 pub fn activateThread() {
     unsafe {
-        assert!(ksCurThread != 0 && ksCurThread != 1);
+        assert!(ksCurThread as usize != 0 && ksCurThread as usize != 1);
         let thread = ksCurThread as *mut tcb_t;
         match thread_state_get_tsType(&(*thread).tcbState) {
             ThreadStateRunning => {
@@ -349,7 +358,7 @@ pub fn switchToThread(thread: *const tcb_t) {
     Arch_switchToThread(thread);
     tcbSchedDequeue(thread as *mut tcb_t);
     unsafe {
-        ksCurThread = thread as usize;
+        ksCurThread = thread as *mut tcb_t;
     }
 }
 
@@ -390,7 +399,7 @@ pub fn setPriority(tptr: *const tcb_t, prio: usize) {
         let mut_tptr = tptr as *mut tcb_t;
         (*mut_tptr).tcbPriority = prio;
         if isRunnable(tptr) {
-            if tptr as usize == ksCurThread {
+            if tptr as usize == ksCurThread as usize {
                 rescheduleRequired();
             } else {
                 possibleSwitchTo(tptr);
@@ -403,11 +412,11 @@ pub fn possibleSwitchTo(target: *const tcb_t) {
     unsafe {
         if ksCurDomain != (*target).domain {
             tcbSchedEnqueue(target as *mut tcb_t);
-        } else if ksSchedulerAction != SchedulerAction_ResumeCurrentThread {
+        } else if ksSchedulerAction as usize != SchedulerAction_ResumeCurrentThread {
             rescheduleRequired();
             tcbSchedEnqueue(target as *mut tcb_t);
         } else {
-            ksSchedulerAction = target as usize;
+            ksSchedulerAction = target as *mut tcb_t;
         }
     }
 }

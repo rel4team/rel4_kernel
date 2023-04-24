@@ -1,6 +1,5 @@
 use crate::structures::{cap_t, cap_tag_t, endpoint_t, mdb_node_t, notification_t, thread_state_t};
 
-extern crate alloc;
 //CSpace relevant
 use core::default::Default;
 use core::intrinsics::{likely, unlikely};
@@ -45,7 +44,7 @@ pub fn mdb_node_get_mdbNext(mdb_node: &mdb_node_t) -> usize {
     if core::intrinsics::likely(!!(true && (ret & (1usize << 38) != 0))) {
         ret |= 0xffffff8000000000;
     }
-    ret
+    ret| 0xffffff8000000000
 }
 
 #[inline]
@@ -322,7 +321,7 @@ pub fn cap_untyped_cap_get_capPtr(cap: &cap_t) -> usize {
     if likely(!!(true && (ret & (1usize << (38))) != 0)) {
         ret |= 0xffffff8000000000;
     }
-    return ret;
+    ret| 0xffffff8000000000
 }
 
 #[inline]
@@ -558,7 +557,7 @@ pub fn cap_endpoint_cap_get_capEPPtr(cap: &cap_t) -> usize {
     if likely(!!(true && (ret & (1usize << (38))) != 0)) {
         ret |= 0xffffff8000000000;
     }
-    return ret;
+    ret| 0xffffff8000000000
 }
 
 //FIXME::notification relevant cap not implemented
@@ -648,7 +647,7 @@ pub fn cap_cnode_cap_get_capCNodePtr(cap: &cap_t) -> usize {
     if likely(!!(true && (ret & (1usize << (38))) != 0)) {
         ret |= 0xffffff8000000000;
     }
-    return ret;
+    ret| 0xffffff8000000000
 }
 
 #[inline]
@@ -779,7 +778,7 @@ pub fn cap_page_table_cap_new(
         | (capPTIsMapped & 0x1usize) << 39
         | (capPTMappedAddress & 0x7fffffffffusize) >> 0;
     cap.words[1] =
-        0 | (capPTMappedASID & 0xffffusize) << 48 | (capPTBasePtr & 0x7fffffffffusize) << 9;
+        0 | (capPTMappedASID & 0xffffusize) << 48 | (capPTBasePtr & 0x7f_ffff_ffffusize) << 9;
     cap
 }
 
@@ -798,7 +797,7 @@ pub fn cap_page_table_cap_set_capPTMappedASID(cap: &mut cap_t, v64: usize) {
 #[inline]
 pub fn cap_page_table_cap_get_capPTBasePtr(cap: &cap_t) -> usize {
     let ret = (cap.words[1] & 0xfffffffffe00usize) >> 9;
-    ret
+    ret| 0xffffff8000000000
 }
 
 #[inline]
@@ -821,7 +820,7 @@ pub fn cap_page_table_cap_ptr_set_capPTIsMapped(cap: &mut cap_t, v64: usize) {
 #[inline]
 pub fn cap_page_table_cap_get_capPTMappedAddress(cap: &cap_t) -> usize {
     let ret = (cap.words[0] & 0x7fffffffffusize) << 0;
-    ret
+    ret| 0xffffff8000000000
 }
 
 #[inline]
@@ -859,16 +858,14 @@ pub fn cap_frame_cap_get_capFMappedASID(cap: &cap_t) -> usize {
 
 #[inline]
 pub fn cap_frame_cap_set_capFMappedASID(cap: &mut cap_t, v64: usize) {
-    unsafe {
-        cap.words[1] &= !0xffff000000000000usize;
-        cap.words[1] |= (v64 << 48) & 0xffff000000000000usize;
-    }
+    cap.words[1] &= !0xffff000000000000usize;
+    cap.words[1] |= (v64 << 48) & 0xffff000000000000usize;
 }
 
 #[inline]
 pub fn cap_frame_cap_get_capFBasePtr(cap: &cap_t) -> usize {
     let ret = (cap.words[1] & 0xfffffffffe00usize) >> 9;
-    ret
+    ret| 0xffffff8000000000
 }
 
 #[inline]
@@ -898,20 +895,18 @@ pub fn cap_frame_cap_get_capFIsDevice(cap: &cap_t) -> usize {
 #[inline]
 pub fn cap_frame_cap_get_capFMappedAddress(cap: &cap_t) -> usize {
     let ret = (cap.words[0] & 0x7fffffffffusize) << 0;
-    ret
+    ret| 0xffffff8000000000
 }
 #[inline]
 pub fn cap_frame_cap_set_capFMappedAddress(cap: &mut cap_t, v64: usize) {
-    unsafe {
-        cap.words[0] &= !0x7fffffffffusize;
-        cap.words[0] |= (v64 >> 0) & 0x7fffffffffusize;
-    }
+    cap.words[0] &= !0x7fffffffffusize;
+    cap.words[0] |= (v64 >> 0) & 0x7fffffffffusize;
 }
 
 #[inline]
 pub fn pte_ptr_get_ppn(pte_ptr: *const usize) -> usize {
     unsafe {
-        let ret = ((*pte_ptr) & 0x3ffffffffffc00usize) >> 10;
+        let ret = ((*pte_ptr) & 0x3f_ffff_ffff_fc00usize) >> 10;
         ret
     }
 }
@@ -975,7 +970,7 @@ pub fn cap_asid_pool_cap_get_capASIDBase(cap: &cap_t) -> usize {
 #[inline]
 pub fn cap_asid_pool_cap_get_capASIDPool(cap: &cap_t) -> usize {
     let ret = (cap.words[0] & 0x1fffffffffusize) << 2;
-    ret
+    ret| 0xffffff8000000000
 }
 
 #[inline]
@@ -987,7 +982,7 @@ pub fn thread_state_new() -> thread_state_t {
 #[inline]
 pub fn thread_state_get_blockingIPCBadge(thread_state_ptr: &thread_state_t) -> usize {
     let ret = (thread_state_ptr).words[2] & 0xffffffffffffffffusize;
-    ret
+    ret| 0xffffff8000000000
 }
 
 #[inline]
@@ -1092,7 +1087,7 @@ pub fn endpoint_ptr_set_epQueue_head(ptr: &mut endpoint_t, v64: usize) {
 #[inline]
 pub fn endpoint_ptr_get_epQueue_head(ptr: &endpoint_t) -> usize {
     let ret = ((ptr).words[1] & 0xffffffffffffffffusize) >> 0;
-    ret
+    ret| 0xffffff8000000000
 }
 
 #[inline]
@@ -1173,14 +1168,14 @@ pub fn cap_thread_cap_new(capTCBPtr: usize) -> cap_t {
 pub fn cap_thread_cap_get_capTCBPtr(cap: &cap_t) -> usize {
     let ret: usize;
     ret = ((cap).words[0] & 0x7fffffffffusize) << 0;
-    ret
+    ret| 0xffffff8000000000
 }
 
 #[inline]
 pub fn notification_ptr_get_ntfnBoundTCB(notification_ptr: &notification_t) -> usize {
     let ret: usize;
     ret = (notification_ptr).words[3] & 0x7fffffffffusize;
-    ret
+    ret| 0xffffff8000000000
 }
 
 #[inline]
@@ -1206,7 +1201,7 @@ pub fn notification_ptr_set_ntfnMsgIdentifier(ptr: &mut notification_t, v64: usi
 pub fn notification_ptr_get_ntfnQueue_head(notification_ptr: &notification_t) -> usize {
     let ret: usize;
     ret = (notification_ptr).words[1] & 0x7fffffffffusize;
-    ret
+    ret| 0xffffff8000000000
 }
 
 #[inline]
@@ -1219,7 +1214,7 @@ pub fn notification_ptr_set_ntfnQueue_head(ptr: &mut notification_t, v64: usize)
 pub fn notification_ptr_get_ntfnQueue_tail(notification_ptr: &notification_t) -> usize {
     let ret: usize;
     ret = (notification_ptr).words[0] & 0xfffffffffe000000usize;
-    ret
+    ret| 0xffffff8000000000
 }
 
 #[inline]
@@ -1296,7 +1291,7 @@ pub fn cap_notification_cap_set_capNtfnCanSend(cap: &mut cap_t, v64: usize) {
 #[inline]
 pub fn cap_notification_cap_get_capNtfnPtr(cap: &cap_t) -> usize {
     let ret = (cap).words[0] & 0x7fffffffffusize;
-    ret
+    ret| 0xffffff8000000000
 }
 
 #[inline]

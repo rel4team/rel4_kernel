@@ -1,6 +1,8 @@
 extern crate core;
-use core::{arch::asm, mem::size_of};
-
+use core::{
+    arch::asm,
+    mem::{forget, size_of},
+};
 use riscv::register::{stvec, utvec::TrapMode};
 
 use crate::{
@@ -16,12 +18,15 @@ use crate::{
         CONFIG_NUM_DOMAINS, CONFIG_PADDR_USER_DEVICE_TOP, CONFIG_PT_LEVELS,
         CONFIG_ROOT_CNODE_SIZE_BITS, CONFIG_TIME_SLICE, IT_ASID, KERNEL_ELF_BASE, KERNEL_TIMER_IRQ,
         MAX_NUM_FREEMEM_REG, MAX_NUM_RESV_REG, NUM_RESERVED_REGIONS, PADDR_TOP, PAGE_BITS,
-        PPTR_BASE, PPTR_TOP, PT_INDEX_BITS, SEL4_BOOTINFO_HEADER_FDT, SIE_SEIE, SIE_STIE,
-        TCB_OFFSET, USER_TOP,
+        PPTR_BASE, PPTR_TOP, PT_INDEX_BITS, SEL4_BOOTINFO_HEADER_FDT, SEL4_BOOTINFO_HEADER_PADDING,
+        SIE_SEIE, SIE_STIE, TCB_OFFSET, USER_TOP,
     },
-    kernel::vspace::{
-        activate_kernel_vspace, rust_create_it_address_space, rust_map_kernel_window,
-        write_it_asid_pool,
+    kernel::{
+        thread::kernel_stack_alloc,
+        vspace::{
+            activate_kernel_vspace, rust_create_it_address_space, rust_map_kernel_window,
+            write_it_asid_pool,
+        },
     },
     object::{
         cap::cteInsert,
@@ -30,14 +35,15 @@ use crate::{
         structure_gen::{
             cap_asid_cap_new, cap_asid_control_cap_new, cap_cnode_cap_new, cap_domain_cap_new,
             cap_frame_cap_new, cap_irq_control_cap_new, cap_thread_cap_new, cap_untyped_cap_new,
-            mdb_node_set_mdbFirstBadged, mdb_node_set_mdbRevocable,
+            mdb_node_set_mdbFirstBadged, mdb_node_set_mdbRevocable, thread_state_get_tsType,
         },
     },
     println,
     structures::{
-        cap_t, create_frames_of_region_ret_t, cte_t, dschedule_t, exception_t, mdb_node_t,
-        ndks_boot_t, p_region_t, region_t, rootserver_mem_t, seL4_BootInfo, seL4_BootInfoHeader,
-        seL4_IPCBuffer, seL4_SlotPos, seL4_SlotRegion, seL4_UntypedDesc, tcb_t, v_region_t,
+        arch_tcb_t, cap_t, create_frames_of_region_ret_t, cte_t, dschedule_t, exception_t,
+        lookup_fault_t, mdb_node_t, ndks_boot_t, notification_t, p_region_t, region_t,
+        rootserver_mem_t, seL4_BootInfo, seL4_BootInfoHeader, seL4_Fault_t, seL4_IPCBuffer,
+        seL4_SlotPos, seL4_SlotRegion, seL4_UntypedDesc, tcb_t, thread_state_t, v_region_t,
     },
     utils::MAX_FREE_INDEX,
     BIT, IS_ALIGNED, MASK, ROUND_DOWN, ROUND_UP,
@@ -60,26 +66,34 @@ extern "C" {
     fn init_plat();
 }
 
+#[link_section = ".boot.bss"]
 static mut res_reg: [region_t; NUM_RESERVED_REGIONS] =
     [region_t { start: 0, end: 0 }; NUM_RESERVED_REGIONS];
+#[link_section = ".boot.bss"]
 static mut avail_reg: [region_t; MAX_NUM_FREEMEM_REG] =
     [region_t { start: 0, end: 0 }; MAX_NUM_FREEMEM_REG];
+#[link_section = ".boot.bss"]
 static mut avail_p_regs_addr: usize = 0;
+#[link_section = ".boot.bss"]
 static mut avail_p_regs_size: usize = 0;
+#[link_section = ".boot.bss"]
 static mut rootserver_mem: region_t = region_t { start: 0, end: 0 };
+#[link_section = ".boot.bss"]
 static mut ksDomSchedule: [dschedule_t; ksDomScheduleLength] = [dschedule_t {
     domain: 0,
     length: 60,
 }; ksDomScheduleLength];
 
+#[link_section = ".boot.bss"]
 pub static mut ndks_boot: ndks_boot_t = ndks_boot_t {
     reserved: [p_region_t { start: 0, end: 0 }; MAX_NUM_RESV_REG],
-    resv_count: 16,
+    resv_count: 0,
     freemem: [region_t { start: 0, end: 0 }; MAX_NUM_FREEMEM_REG],
     bi_frame: 0 as *mut seL4_BootInfo,
     slot_pos_cur: seL4_NumInitialCaps,
 };
 
+#[link_section = ".boot.bss"]
 pub static mut rootserver: rootserver_mem_t = rootserver_mem_t {
     cnode: 0,
     vspace: 0,
@@ -102,9 +116,7 @@ pub extern "C" fn write_stvec(val: usize) {
 
 #[no_mangle]
 pub extern "C" fn init_cpu() {
-    println!(" prepare enable page table");
     activate_kernel_vspace();
-    println!(" enable page table");
     extern "C" {
         fn trap_entry();
     }
@@ -158,7 +170,7 @@ pub fn pRegsToR(ptr: *const usize, size: usize) {
     unsafe {
         avail_p_regs_addr = ptr as usize;
         avail_p_regs_size = size;
-        println!("{:#x} {:#x}", avail_p_regs_addr, avail_p_regs_size);
+        // println!("{:#x} {:#x}", avail_p_regs_addr, avail_p_regs_size);
     }
 }
 
@@ -198,7 +210,7 @@ pub fn rust_arch_init_freemem(
             avail_p_regs_size,
             avail_p_regs_addr,
             index,
-            &res_reg,
+            res_reg.clone(),
             it_v_reg,
             extra_bi_size_bits,
         )
@@ -211,13 +223,14 @@ pub extern "C" fn check_available_memory(n_available: usize, available: usize) -
         return false;
     }
     println!("available phys memory regions: {:#x}", n_available);
-    let mut last: &p_region_t;
+    let mut last: p_region_t = unsafe { (*(available as *const p_region_t).add(0)).clone() };
     for i in 0..n_available {
-        let r: &p_region_t;
+        let r: p_region_t;
         unsafe {
-            r = &*(n_available as *const p_region_t).add(i);
+            r = (*(available as *const p_region_t).add(i)).clone();
         }
-        last = r;
+        println!(" [{:#x}..{:#x}]", r.start, r.end);
+
         if r.start > r.end {
             println!("ERROR: memory region {} has start > end", i);
             return false;
@@ -230,20 +243,20 @@ pub extern "C" fn check_available_memory(n_available: usize, available: usize) -
         if i > 0 && r.start < last.end {
             println!("ERROR: memory region {} in wrong order", i);
         }
+        last = r.clone();
     }
     return true;
 }
 pub fn check_reserved_memory(
     n_reserved: usize,
-    reserved: &[region_t; NUM_RESERVED_REGIONS],
+    reserved: [region_t; NUM_RESERVED_REGIONS],
 ) -> bool {
     println!("reserved virt address space regions: {}", n_reserved);
-    let mut last: &region_t;
+    let mut last: region_t = reserved[0].clone();
     for i in 0..n_reserved {
-        let r: &region_t;
-        r = &reserved[i];
-        last = r;
-        println!("  [{}..{}]", r.start, r.end);
+        let r: region_t;
+        r = reserved[i].clone();
+        println!("  [{:#x}..{:#x}]", r.start, r.end);
         if r.start > r.end {
             println!("ERROR: reserved region {} has start > end\n", i);
             return false;
@@ -253,6 +266,7 @@ pub fn check_reserved_memory(
             println!("ERROR: reserved region {} in wrong order", i);
             return false;
         }
+        last = r.clone();
     }
     true
 }
@@ -318,7 +332,7 @@ pub fn insert_region(reg: region_t) -> bool {
 pub fn reserve_region(reg: p_region_t) -> bool {
     unsafe {
         assert!(reg.start <= reg.end);
-        if reg.start <= reg.end {
+        if reg.start == reg.end {
             return true;
         }
 
@@ -336,7 +350,7 @@ pub fn reserve_region(reg: p_region_t) -> bool {
             }
             if ndks_boot.reserved[i].start > reg.end {
                 if ndks_boot.resv_count + 1 >= MAX_NUM_RESV_REG {
-                    println!("Can't mark region 0x{}-0x{} as reserved, try increasing MAX_NUM_RESV_REG (currently {})\n",reg.start,reg.end,MAX_NUM_RESV_REG);
+                    println!("Can't mark region {:#x}-{:#x} as reserved, try increasing MAX_NUM_RESV_REG (currently {})\n",reg.start,reg.end,MAX_NUM_RESV_REG);
                     return false;
                 }
                 let mut j = ndks_boot.resv_count;
@@ -480,12 +494,12 @@ pub fn rust_init_freemem(
     n_available: usize,
     available: usize,
     n_reserved: usize,
-    reserved: &[region_t; NUM_RESERVED_REGIONS],
+    reserved: [region_t; NUM_RESERVED_REGIONS],
     it_v_reg: v_region_t,
     extra_bi_size_bits: usize,
 ) -> bool {
     if !check_available_memory(n_available, available)
-        || !check_reserved_memory(n_reserved, reserved)
+        || !check_reserved_memory(n_reserved, reserved.clone())
     {
         return false;
     }
@@ -495,7 +509,7 @@ pub fn rust_init_freemem(
         }
 
         for i in 0..n_available {
-            let ptr = *(available as *mut p_region_t).add(i);
+            let ptr = (*(available as *mut p_region_t).add(i)).clone();
 
             avail_reg[i] = paddr_to_pptr_reg(&ptr);
             avail_reg[i].end = ceiling_kernel_window(avail_reg[i].end);
@@ -578,9 +592,9 @@ pub fn rust_init_freemem(
         let size = calculate_rootserver_size(it_v_reg, extra_bi_size_bits);
         let max = rootserver_max_size_bits(extra_bi_size_bits);
 
-        while i >= 0 {
+        while i >= 0 && i < ndks_boot.freemem.len() {
             /* Invariant: both i and (i + 1) are valid indices in ndks_boot.freemem. */
-            assert!(i < ndks_boot.freemem.len() - 1);
+            assert!(i < (ndks_boot.freemem.len() - 1));
             /* Invariant; the region at index i is the current candidate.
              * Invariant: regions 0 up to (i - 1), if any, are additional candidates.
              * Invariant: region (i + 1) is empty. */
@@ -592,7 +606,7 @@ pub fn rust_init_freemem(
 
             /* if unaligned_start didn't underflow, and start fits in the region,
              * then we've found a region that fits the root server objects. */
-            if unaligned_start >= ndks_boot.freemem[i].end && start >= ndks_boot.freemem[i].start {
+            if unaligned_start <= ndks_boot.freemem[i].end && start >= ndks_boot.freemem[i].start {
                 create_rootserver_objects(start, it_v_reg, extra_bi_size_bits);
                 ndks_boot.freemem[empty_index] = region_t {
                     start: start + size,
@@ -821,7 +835,7 @@ pub fn rust_create_it_asid_pool(root_cnode_cap: &cap_t) -> cap_t {
 pub fn create_idle_thread() {
     unsafe {
         let pptr = ksIdleThreadTCB.as_ptr() as *mut usize;
-        ksIdleThread = pptr.add(TCB_OFFSET) as usize;
+        ksIdleThread = pptr.add(TCB_OFFSET) as *mut tcb_t;
         configureIdleThread(ksIdleThread as *const tcb_t);
     }
 }
@@ -840,7 +854,6 @@ pub fn create_initial_thread(
 
         (*tcb).tcbArch = Arch_initContext((*tcb).tcbArch);
         let ptr = cap_get_capPtr(root_cnode_cap) as *mut cte_t;
-
         let dc_ret = deriveCap(ptr.add(seL4_CapInitThreadIPCBuffer), ipcbuf_cap.clone());
         if dc_ret.status != exception_t::EXCEPTION_NONE {
             println!("Failed to derive copy of IPC Buffer\n");
@@ -866,7 +879,7 @@ pub fn create_initial_thread(
         setRegister(tcb, capRegister, bi_frame_vptr);
         setNextPC(tcb, ui_v_entry);
 
-        (*tcb).tcbPriority = seL4_MaxPrio;
+        (*tcb).tcbMCP = seL4_MaxPrio;
         (*tcb).tcbPriority = seL4_MaxPrio;
         setThreadState(tcb, ThreadStateRunning);
 
@@ -875,13 +888,14 @@ pub fn create_initial_thread(
 
         let cap = cap_thread_cap_new(tcb as usize);
         write_slot(ptr.add(seL4_CapInitThreadTCB), cap);
+        forget(*tcb);
         tcb
     }
 }
 
 pub fn init_core_state(scheduler_action: *mut tcb_t) {
     unsafe {
-        ksSchedulerAction = scheduler_action as usize;
+        ksSchedulerAction = scheduler_action as *mut tcb_t;
         ksCurThread = ksIdleThread;
     }
 }
@@ -956,13 +970,14 @@ pub fn create_untypeds_for_region(
     mut reg: region_t,
     first_untyped_slot: seL4_SlotPos,
 ) -> bool {
+    // println!("{:#x} {:#x}", reg.start, reg.end);
     while !is_reg_empty(&reg) {
         let mut size_bits = seL4_WordBits - 1 - (reg.end - reg.start).leading_zeros() as usize;
         if size_bits > seL4_MaxUntypedBits {
             size_bits = seL4_MaxUntypedBits;
         }
         if reg.start != 0 {
-            let align_bits = reg.start.leading_zeros() as usize;
+            let align_bits = reg.start.trailing_zeros() as usize;
             if size_bits > align_bits {
                 size_bits = align_bits;
             }
@@ -979,20 +994,20 @@ pub fn create_untypeds_for_region(
             }
         }
         reg.start += BIT!(size_bits);
+        // println!("start :{:#x} end:{:#x}",reg.start ,reg.end);
     }
     return true;
 }
 
-pub fn create_untypeds(root_cnode_cap: &cap_t, boot_mem_reuse_reg: region_t) {
+pub fn create_untypeds(root_cnode_cap: &cap_t, boot_mem_reuse_reg: region_t) -> bool {
     unsafe {
         let first_untyped_slot = ndks_boot.slot_pos_cur;
         let mut start = 0;
-        for i in 0..ndks_boot.resv {
+        for i in 0..ndks_boot.resv_count {
             let reg = paddr_to_pptr_reg(&p_region_t {
                 start: start,
                 end: ndks_boot.reserved[i].start,
             });
-
             if !create_untypeds_for_region(root_cnode_cap, true, reg.clone(), first_untyped_slot) {
                 println!(
                     "ERROR: creation of untypeds for device region {} at
@@ -1009,7 +1024,6 @@ pub fn create_untypeds(root_cnode_cap: &cap_t, boot_mem_reuse_reg: region_t) {
                 start: start,
                 end: CONFIG_PADDR_USER_DEVICE_TOP,
             });
-
             if !create_untypeds_for_region(root_cnode_cap, true, reg.clone(), first_untyped_slot) {
                 println!(
                     "ERROR: creation of untypeds for top device region 
@@ -1019,7 +1033,6 @@ pub fn create_untypeds(root_cnode_cap: &cap_t, boot_mem_reuse_reg: region_t) {
                 return false;
             }
         }
-
         if !create_untypeds_for_region(
             root_cnode_cap,
             false,
@@ -1145,41 +1158,55 @@ pub extern "C" fn try_init_kernel(
         return false;
     }
 
-    if !rust_arch_init_freemem(ui_reg, dtb_p_reg, it_v_reg, extra_bi_size_bits) {
+    if !rust_arch_init_freemem(
+        ui_reg.clone(),
+        dtb_p_reg.clone(),
+        it_v_reg.clone(),
+        extra_bi_size_bits,
+    ) {
         println!("ERROR: free memory management initialization failed\n");
         return false;
     }
-
     let root_cnode_cap = create_root_cnode();
     if cap_get_capType(&root_cnode_cap) == cap_null_cap {
         println!("ERROR: root c-node creation failed\n");
         return false;
     }
-
     create_domain_cap(&root_cnode_cap);
-
     init_irqs(&root_cnode_cap);
-
     rust_populate_bi_frame(0, CONFIG_MAX_NUM_NODES, ipcbuf_vptr, extra_bi_size);
     let mut header: seL4_BootInfoHeader = seL4_BootInfoHeader { id: 0, len: 0 };
-
     if dtb_size > 0 {
         header.id = SEL4_BOOTINFO_HEADER_FDT;
         header.len = size_of::<seL4_BootInfoHeader>() + dtb_size;
         unsafe {
-            *((rootserver.extra_bi + extra_bi_offset) as *mut seL4_BootInfoHeader) = header;
+            *((rootserver.extra_bi + extra_bi_offset) as *mut seL4_BootInfoHeader) = header.clone();
+        }
+        extra_bi_offset += size_of::<seL4_BootInfoHeader>();
+        let src = unsafe {
+            core::slice::from_raw_parts(paddr_to_pptr(dtb_phys_addr) as *const u8, dtb_size)
+        };
+        unsafe {
+            let dst = core::slice::from_raw_parts_mut(
+                (rootserver.extra_bi + extra_bi_offset) as *mut u8,
+                dtb_size,
+            );
+            dst.copy_from_slice(src);
         }
     }
-
+    if extra_bi_size > extra_bi_offset {
+        header.id = SEL4_BOOTINFO_HEADER_PADDING;
+        header.len = extra_bi_size - extra_bi_offset;
+        unsafe {
+            *((rootserver.extra_bi + extra_bi_offset) as *mut seL4_BootInfoHeader) = header.clone();
+        }
+    }
     let it_pd_cap = rust_create_it_address_space(&root_cnode_cap, it_v_reg);
-
     if cap_get_capType(&it_pd_cap) == cap_null_cap {
         println!("ERROR: address space creation for initial thread failed");
         return false;
     }
-
     create_bi_frame_cap(&root_cnode_cap, &it_pd_cap, bi_frame_vptr);
-
     if extra_bi_size > 0 {
         let extra_bi_region = unsafe {
             region_t {
@@ -1215,24 +1242,19 @@ pub extern "C" fn try_init_kernel(
         true,
         pv_offset as isize,
     );
-
     if !create_frames_ret.success {
         println!("ERROR: could not create all userland image frames");
         return false;
     }
-
     unsafe {
         (*ndks_boot.bi_frame).userImageFrames = create_frames_ret.region;
     }
-
     let it_ap_cap = rust_create_it_asid_pool(&root_cnode_cap);
     if cap_get_capType(&it_ap_cap) == cap_null_cap {
         println!("ERROR: could not create ASID pool for initial thread");
         return false;
     }
-
     write_it_asid_pool(&it_ap_cap, &it_pd_cap);
-
     create_idle_thread();
 
     let initial = create_initial_thread(
@@ -1243,17 +1265,46 @@ pub extern "C" fn try_init_kernel(
         ipcbuf_vptr,
         ipcbuf_cap,
     );
+    // unsafe{
+    // println!("initial thread: mcp:{} p:{} state:{}",(*initial).tcbMCP,(*initial).tcbPriority,thread_state_get_tsType(&(*initial).tcbState));
+    // }
     if initial as usize == 0 {
         println!("ERROR: could not create initial thread");
         return false;
     }
     init_core_state(initial);
-
     if !create_untypeds(&root_cnode_cap, boot_mem_reuse_reg) {
         println!("ERROR: could not create untypteds for kernel image boot memory")
     }
+
     unsafe {
-        (*ndks_boot.bi_frame).sharedFrames = seL4_SlotPos { start: 0, end: 0 };
+        (*ndks_boot.bi_frame).sharedFrames = seL4_SlotRegion { start: 0, end: 0 };
+        // let tcb = tcb_t {
+        //     tcbArch: arch_tcb_t { registers: [0; 35] },
+        //     tcbState: thread_state_t { words: [1; 3] },
+        //     tcbBoundNotification: 0 as *mut notification_t,
+        //     seL4_Fault: seL4_Fault_t { words: [2; 2] },
+        //     tcbLookupFailure: lookup_fault_t { words: [3; 2] },
+        //     domain: 100,
+        //     tcbMCP: 255,
+        //     tcbPriority: 101,
+        //     tcbTimeSlice: 22,
+        //     tcbFaultHandler: 1,
+        //     tcbIPCBuffer: 2,
+        //     tcbSchedNext: 3,
+        //     tcbSchedPrev: 4,
+        //     tcbEPNext: 5,
+        //     tcbEPPrev: 6,
+        // };
+        // for i in 0..size_of::<tcb_t>() {
+        //     let ptr = (ksSchedulerAction as *mut u8).add(i);
+        //     println!("{} :{}", i, *ptr);
+        // }
+
+        // ksSchedulerAction = &tcb as *const tcb_t as *mut tcb_t;
+        // forget(tcb);
+        forget(*initial);
+        forget(*ksSchedulerAction);
     }
     println!("Booting all finished, dropped to user space");
     true

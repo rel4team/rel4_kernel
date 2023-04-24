@@ -24,7 +24,6 @@ use crate::sbi::shutdown;
 
 mod config;
 mod console;
-mod heap_alloc;
 mod lang_items;
 mod sbi;
 mod utils;
@@ -32,7 +31,6 @@ mod kernel;
 mod structures;
 mod object;
 
-extern crate alloc;
 
 struct Stdout;
 
@@ -54,23 +52,19 @@ pub fn print(args: fmt::Arguments) {
 pub extern "C" fn idle_thread() {
     while true {
         unsafe {
-            println!("[idle_thread] hello from rust");
             asm!("wfi");
-            println!("[idle_thread] hello from rust");
         }
     }
 }
 
 #[no_mangle]
 pub extern "C" fn halt() {
-    println!("[halt] hello from rust");
     shutdown()
 }
 
 #[no_mangle]
 pub extern "C" fn strnlen(str: *const u8, _max_len: usize) -> usize {
     unsafe {
-        println!("[strnlen] hello from rust");
         let mut c = str;
         let mut ans = 0;
         while (*c) != 0 {

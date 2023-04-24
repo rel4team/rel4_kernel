@@ -3,23 +3,31 @@ use riscv::register::satp;
 
 use crate::{
     config::{
-        asidHighBits, seL4_CapInitThreadVspace, seL4_PageBits, seL4_PageTableBits,
-        CONFIG_PT_LEVELS, IT_ASID, KERNEL_ELF_BASE, KERNEL_ELF_BASE_OFFSET, KERNEL_ELF_PADDR_BASE,
-        PADDR_BASE, PPTR_BASE, PPTR_BASE_OFFSET, PPTR_TOP, PT_INDEX_BITS, RISCVMegaPageBits, RISCVPageBits,  asidLowBits, tcbVTable, RISCVGigaPageBits,
+        asidHighBits, asidLowBits, seL4_CapInitThreadVspace, seL4_PageBits, seL4_PageTableBits,
+        tcbVTable, RISCVGigaPageBits, RISCVMegaPageBits, RISCVPageBits, CONFIG_PT_LEVELS, IT_ASID,
+        KERNEL_ELF_BASE, KERNEL_ELF_BASE_OFFSET, KERNEL_ELF_PADDR_BASE, PADDR_BASE, PPTR_BASE,
+        PPTR_BASE_OFFSET, PPTR_TOP, PT_INDEX_BITS,
     },
     object::{
         objecttype::{cap_get_capPtr, cap_get_capType, cap_page_table_cap},
         structure_gen::{
-            cap_null_cap_new, cap_page_table_cap_get_capPTMappedAddress, cap_page_table_cap_new,
-            pte_ptr_get_execute, pte_ptr_get_ppn, pte_ptr_get_read, pte_ptr_get_valid,
-            pte_ptr_get_write, cap_frame_cap_new, cap_frame_cap_get_capFMappedAddress, cap_page_table_cap_get_capPTBasePtr, cap_page_table_cap_get_capPTMappedASID,
+            cap_frame_cap_get_capFMappedAddress, cap_frame_cap_new, cap_null_cap_new,
+            cap_page_table_cap_get_capPTBasePtr, cap_page_table_cap_get_capPTMappedASID,
+            cap_page_table_cap_get_capPTMappedAddress, cap_page_table_cap_new, pte_ptr_get_execute,
+            pte_ptr_get_ppn, pte_ptr_get_read, pte_ptr_get_valid, pte_ptr_get_write,
         },
     },
-    structures::{asid_pool_t, cap_t, cte_t, lookupPTSlot_ret_t, satp_t, v_region_t, seL4_SlotRegion, tcb_t},
+    println,
+    structures::{
+        asid_pool_t, cap_t, cte_t, lookupPTSlot_ret_t, satp_t, seL4_SlotRegion, tcb_t, v_region_t,
+    },
     BIT, MASK, ROUND_DOWN,
 };
 
-use super::{boot::{it_alloc_paging, provide_cap, ndks_boot, write_slot, rootserver}, thread::getCSpace};
+use super::{
+    boot::{it_alloc_paging, ndks_boot, provide_cap, rootserver, write_slot},
+    thread::getCSpace,
+};
 
 pub type pptr_t = usize;
 pub type paddr_t = usize;
@@ -76,7 +84,6 @@ pub unsafe fn sfence() {
 #[no_mangle]
 pub fn setVSpaceRoot(addr: paddr_t, asid: usize) {
     let satp = satp_new(8usize, asid, addr >> 12);
-    // println!("in setVSpaceRoot addr:{:#x}",addr);
     unsafe {
         satp::write(satp.words);
         sfence();
@@ -225,10 +232,15 @@ pub fn lookupPTSlot(lvl1pt: usize, vptr: vptr_t) -> lookupPTSlot_ret_t {
     while isPTEPageTable(ret.ptSlot) && level > 0 {
         level -= 1;
         ret.ptBitsLeft -= PT_INDEX_BITS;
-        pt = pte_ptr_get_ppn(ret.ptSlot as *const usize) << seL4_PageTableBits;
+        pt = getPPtrFromHWPTE(ret.ptSlot);
         ret.ptSlot = pt + ((vptr >> ret.ptBitsLeft) & MASK!(PT_INDEX_BITS)) * 8;
     }
     ret
+}
+
+#[inline]
+pub fn getPPtrFromHWPTE(pte: usize) -> usize {
+    paddr_to_pptr(pte_ptr_get_ppn(pte as *const usize) << seL4_PageTableBits)
 }
 
 pub fn map_it_pt_cap(_vspace_cap: &cap_t, _pt_cap: &cap_t) {
@@ -239,7 +251,7 @@ pub fn map_it_pt_cap(_vspace_cap: &cap_t, _pt_cap: &cap_t) {
     let targetSlot = pt_ret.ptSlot as *mut usize;
     unsafe {
         *targetSlot = pte_new(
-            pt >> seL4_PageBits,
+            pptr_to_paddr(pt) >> seL4_PageBits,
             0, /* sw */
             0, /* dirty (reserved non-leaf) */
             0, /* accessed (reserved non-leaf) */
@@ -269,7 +281,7 @@ pub fn map_it_frame_cap(_vspace_cap: &cap_t, _frame_cap: &cap_t) {
     let targetSlot = pt_ret.ptSlot as *mut usize;
     unsafe {
         *targetSlot = pte_new(
-            pptr_to_paddr(frame_pptr >> seL4_PageBits),
+            pptr_to_paddr(frame_pptr) >> seL4_PageBits,
             0, /* sw */
             1, /* dirty (reserved non-leaf) */
             1, /* accessed (reserved non-leaf) */
@@ -284,16 +296,13 @@ pub fn map_it_frame_cap(_vspace_cap: &cap_t, _frame_cap: &cap_t) {
     }
 }
 
-pub fn rust_create_it_address_space(
-    root_cnode_cap: &cap_t,
-    it_v_reg: v_region_t,
-) -> cap_t {
+pub fn rust_create_it_address_space(root_cnode_cap: &cap_t, it_v_reg: v_region_t) -> cap_t {
     unsafe {
         copyGlobalMappings(rootserver.vspace);
         let lvl1pt_cap = cap_page_table_cap_new(IT_ASID, rootserver.vspace, 1, rootserver.vspace);
+        let ret = cap_page_table_cap_get_capPTMappedAddress(&lvl1pt_cap);
         let ptr = cap_get_capPtr(root_cnode_cap) as *mut cte_t;
-
-        let slot_pos_before=ndks_boot.slot_pos_cur;
+        let slot_pos_before = ndks_boot.slot_pos_cur;
         write_slot(ptr.add(seL4_CapInitThreadVspace), lvl1pt_cap.clone());
         let mut i = 0;
         while i < CONFIG_PT_LEVELS - 1 {
@@ -310,11 +319,13 @@ pub fn rust_create_it_address_space(
             i += 1;
         }
         let slot_pos_after = ndks_boot.slot_pos_cur;
-        (*ndks_boot.bi_frame).userImagePaging=seL4_SlotRegion{start:slot_pos_before,end:slot_pos_after};
+        (*ndks_boot.bi_frame).userImagePaging = seL4_SlotRegion {
+            start: slot_pos_before,
+            end: slot_pos_after,
+        };
         lvl1pt_cap
     }
 }
-
 
 pub fn rust_create_unmapped_it_frame_cap(pptr: pptr_t, _use_large: bool) -> cap_t {
     cap_frame_cap_new(0, pptr, 0, 0, 0, 0)
@@ -329,7 +340,6 @@ pub fn write_it_asid_pool(it_ap_cap: &cap_t, it_lvl1pt_cap: &cap_t) {
     }
 }
 
-
 pub fn setVMRoot(thread: *mut tcb_t) {
     unsafe {
         let threadRoot = &(*getCSpace(thread as usize, tcbVTable)).cap;
@@ -339,7 +349,7 @@ pub fn setVMRoot(thread: *mut tcb_t) {
         }
         let lvl1pt = cap_page_table_cap_get_capPTBasePtr(threadRoot);
         let asid = cap_page_table_cap_get_capPTMappedASID(threadRoot);
-        setVSpaceRoot(lvl1pt, asid);
+        setVSpaceRoot(pptr_to_paddr(lvl1pt), asid);
     }
 }
 

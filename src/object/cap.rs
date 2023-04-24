@@ -1,4 +1,7 @@
-use crate::structures::{cap_t, cap_tag_t, cte_t, exception_t};
+use crate::{
+    println,
+    structures::{cap_t, cap_tag_t, cte_t, exception_t},
+};
 
 use super::{
     objecttype::{cap_get_capType, isCapRevocable, sameRegionAs},
@@ -6,9 +9,12 @@ use super::{
         cap_endpoint_cap_get_capEPBadge, cap_get_max_free_index, cap_untyped_cap_get_capBlockSize,
         cap_untyped_cap_get_capPtr, cap_untyped_cap_ptr_set_capFreeIndex,
         mdb_node_get_mdbFirstBadged, mdb_node_get_mdbNext, mdb_node_get_mdbRevocable,
-        mdb_node_set_mdbFirstBadged, mdb_node_set_mdbPrev, mdb_node_set_mdbRevocable, mdb_node_ptr_set_mdbNext, mdb_node_ptr_set_mdbPrev,
+        mdb_node_ptr_set_mdbNext, mdb_node_ptr_set_mdbPrev, mdb_node_set_mdbFirstBadged,
+        mdb_node_set_mdbPrev, mdb_node_set_mdbRevocable,
     },
 };
+
+const null:usize=0xffffff8000000000;
 
 pub fn ensureNoChildren(slot: *const cte_t) -> exception_t {
     unsafe {
@@ -76,14 +82,12 @@ pub fn cteInsert(newCap: &cap_t, _srcSlot: *mut cte_t, _destSlot: *mut cte_t) {
         setUntypedCapAsFull(srcCap, newCap, _srcSlot);
         (*(_destSlot as *mut cte_t)).cap = newCap.clone();
         (*(_destSlot as *mut cte_t)).cteMDBNode = newMDB;
-
         mdb_node_ptr_set_mdbNext(&mut (*srcSlot).cteMDBNode, _destSlot as usize);
-        if mdb_node_get_mdbNext(&newMDB) != 0 {
+        if mdb_node_get_mdbNext(&newMDB) != null {
+            
             let cte_ptr = mdb_node_get_mdbNext(&newMDB) as *mut cte_t;
-            mdb_node_ptr_set_mdbPrev(
-                &mut (*cte_ptr).cteMDBNode ,
-                _destSlot as usize,
-            );
+            println!("{:#x}",cte_ptr as usize);
+            mdb_node_ptr_set_mdbPrev(&mut (*cte_ptr).cteMDBNode, _destSlot as usize);
         }
     }
 }
