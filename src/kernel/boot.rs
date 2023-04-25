@@ -64,18 +64,24 @@ use super::{
 #[link(name = "kernel_all.c")]
 extern "C" {
     fn init_plat();
+    fn tcbDebugAppend(action: *mut tcb_t);
 }
 
 #[link_section = ".boot.bss"]
 static mut res_reg: [region_t; NUM_RESERVED_REGIONS] =
     [region_t { start: 0, end: 0 }; NUM_RESERVED_REGIONS];
+
 #[link_section = ".boot.bss"]
 static mut avail_reg: [region_t; MAX_NUM_FREEMEM_REG] =
     [region_t { start: 0, end: 0 }; MAX_NUM_FREEMEM_REG];
+
 #[link_section = ".boot.bss"]
 static mut avail_p_regs_addr: usize = 0;
+
 #[link_section = ".boot.bss"]
 static mut avail_p_regs_size: usize = 0;
+
+#[no_mangle]
 #[link_section = ".boot.bss"]
 static mut rootserver_mem: region_t = region_t { start: 0, end: 0 };
 #[link_section = ".boot.bss"]
@@ -84,6 +90,7 @@ static mut ksDomSchedule: [dschedule_t; ksDomScheduleLength] = [dschedule_t {
     length: 60,
 }; ksDomScheduleLength];
 
+#[no_mangle]
 #[link_section = ".boot.bss"]
 pub static mut ndks_boot: ndks_boot_t = ndks_boot_t {
     reserved: [p_region_t { start: 0, end: 0 }; MAX_NUM_RESV_REG],
@@ -93,6 +100,7 @@ pub static mut ndks_boot: ndks_boot_t = ndks_boot_t {
     slot_pos_cur: seL4_NumInitialCaps,
 };
 
+#[no_mangle]
 #[link_section = ".boot.bss"]
 pub static mut rootserver: rootserver_mem_t = rootserver_mem_t {
     cnode: 0,
@@ -634,6 +642,7 @@ pub fn write_slot(ptr: *mut cte_t, cap: cap_t) {
 
         (*ptr).cteMDBNode = mdb_node_set_mdbRevocable((*ptr).cteMDBNode, 1);
         (*ptr).cteMDBNode = mdb_node_set_mdbFirstBadged((*ptr).cteMDBNode, 1);
+        forget(*ptr);
     }
 }
 
@@ -860,17 +869,17 @@ pub fn create_initial_thread(
             return 0 as *mut tcb_t;
         }
         cteInsert(
-            root_cnode_cap,
+            root_cnode_cap.clone(),
             ptr.add(seL4_CapInitThreadCNode),
             getCSpace(rootserver.tcb, tcbCTable),
         );
         cteInsert(
-            it_pd_cap,
+            it_pd_cap.clone(),
             ptr.add(seL4_CapInitThreadVspace),
             getCSpace(rootserver.tcb, tcbVTable),
         );
         cteInsert(
-            &dc_ret.cap,
+            dc_ret.cap.clone(),
             ptr.add(seL4_CapInitThreadIPCBuffer),
             getCSpace(rootserver.tcb, tcbBuffer),
         );
@@ -895,8 +904,14 @@ pub fn create_initial_thread(
 
 pub fn init_core_state(scheduler_action: *mut tcb_t) {
     unsafe {
+        if scheduler_action as usize != 0 && scheduler_action as usize != 1 {
+            tcbDebugAppend(scheduler_action);
+        }
+        tcbDebugAppend(ksIdleThread);
         ksSchedulerAction = scheduler_action as *mut tcb_t;
         ksCurThread = ksIdleThread;
+
+        println!("ksSchedulerAction :{}",ksSchedulerAction as usize);
     }
 }
 
@@ -1265,9 +1280,7 @@ pub extern "C" fn try_init_kernel(
         ipcbuf_vptr,
         ipcbuf_cap,
     );
-    // unsafe{
-    // println!("initial thread: mcp:{} p:{} state:{}",(*initial).tcbMCP,(*initial).tcbPriority,thread_state_get_tsType(&(*initial).tcbState));
-    // }
+    forget(it_pd_cap);
     if initial as usize == 0 {
         println!("ERROR: could not create initial thread");
         return false;
@@ -1279,33 +1292,21 @@ pub extern "C" fn try_init_kernel(
 
     unsafe {
         (*ndks_boot.bi_frame).sharedFrames = seL4_SlotRegion { start: 0, end: 0 };
-        // let tcb = tcb_t {
-        //     tcbArch: arch_tcb_t { registers: [0; 35] },
-        //     tcbState: thread_state_t { words: [1; 3] },
-        //     tcbBoundNotification: 0 as *mut notification_t,
-        //     seL4_Fault: seL4_Fault_t { words: [2; 2] },
-        //     tcbLookupFailure: lookup_fault_t { words: [3; 2] },
-        //     domain: 100,
-        //     tcbMCP: 255,
-        //     tcbPriority: 101,
-        //     tcbTimeSlice: 22,
-        //     tcbFaultHandler: 1,
-        //     tcbIPCBuffer: 2,
-        //     tcbSchedNext: 3,
-        //     tcbSchedPrev: 4,
-        //     tcbEPNext: 5,
-        //     tcbEPPrev: 6,
-        // };
-        // for i in 0..size_of::<tcb_t>() {
-        //     let ptr = (ksSchedulerAction as *mut u8).add(i);
-        //     println!("{} :{}", i, *ptr);
-        // }
-
-        // ksSchedulerAction = &tcb as *const tcb_t as *mut tcb_t;
-        // forget(tcb);
         forget(*initial);
         forget(*ksSchedulerAction);
+        let arr = core::slice::from_raw_parts_mut(
+            rootserver_mem.start as *mut u8,
+            rootserver_mem.end - rootserver_mem.start,
+        );
+        forget(arr);
+        for i in rootserver_mem.start..rootserver_mem.end {
+            let ptr = *(i as *mut u8);
+            forget(ptr);
+        }
+        let ptr = *getCSpace(rootserver.tcb, tcbVTable);
+        forget(ptr);
     }
+
     println!("Booting all finished, dropped to user space");
     true
 }

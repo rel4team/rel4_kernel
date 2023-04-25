@@ -134,10 +134,13 @@ pub struct rootserver_mem_t {
     pub paging: region_t,
 }
 
+#[repr(C)]
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct thread_state_t {
     pub words: [usize; 3],
 }
+
+#[repr(C)]
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct cap_t {
     pub words: [usize; 2],
@@ -148,6 +151,8 @@ impl Default for cap_t {
         cap_t { words: [0; 2] }
     }
 }
+
+#[repr(C)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct mdb_node_t {
     pub words: [usize; 2],
@@ -158,6 +163,8 @@ impl Default for mdb_node_t {
         mdb_node_t { words: [0; 2] }
     }
 }
+
+#[repr(C)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct cte_t {
     pub cap: cap_t,

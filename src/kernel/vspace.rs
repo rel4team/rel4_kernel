@@ -42,12 +42,16 @@ pub fn hwASIDFlush(asid: asid_t) {
     }
 }
 
+#[no_mangle]
 #[link_section = ".page_table"]
 static mut kernel_root_pageTable: [pte_t; BIT!(PT_INDEX_BITS)] = [0; BIT!(PT_INDEX_BITS)];
 
+#[no_mangle]
 #[link_section = ".page_table"]
 static mut kernel_image_level2_pt: [pte_t; BIT!(PT_INDEX_BITS)] = [0; BIT!(PT_INDEX_BITS)];
 
+
+#[no_mangle]
 static mut riscvKSASIDTable: [*mut asid_pool_t; BIT!(asidHighBits)] =
     [0 as *mut asid_pool_t; BIT!(asidHighBits)];
 

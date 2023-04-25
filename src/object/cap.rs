@@ -1,3 +1,5 @@
+use core::mem::forget;
+
 use crate::{
     println,
     structures::{cap_t, cap_tag_t, cte_t, exception_t},
@@ -69,17 +71,17 @@ fn setUntypedCapAsFull(_srcCap: &cap_t, _newCap: &cap_t, _srcSlot: *mut cte_t) {
     }
 }
 
-pub fn cteInsert(newCap: &cap_t, _srcSlot: *mut cte_t, _destSlot: *mut cte_t) {
+pub fn cteInsert(newCap: cap_t, _srcSlot: *mut cte_t, _destSlot: *mut cte_t) {
     unsafe {
         let srcSlot = _srcSlot as *mut cte_t;
         let srcMDB = (*srcSlot).cteMDBNode;
         let srcCap = &(*srcSlot).cap;
         let mut newMDB = srcMDB.clone();
-        let newCapIsRevocable: bool = isCapRevocable(newCap, srcCap);
+        let newCapIsRevocable: bool = isCapRevocable(&newCap, srcCap);
         mdb_node_set_mdbPrev(&mut newMDB, _srcSlot as usize);
         mdb_node_set_mdbRevocable(newMDB, newCapIsRevocable as usize);
         mdb_node_set_mdbFirstBadged(newMDB, newCapIsRevocable as usize);
-        setUntypedCapAsFull(srcCap, newCap, _srcSlot);
+        setUntypedCapAsFull(srcCap, &newCap, _srcSlot);
         (*(_destSlot as *mut cte_t)).cap = newCap.clone();
         (*(_destSlot as *mut cte_t)).cteMDBNode = newMDB;
         mdb_node_ptr_set_mdbNext(&mut (*srcSlot).cteMDBNode, _destSlot as usize);
@@ -89,5 +91,6 @@ pub fn cteInsert(newCap: &cap_t, _srcSlot: *mut cte_t, _destSlot: *mut cte_t) {
             println!("{:#x}",cte_ptr as usize);
             mdb_node_ptr_set_mdbPrev(&mut (*cte_ptr).cteMDBNode, _destSlot as usize);
         }
+        forget(*_destSlot);
     }
 }
