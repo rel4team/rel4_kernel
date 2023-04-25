@@ -19,10 +19,9 @@ use crate::{
         CONFIG_ROOT_CNODE_SIZE_BITS, CONFIG_TIME_SLICE, IT_ASID, KERNEL_ELF_BASE, KERNEL_TIMER_IRQ,
         MAX_NUM_FREEMEM_REG, MAX_NUM_RESV_REG, NUM_RESERVED_REGIONS, PADDR_TOP, PAGE_BITS,
         PPTR_BASE, PPTR_TOP, PT_INDEX_BITS, SEL4_BOOTINFO_HEADER_FDT, SEL4_BOOTINFO_HEADER_PADDING,
-        SIE_SEIE, SIE_STIE, TCB_OFFSET, USER_TOP,
+        SIE_SEIE, SIE_STIE, TCB_OFFSET, USER_TOP, RESET_CYCLES,
     },
     kernel::{
-        thread::kernel_stack_alloc,
         vspace::{
             activate_kernel_vspace, rust_create_it_address_space, rust_map_kernel_window,
             write_it_asid_pool,
@@ -46,7 +45,7 @@ use crate::{
         seL4_SlotPos, seL4_SlotRegion, seL4_UntypedDesc, tcb_t, thread_state_t, v_region_t,
     },
     utils::MAX_FREE_INDEX,
-    BIT, IS_ALIGNED, MASK, ROUND_DOWN, ROUND_UP,
+    BIT, IS_ALIGNED, MASK, ROUND_DOWN, ROUND_UP, sbi::{set_timer, get_time},
 };
 
 use super::{
@@ -122,6 +121,11 @@ pub extern "C" fn write_stvec(val: usize) {
     }
 }
 
+pub extern "C" fn initTimer(){
+    set_timer(get_time()+RESET_CYCLES);
+}
+
+
 #[no_mangle]
 pub extern "C" fn init_cpu() {
     activate_kernel_vspace();
@@ -132,6 +136,7 @@ pub extern "C" fn init_cpu() {
         stvec::write(trap_entry as usize, TrapMode::Direct);
     }
     set_sie_mask(BIT!(SIE_SEIE) | BIT!(SIE_STIE));
+    initTimer();
 }
 
 #[no_mangle]
@@ -682,6 +687,7 @@ pub fn clearMemory(ptr: *mut u8, bits: usize) {
     }
 }
 
+#[no_mangle]
 pub fn rust_populate_bi_frame(
     node_id: usize,
     num_nodes: usize,
@@ -696,7 +702,7 @@ pub fn rust_populate_bi_frame(
                 calculate_extra_bi_size_bits(extra_bi_size),
             );
         }
-        let mut bi = *(rootserver.boot_info as *mut seL4_BootInfo);
+        let bi =&mut *(rootserver.boot_info as *mut seL4_BootInfo);
         bi.nodeID = node_id;
         bi.numNodes = num_nodes;
         bi.numIOPTLevels = 0;
@@ -705,8 +711,10 @@ pub fn rust_populate_bi_frame(
         bi.initThreadDomain = ksDomSchedule[ksDomScheduleIdx].domain;
         bi.extraLen = extra_bi_size;
 
-        ndks_boot.bi_frame = (&bi) as *const seL4_BootInfo as *mut seL4_BootInfo;
+        ndks_boot.bi_frame = bi as *const seL4_BootInfo as *mut seL4_BootInfo;
         ndks_boot.slot_pos_cur = seL4_NumInitialCaps;
+
+        forget(bi);
     }
 }
 
@@ -862,6 +870,7 @@ pub fn create_initial_thread(
         (*tcb).tcbTimeSlice = CONFIG_TIME_SLICE;
 
         (*tcb).tcbArch = Arch_initContext((*tcb).tcbArch);
+
         let ptr = cap_get_capPtr(root_cnode_cap) as *mut cte_t;
         let dc_ret = deriveCap(ptr.add(seL4_CapInitThreadIPCBuffer), ipcbuf_cap.clone());
         if dc_ret.status != exception_t::EXCEPTION_NONE {
@@ -910,8 +919,6 @@ pub fn init_core_state(scheduler_action: *mut tcb_t) {
         tcbDebugAppend(ksIdleThread);
         ksSchedulerAction = scheduler_action as *mut tcb_t;
         ksCurThread = ksIdleThread;
-
-        println!("ksSchedulerAction :{}",ksSchedulerAction as usize);
     }
 }
 
@@ -1091,7 +1098,7 @@ pub fn bi_finalise() {
 }
 
 #[no_mangle]
-pub extern "C" fn try_init_kernel(
+pub extern "C" fn rust_try_init_kernel(
     ui_p_reg_start: usize,
     ui_p_reg_end: usize,
     pv_offset: isize,
@@ -1127,11 +1134,12 @@ pub extern "C" fn try_init_kernel(
     let extra_bi_frame_vptr = bi_frame_vptr + BIT!(BI_FRAME_SIZE_BITS);
     rust_map_kernel_window();
     init_cpu();
-    println!("Bootstrapping kernel\n");
+    // println!("Bootstrapping kernel\n");
 
     unsafe {
         init_plat();
     }
+
     let mut dtb_p_reg = p_region_t { start: 0, end: 0 };
     if dtb_size > 0 {
         let dtb_phys_end = dtb_phys_addr + dtb_size;
@@ -1172,7 +1180,6 @@ pub extern "C" fn try_init_kernel(
         );
         return false;
     }
-
     if !rust_arch_init_freemem(
         ui_reg.clone(),
         dtb_p_reg.clone(),
@@ -1292,6 +1299,9 @@ pub extern "C" fn try_init_kernel(
 
     unsafe {
         (*ndks_boot.bi_frame).sharedFrames = seL4_SlotRegion { start: 0, end: 0 };
+
+        bi_finalise();
+
         forget(*initial);
         forget(*ksSchedulerAction);
         let arr = core::slice::from_raw_parts_mut(
@@ -1305,9 +1315,20 @@ pub extern "C" fn try_init_kernel(
         }
         let ptr = *getCSpace(rootserver.tcb, tcbVTable);
         forget(ptr);
-    }
 
+        let cptr = *getCSpace(rootserver.tcb, tcbCTable);
+        forget(cptr);
+        let bptr = *getCSpace(rootserver.tcb, tcbBuffer);
+        forget(bptr);   
+        forget(ksIdleThreadTCB);
+
+        println!("idle thread:{:#x}",ksIdleThreadTCB.as_ptr() as usize);
+
+        println!("initial thread :{:#x}",initial as usize);
+    }
+    
     println!("Booting all finished, dropped to user space");
+    println!("\n");
     true
 }
 

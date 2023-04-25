@@ -23,7 +23,7 @@ pub const PADDR_BASE: usize = 0x0;
 pub const PT_INDEX_BITS: usize = 9;
 pub const PT_OFFSET_BITS: usize = 12;
 pub const CONFIG_PT_LEVELS: usize = 3;
-pub const CONFIG_TIME_SLICE:usize =5;
+pub const CONFIG_TIME_SLICE: usize = 5;
 pub const seL4_PageBits: usize = 12;
 pub const PAGE_BITS: usize = seL4_PageBits;
 pub const PPTR_TOP: usize = 0xFFFFFFFF80000000;
@@ -60,11 +60,11 @@ pub const TCB_SIZE_BITS: usize = seL4_TCBBits - 1;
 pub const TCB_OFFSET: usize = BIT!(TCB_SIZE_BITS);
 
 pub const SSTATUS_SPIE: usize = 0x00000020;
-pub const SSTATUS_SPP: usize = 0x00000010;
+pub const SSTATUS_SPP: usize = 0x00000100;
 pub const CONFIG_KERNEL_STACK_BITS: usize = 12;
 
 //FIXME:this constant is generated , maybe need to transfer from C code
-pub const CONFIG_PADDR_USER_DEVICE_TOP:usize=549755813888;
+pub const CONFIG_PADDR_USER_DEVICE_TOP: usize = 549755813888;
 
 pub const ksDomScheduleLength: usize = 1;
 
@@ -222,7 +222,6 @@ pub const VMKernelOnly: usize = 1;
 pub const VMReadOnly: usize = 2;
 pub const VMReadWrite: usize = 3;
 
-
 //thread state
 pub const ThreadStateInactive: usize = 0;
 pub const ThreadStateRunning: usize = 1;
@@ -234,5 +233,8 @@ pub const ThreadStateBlockedOnNotification: usize = 6;
 pub const ThreadStateIdleThreadState: usize = 7;
 pub const ThreadStateExited: usize = 8;
 
+pub const seL4_MaxPrio: usize = 255;
 
-pub const seL4_MaxPrio:usize=255;
+pub const TIMER_CLOCK_HZ: usize = 10000000;
+pub const MS_IN_S: usize = 1000;
+pub const RESET_CYCLES: usize = TIMER_CLOCK_HZ / MS_IN_S * 2;

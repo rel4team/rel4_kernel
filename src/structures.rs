@@ -241,24 +241,32 @@ impl Default for finaliseCap_ret {
     }
 }
 
+#[repr(C)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct endpoint_t {
     pub words: [usize; 2],
 }
 
+#[repr(C)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct create_frames_of_region_ret_t {
     pub region: seL4_SlotRegion,
     pub success: bool,
 }
 
+#[repr(C)]
 #[derive(Clone, Copy)]
 pub struct arch_tcb_t {
     pub registers: [usize; n_contextRegisters],
 }
+
+#[repr(C)]
 #[derive(Copy,Clone)]
 pub struct seL4_Fault_t {
     pub words: [usize; 2],
 }
+
+#[repr(C)]
 #[derive(Copy,Clone)]
 pub struct lookup_fault_t {
     pub words: [usize; 2],
