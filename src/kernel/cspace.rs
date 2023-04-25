@@ -1,4 +1,4 @@
-use core::intrinsics::{likely, unlikely};
+use core::{intrinsics::{likely, unlikely}, mem::{forget, size_of}};
 
 use crate::{
     config::{seL4_FailedLookup, seL4_RangeError, tcbCTable, wordBits, wordRadix},
@@ -49,10 +49,11 @@ pub extern "C" fn lookupSlot(thread: *const tcb_t, capptr: usize) -> lookupSlot_
 }
 
 #[no_mangle]
-pub extern "C" fn rust_lookupCapAndSlot(
+pub extern "C" fn lookupCapAndSlot(
     thread: *const tcb_t,
     cPtr: usize,
 ) -> lookupCapAndSlot_ret_t {
+
     let lu_ret = lookupSlot(thread, cPtr);
     if lu_ret.status != exception_t::EXCEPTION_NONE {
         let ret = lookupCapAndSlot_ret_t {
@@ -66,8 +67,11 @@ pub extern "C" fn rust_lookupCapAndSlot(
         let ret = lookupCapAndSlot_ret_t {
             status: exception_t::EXCEPTION_NONE,
             slot: lu_ret.slot,
-            cap: (*lu_ret.slot).cap,
+            cap: (*lu_ret.slot).cap.clone(),
         };
+        // ffffffff8405d2f0
+        // println!("{:#x}",ret.slot as usize);
+        // println!("{:#x} {:#x} {:#x} {:#x}",ret.status as usize,ret.slot as usize ,ret.cap.words[0],ret.cap.words[1]);
         ret
     }
 }
@@ -79,10 +83,6 @@ pub extern "C" fn rust_resolveAddressBits(
     _n_bits: usize,
 ) -> resolveAddressBits_ret_t {
     unsafe {
-        // println!(
-        //     "{} {} {} {}",
-        //     _nodeCap.words[0], _nodeCap.words[1], capptr, _n_bits
-        // );
         let mut ret = resolveAddressBits_ret_t::default();
         let mut n_bits = _n_bits;
         ret.bitsRemaining = n_bits;
@@ -200,7 +200,7 @@ pub fn rust_lookupSlotForCNodeOp(
 }
 
 #[no_mangle]
-pub extern "C" fn rust_lookupCap(thread: *const tcb_t, cPtr: usize) -> lookupCap_ret_t {
+pub extern "C" fn lookupCap(thread: *const tcb_t, cPtr: usize) -> lookupCap_ret_t {
     let lu_ret = lookupSlot(thread, cPtr);
     if lu_ret.status != exception_t::EXCEPTION_NONE {
         return lookupCap_ret_t {

@@ -14,6 +14,7 @@ pub enum exception_t {
     EXCEPTION_LOOKUP_FAULT,
     EXCEPTION_SYSCALL_ERROR,
     EXCEPTION_PREEMTED,
+    padding=isize::MAX-1,
 }
 
 pub struct satp_t {
@@ -350,6 +351,7 @@ pub struct lookupCapAndSlot_ret_t {
     pub status: exception_t,
     pub cap: cap_t,
     pub slot: *const cte_t,
+    
 }
 
 impl Default for lookupCapAndSlot_ret_t {
