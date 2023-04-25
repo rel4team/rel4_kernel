@@ -238,3 +238,22 @@ pub const seL4_MaxPrio: usize = 255;
 pub const TIMER_CLOCK_HZ: usize = 10000000;
 pub const MS_IN_S: usize = 1000;
 pub const RESET_CYCLES: usize = TIMER_CLOCK_HZ / MS_IN_S * 2;
+
+pub const seL4_NoError: usize = 0;
+pub const seL4_InvalidArgument: usize = 1;
+pub const seL4_InvalidCapability: usize = 2;
+pub const seL4_IllegalOperation: usize = 3;
+pub const seL4_RangeError: usize = 4;
+pub const seL4_AlignmentError: usize = 5;
+pub const seL4_FailedLookup: usize = 6;
+pub const seL4_TruncatedMessage: usize = 7;
+pub const seL4_DeleteFirst: usize = 8;
+pub const seL4_RevokeFirst: usize = 9;
+pub const seL4_NotEnoughMemory: usize = 10;
+pub const seL4_NumErrors: usize = 11;
+
+
+pub const lookup_fault_invalid_root :usize= 0;
+pub const lookup_fault_missing_capability:usize = 1;
+pub const lookup_fault_depth_mismatch :usize= 2;
+pub const lookup_fault_guard_mismatch :usize= 3;

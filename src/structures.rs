@@ -7,7 +7,7 @@ use crate::{
     BIT,
 };
 
-#[derive(PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum exception_t {
     EXCEPTION_NONE,
     EXCEPTION_FAULT,
@@ -34,9 +34,8 @@ pub struct findVSpaceForASID_ret {
     pub vspace_root: pte_t,
 }
 
-
 #[repr(C)]
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone)]
 pub struct seL4_BootInfoHeader {
     pub id: usize,
     pub len: usize,
@@ -85,11 +84,10 @@ pub struct seL4_IPCBuffer {
 #[derive(Copy, Clone)]
 pub struct seL4_UntypedDesc {
     pub paddr: usize,
-    pub  sizeBits: u8,
-    pub  isDevice: u8,
-    pub  padding: [u8; 6],
+    pub sizeBits: u8,
+    pub isDevice: u8,
+    pub padding: [u8; 6],
 }
-
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -141,7 +139,7 @@ pub struct thread_state_t {
 }
 
 #[repr(C)]
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct cap_t {
     pub words: [usize; 2],
 }
@@ -226,7 +224,6 @@ pub struct deriveCap_ret {
     pub cap: cap_t,
 }
 
-
 pub struct finaliseCap_ret {
     pub remainder: *const cap_t,
     pub cleanupInfo: *const cap_t,
@@ -261,19 +258,19 @@ pub struct arch_tcb_t {
 }
 
 #[repr(C)]
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone)]
 pub struct seL4_Fault_t {
     pub words: [usize; 2],
 }
 
 #[repr(C)]
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone)]
 pub struct lookup_fault_t {
     pub words: [usize; 2],
 }
 
 #[repr(C)]
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone)]
 pub struct tcb_t {
     pub tcbArch: arch_tcb_t,
     pub tcbState: thread_state_t,
@@ -292,15 +289,120 @@ pub struct tcb_t {
     pub tcbEPPrev: usize,
 }
 
-
+#[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct tcb_queue_t {
     pub head: usize,
     pub tail: usize,
 }
 
-
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct notification_t {
     pub words: [usize; 4],
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct resolveAddressBits_ret_t {
+    pub status: exception_t,
+    pub slot: *mut cte_t,
+    pub bitsRemaining: usize,
+}
+
+impl Default for resolveAddressBits_ret_t {
+    fn default() -> Self {
+        resolveAddressBits_ret_t {
+            status: exception_t::EXCEPTION_NONE,
+            slot: 0 as *mut cte_t,
+            bitsRemaining: 0,
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct lookupCap_ret_t {
+    pub status: exception_t,
+    pub cap: cap_t,
+}
+
+impl Default for lookupCap_ret_t {
+    fn default() -> Self {
+        lookupCap_ret_t {
+            status: exception_t::EXCEPTION_NONE,
+            cap: cap_t::default(),
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct cap_transfer_t {
+    pub ctReceiveRoot: usize,
+    pub ctReceiveIndex: usize,
+    pub ctReceiveDepth: usize,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct lookupCapAndSlot_ret_t {
+    pub status: exception_t,
+    pub cap: cap_t,
+    pub slot: *const cte_t,
+}
+
+impl Default for lookupCapAndSlot_ret_t {
+    fn default() -> Self {
+        lookupCapAndSlot_ret_t {
+            status: exception_t::EXCEPTION_NONE,
+            cap: cap_t::default(),
+            slot: 0 as *const cte_t,
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+
+pub struct lookupSlot_raw_ret_t {
+    pub status: exception_t,
+    pub slot: *const cte_t,
+}
+
+impl Default for lookupSlot_raw_ret_t {
+    fn default() -> Self {
+        lookupSlot_raw_ret_t {
+            status: exception_t::EXCEPTION_NONE,
+            slot: 0 as *const cte_t,
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct lookupSlot_ret_t {
+    pub status: exception_t,
+    pub slot: *const cte_t,
+}
+
+impl Default for lookupSlot_ret_t {
+    fn default() -> Self {
+        lookupSlot_ret_t {
+            status: exception_t::EXCEPTION_NONE,
+            slot: 0 as *const cte_t,
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct syscall_error_t {
+    pub invalidArgumentNumber: usize,
+    pub invalidCapNumber: usize,
+    pub rangeErrorMin: usize,
+    pub rangeErrorMax: usize,
+    pub memoryLeft: usize,
+    pub failedLookupWasSource: usize,
+    pub _type: usize,
 }

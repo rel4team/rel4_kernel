@@ -18,14 +18,12 @@ use crate::{
         CONFIG_NUM_DOMAINS, CONFIG_PADDR_USER_DEVICE_TOP, CONFIG_PT_LEVELS,
         CONFIG_ROOT_CNODE_SIZE_BITS, CONFIG_TIME_SLICE, IT_ASID, KERNEL_ELF_BASE, KERNEL_TIMER_IRQ,
         MAX_NUM_FREEMEM_REG, MAX_NUM_RESV_REG, NUM_RESERVED_REGIONS, PADDR_TOP, PAGE_BITS,
-        PPTR_BASE, PPTR_TOP, PT_INDEX_BITS, SEL4_BOOTINFO_HEADER_FDT, SEL4_BOOTINFO_HEADER_PADDING,
-        SIE_SEIE, SIE_STIE, TCB_OFFSET, USER_TOP, RESET_CYCLES,
+        PPTR_BASE, PPTR_TOP, PT_INDEX_BITS, RESET_CYCLES, SEL4_BOOTINFO_HEADER_FDT,
+        SEL4_BOOTINFO_HEADER_PADDING, SIE_SEIE, SIE_STIE, TCB_OFFSET, USER_TOP,
     },
-    kernel::{
-        vspace::{
-            activate_kernel_vspace, rust_create_it_address_space, rust_map_kernel_window,
-            write_it_asid_pool,
-        },
+    kernel::vspace::{
+        activate_kernel_vspace, rust_create_it_address_space, rust_map_kernel_window,
+        write_it_asid_pool,
     },
     object::{
         cap::cteInsert,
@@ -38,14 +36,16 @@ use crate::{
         },
     },
     println,
+    sbi::{get_time, set_timer},
     structures::{
         arch_tcb_t, cap_t, create_frames_of_region_ret_t, cte_t, dschedule_t, exception_t,
         lookup_fault_t, mdb_node_t, ndks_boot_t, notification_t, p_region_t, region_t,
         rootserver_mem_t, seL4_BootInfo, seL4_BootInfoHeader, seL4_Fault_t, seL4_IPCBuffer,
-        seL4_SlotPos, seL4_SlotRegion, seL4_UntypedDesc, tcb_t, thread_state_t, v_region_t,
+        seL4_SlotPos, seL4_SlotRegion, seL4_UntypedDesc, syscall_error_t, tcb_t, thread_state_t,
+        v_region_t,
     },
     utils::MAX_FREE_INDEX,
-    BIT, IS_ALIGNED, MASK, ROUND_DOWN, ROUND_UP, sbi::{set_timer, get_time},
+    BIT, IS_ALIGNED, MASK, ROUND_DOWN, ROUND_UP,
 };
 
 use super::{
@@ -65,6 +65,26 @@ extern "C" {
     fn init_plat();
     fn tcbDebugAppend(action: *mut tcb_t);
 }
+
+#[no_mangle]
+#[link_section = ".boot.bss"]
+pub static mut current_lookup_fault: lookup_fault_t = lookup_fault_t { words: [0; 2] };
+
+#[no_mangle]
+#[link_section = ".boot.bss"]
+pub static mut current_fault: seL4_Fault_t = seL4_Fault_t { words: [0; 2] };
+
+#[no_mangle]
+#[link_section = ".boot.bss"]
+pub static mut current_syscall_error: syscall_error_t = syscall_error_t {
+    invalidArgumentNumber: 0,
+    invalidCapNumber: 0,
+    rangeErrorMax: 0,
+    rangeErrorMin: 0,
+    memoryLeft: 0,
+    failedLookupWasSource: 0,
+    _type: 0,
+};
 
 #[link_section = ".boot.bss"]
 static mut res_reg: [region_t; NUM_RESERVED_REGIONS] =
@@ -121,10 +141,9 @@ pub extern "C" fn write_stvec(val: usize) {
     }
 }
 
-pub extern "C" fn initTimer(){
-    set_timer(get_time()+RESET_CYCLES);
+pub extern "C" fn initTimer() {
+    set_timer(get_time() + RESET_CYCLES);
 }
-
 
 #[no_mangle]
 pub extern "C" fn init_cpu() {
@@ -702,7 +721,7 @@ pub fn rust_populate_bi_frame(
                 calculate_extra_bi_size_bits(extra_bi_size),
             );
         }
-        let bi =&mut *(rootserver.boot_info as *mut seL4_BootInfo);
+        let bi = &mut *(rootserver.boot_info as *mut seL4_BootInfo);
         bi.nodeID = node_id;
         bi.numNodes = num_nodes;
         bi.numIOPTLevels = 0;
@@ -1319,14 +1338,14 @@ pub extern "C" fn rust_try_init_kernel(
         let cptr = *getCSpace(rootserver.tcb, tcbCTable);
         forget(cptr);
         let bptr = *getCSpace(rootserver.tcb, tcbBuffer);
-        forget(bptr);   
+        forget(bptr);
         forget(ksIdleThreadTCB);
 
-        println!("idle thread:{:#x}",ksIdleThreadTCB.as_ptr() as usize);
+        println!("idle thread:{:#x}", ksIdleThreadTCB.as_ptr() as usize);
 
-        println!("initial thread :{:#x}",initial as usize);
+        println!("initial thread :{:#x}", initial as usize);
     }
-    
+
     println!("Booting all finished, dropped to user space");
     println!("\n");
     true

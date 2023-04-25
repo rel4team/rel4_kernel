@@ -1,4 +1,9 @@
-use crate::structures::{cap_t, cap_tag_t, endpoint_t, mdb_node_t, notification_t, thread_state_t};
+use crate::config::{
+    lookup_fault_depth_mismatch, lookup_fault_invalid_root, lookup_fault_missing_capability,
+};
+use crate::structures::{
+    cap_t, cap_tag_t, endpoint_t, lookup_fault_t, mdb_node_t, notification_t, thread_state_t,
+};
 
 //CSpace relevant
 use core::default::Default;
@@ -44,7 +49,7 @@ pub fn mdb_node_get_mdbNext(mdb_node: &mdb_node_t) -> usize {
     if core::intrinsics::likely(!!(true && (ret & (1usize << 38) != 0))) {
         ret |= 0xffffff8000000000;
     }
-    ret| 0xffffff8000000000
+    ret | 0xffffff8000000000
 }
 
 #[inline]
@@ -321,7 +326,7 @@ pub fn cap_untyped_cap_get_capPtr(cap: &cap_t) -> usize {
     if likely(!!(true && (ret & (1usize << (38))) != 0)) {
         ret |= 0xffffff8000000000;
     }
-    ret| 0xffffff8000000000
+    ret | 0xffffff8000000000
 }
 
 #[inline]
@@ -557,7 +562,7 @@ pub fn cap_endpoint_cap_get_capEPPtr(cap: &cap_t) -> usize {
     if likely(!!(true && (ret & (1usize << (38))) != 0)) {
         ret |= 0xffffff8000000000;
     }
-    ret| 0xffffff8000000000
+    ret | 0xffffff8000000000
 }
 
 //FIXME::notification relevant cap not implemented
@@ -595,7 +600,7 @@ pub fn cap_cnode_cap_set_capCNodeGuard(cap: &mut cap_t, v64: usize) {
 }
 
 #[inline]
-pub fn cap_cnode_cap_get_capCNodeGuardSize(cap: &mut cap_t) -> usize {
+pub fn cap_cnode_cap_get_capCNodeGuardSize(cap: &cap_t) -> usize {
     let mut ret: usize;
     assert!(((cap.words[0] >> 59) & 0x1f) == cap_tag_t::cap_cnode_cap as usize);
 
@@ -647,7 +652,7 @@ pub fn cap_cnode_cap_get_capCNodePtr(cap: &cap_t) -> usize {
     if likely(!!(true && (ret & (1usize << (38))) != 0)) {
         ret |= 0xffffff8000000000;
     }
-    ret| 0xffffff8000000000
+    ret | 0xffffff8000000000
 }
 
 #[inline]
@@ -797,7 +802,7 @@ pub fn cap_page_table_cap_set_capPTMappedASID(cap: &mut cap_t, v64: usize) {
 #[inline]
 pub fn cap_page_table_cap_get_capPTBasePtr(cap: &cap_t) -> usize {
     let ret = (cap.words[1] & 0xfffffffffe00usize) >> 9;
-    ret| 0xffffff8000000000
+    ret | 0xffffff8000000000
 }
 
 #[inline]
@@ -820,7 +825,7 @@ pub fn cap_page_table_cap_ptr_set_capPTIsMapped(cap: &mut cap_t, v64: usize) {
 #[inline]
 pub fn cap_page_table_cap_get_capPTMappedAddress(cap: &cap_t) -> usize {
     let ret = (cap.words[0] & 0x7fffffffffusize) << 0;
-    ret| 0xffffff8000000000
+    ret | 0xffffff8000000000
 }
 
 #[inline]
@@ -865,7 +870,7 @@ pub fn cap_frame_cap_set_capFMappedASID(cap: &mut cap_t, v64: usize) {
 #[inline]
 pub fn cap_frame_cap_get_capFBasePtr(cap: &cap_t) -> usize {
     let ret = (cap.words[1] & 0xfffffffffe00usize) >> 9;
-    ret| 0xffffff8000000000
+    ret | 0xffffff8000000000
 }
 
 #[inline]
@@ -895,7 +900,7 @@ pub fn cap_frame_cap_get_capFIsDevice(cap: &cap_t) -> usize {
 #[inline]
 pub fn cap_frame_cap_get_capFMappedAddress(cap: &cap_t) -> usize {
     let ret = (cap.words[0] & 0x7fffffffffusize) << 0;
-    ret| 0xffffff8000000000
+    ret | 0xffffff8000000000
 }
 #[inline]
 pub fn cap_frame_cap_set_capFMappedAddress(cap: &mut cap_t, v64: usize) {
@@ -970,7 +975,7 @@ pub fn cap_asid_pool_cap_get_capASIDBase(cap: &cap_t) -> usize {
 #[inline]
 pub fn cap_asid_pool_cap_get_capASIDPool(cap: &cap_t) -> usize {
     let ret = (cap.words[0] & 0x1fffffffffusize) << 2;
-    ret| 0xffffff8000000000
+    ret | 0xffffff8000000000
 }
 
 #[inline]
@@ -982,7 +987,7 @@ pub fn thread_state_new() -> thread_state_t {
 #[inline]
 pub fn thread_state_get_blockingIPCBadge(thread_state_ptr: &thread_state_t) -> usize {
     let ret = (thread_state_ptr).words[2] & 0xffffffffffffffffusize;
-    ret| 0xffffff8000000000
+    ret | 0xffffff8000000000
 }
 
 #[inline]
@@ -1087,7 +1092,7 @@ pub fn endpoint_ptr_set_epQueue_head(ptr: &mut endpoint_t, v64: usize) {
 #[inline]
 pub fn endpoint_ptr_get_epQueue_head(ptr: &endpoint_t) -> usize {
     let ret = ((ptr).words[1] & 0xffffffffffffffffusize) >> 0;
-    ret| 0xffffff8000000000
+    ret | 0xffffff8000000000
 }
 
 #[inline]
@@ -1168,14 +1173,14 @@ pub fn cap_thread_cap_new(capTCBPtr: usize) -> cap_t {
 pub fn cap_thread_cap_get_capTCBPtr(cap: &cap_t) -> usize {
     let ret: usize;
     ret = ((cap).words[0] & 0x7fffffffffusize) << 0;
-    ret| 0xffffff8000000000
+    ret | 0xffffff8000000000
 }
 
 #[inline]
 pub fn notification_ptr_get_ntfnBoundTCB(notification_ptr: &notification_t) -> usize {
     let ret: usize;
     ret = (notification_ptr).words[3] & 0x7fffffffffusize;
-    ret| 0xffffff8000000000
+    ret | 0xffffff8000000000
 }
 
 #[inline]
@@ -1201,7 +1206,7 @@ pub fn notification_ptr_set_ntfnMsgIdentifier(ptr: &mut notification_t, v64: usi
 pub fn notification_ptr_get_ntfnQueue_head(notification_ptr: &notification_t) -> usize {
     let ret: usize;
     ret = (notification_ptr).words[1] & 0x7fffffffffusize;
-    ret| 0xffffff8000000000
+    ret | 0xffffff8000000000
 }
 
 #[inline]
@@ -1214,7 +1219,7 @@ pub fn notification_ptr_set_ntfnQueue_head(ptr: &mut notification_t, v64: usize)
 pub fn notification_ptr_get_ntfnQueue_tail(notification_ptr: &notification_t) -> usize {
     let ret: usize;
     ret = (notification_ptr).words[0] & 0xfffffffffe000000usize;
-    ret| 0xffffff8000000000
+    ret | 0xffffff8000000000
 }
 
 #[inline]
@@ -1291,7 +1296,7 @@ pub fn cap_notification_cap_set_capNtfnCanSend(cap: &mut cap_t, v64: usize) {
 #[inline]
 pub fn cap_notification_cap_get_capNtfnPtr(cap: &cap_t) -> usize {
     let ret = (cap).words[0] & 0x7fffffffffusize;
-    ret| 0xffffff8000000000
+    ret | 0xffffff8000000000
 }
 
 #[inline]
@@ -1372,5 +1377,94 @@ pub fn cap_irq_handler_cap_new(capIRQ: usize) -> cap_t {
 #[inline]
 pub fn cap_irq_handler_cap_get_capIRQ(cap: &cap_t) -> usize {
     let ret = (cap.words[1] & 0xfffusize) >> 0;
+    ret
+}
+
+#[inline]
+pub fn lookup_fault_invalid_root_new() -> lookup_fault_t {
+    let lookup_fault = lookup_fault_t {
+        words: [0 | (lookup_fault_invalid_root & 0x3usize) << 0, 0],
+    };
+
+    lookup_fault
+}
+
+#[inline]
+pub fn lookup_fault_missing_capability_new(bitsLeft: usize) -> lookup_fault_t {
+    let lookup_fault = lookup_fault_t {
+        words: [
+            0 | (bitsLeft & 0x7fusize) << 2 | (lookup_fault_missing_capability & 0x3usize) << 0,
+            0,
+        ],
+    };
+
+    lookup_fault
+}
+
+#[inline]
+pub fn lookup_fault_missing_capability_get_bitsLeft(lookup_fault: &lookup_fault_t) -> usize {
+    let ret = (lookup_fault.words[0] & 0x1fcusize) >> 2;
+    ret
+}
+
+#[inline]
+pub fn lookup_fault_depth_mismatch_new(bitsFound: usize, bitsLeft: usize) -> lookup_fault_t {
+    let lookup_fault = lookup_fault_t {
+        words: [
+            0 | (bitsFound & 0x7fusize) << 9
+                | (bitsLeft & 0x7fusize) << 2
+                | (lookup_fault_depth_mismatch & 0x3usize) << 0,
+            0,
+        ],
+    };
+
+    lookup_fault
+}
+
+#[inline]
+pub fn lookup_fault_depth_mismatch_get_bitsFound(lookup_fault: &lookup_fault_t) -> usize {
+    let ret = (lookup_fault.words[0] & 0xfe00usize) >> 9;
+    ret
+}
+
+#[inline]
+pub fn lookup_fault_depth_mismatch_get_bitsLeft(lookup_fault: &lookup_fault_t) -> usize {
+    let ret = (lookup_fault.words[0] & 0x1fcusize) >> 2;
+    ret
+}
+
+#[inline]
+pub fn lookup_fault_guard_mismatch_new(
+    guardFound: usize,
+    bitsFound: usize,
+    bitsLeft: usize,
+) -> lookup_fault_t {
+    let lookup_fault = lookup_fault_t {
+        words: [
+            0 | (bitsFound & 0x7fusize) << 9
+                | (bitsLeft & 0x7fusize) << 2
+                | (lookup_fault_depth_mismatch & 0x3usize) << 0,
+            0 | guardFound << 0,
+        ],
+    };
+
+    lookup_fault
+}
+
+#[inline]
+pub fn lookup_fault_guard_mismatch_get_guardFound(lookup_fault: &lookup_fault_t) -> usize {
+    let ret = (lookup_fault.words[1] & 0xffffffffffffffffusize) >> 0;
+    ret
+}
+
+#[inline]
+pub fn lookup_fault_guard_mismatch_get_bitsFound(lookup_fault: &lookup_fault_t) -> usize {
+    let ret = (lookup_fault.words[0] & 0xfe00usize) >> 9;
+    ret
+}
+
+#[inline]
+pub fn lookup_fault_guard_mismatch_get_bitsLeft(lookup_fault: &lookup_fault_t) -> usize {
+    let ret = (lookup_fault.words[0] & 0x1fcusize) >> 2;
     ret
 }
