@@ -30,6 +30,8 @@ mod utils;
 mod kernel;
 mod structures;
 mod object;
+mod riscv;
+mod syscall;
 
 
 struct Stdout;

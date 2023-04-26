@@ -6,6 +6,7 @@ use crate::{
 };
 
 pub static mut intStateIRQTable: usize = 0;
+pub static mut intStateIRQNode: usize = 0;
 
 #[no_mangle]
 pub extern "C" fn intStateIRQTableToR(ptr: *mut usize) {

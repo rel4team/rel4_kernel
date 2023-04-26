@@ -1,8 +1,7 @@
-
 use crate::{
     config::seL4_SlotBits,
     kernel::vspace::pageBitsForSize,
-    structures::{cap_t, cte_t, deriveCap_ret, exception_t},
+    structures::{cap_t, cte_t, deriveCap_ret, exception_t, finaliseCap_ret},
     MASK,
 };
 
@@ -11,10 +10,13 @@ use super::{
     structure_gen::{
         cap_asid_pool_cap_get_capASIDPool, cap_cnode_cap_get_capCNodePtr,
         cap_cnode_cap_get_capCNodeRadix, cap_endpoint_cap_get_capEPBadge,
-        cap_endpoint_cap_get_capEPPtr, cap_frame_cap_get_capFBasePtr, cap_frame_cap_get_capFSize,
-        cap_frame_cap_set_capFMappedASID, cap_frame_cap_set_capFMappedAddress, cap_null_cap_new,
-        cap_page_table_cap_get_capPTBasePtr, cap_page_table_cap_get_capPTIsMapped,
+        cap_endpoint_cap_get_capEPPtr, cap_frame_cap_get_capFBasePtr,
+        cap_frame_cap_get_capFIsDevice, cap_frame_cap_get_capFMappedASID,
+        cap_frame_cap_get_capFSize, cap_frame_cap_set_capFMappedASID,
+        cap_frame_cap_set_capFMappedAddress, cap_null_cap_new, cap_page_table_cap_get_capPTBasePtr,
+        cap_page_table_cap_get_capPTIsMapped, cap_page_table_cap_get_capPTMappedASID,
         cap_thread_cap_get_capTCBPtr, cap_untyped_cap_get_capBlockSize, cap_untyped_cap_get_capPtr,
+        Zombie_new,
     },
 };
 
@@ -212,5 +214,134 @@ pub fn isCapRevocable(_derivedCap: &cap_t, _srcCap: &cap_t) -> bool {
         }
         cap_untyped_cap => return true,
         _ => return false,
+    }
+}
+
+pub fn Arch_sameObjectAs(cap_a: &cap_t, cap_b: &cap_t) -> bool {
+    if (cap_get_capType(cap_a) == cap_frame_cap) && (cap_get_capType(cap_b) == cap_frame_cap) {
+        return (cap_frame_cap_get_capFBasePtr(cap_a) == cap_frame_cap_get_capFBasePtr(cap_b))
+            && (cap_frame_cap_get_capFSize(cap_a) == cap_frame_cap_get_capFSize(cap_b))
+            && ((cap_frame_cap_get_capFIsDevice(cap_a) == 0)
+                == (cap_frame_cap_get_capFIsDevice(cap_b) == 0));
+    }
+    return sameRegionAs(cap_a, cap_b);
+}
+pub fn sameObjectAs(cap_a: &cap_t, cap_b: &cap_t) -> bool {
+    if cap_get_capType(cap_a) == cap_untyped_cap {
+        return false;
+    }
+    if cap_get_capType(cap_a) == cap_irq_control_cap
+        && cap_get_capType(cap_b) == cap_irq_handler_cap
+    {
+        return false;
+    }
+    if isArchCap(cap_a) && isArchCap(cap_b) {
+        return Arch_sameObjectAs(cap_a, cap_b);
+    }
+    return sameRegionAs(cap_a, cap_b);
+}
+
+pub fn Arch_finaliseCap(cap: &cap_t, _final: bool) -> finaliseCap_ret {
+    let mut fc_ret = finaliseCap_ret::default();
+    match cap_get_capType(cap) {
+        cap_frame_cap => {
+            if cap_frame_cap_get_capFMappedASID(cap) != 0 {
+                // unmapPage(
+                //     cap_frame_cap_get_capFSize(cap),
+                //     cap_frame_cap_get_capFMappedASID(cap),
+                //     cap_frame_cap_get_capFMappedAddress(cap),
+                //     cap_frame_cap_get_capFBasePtr(cap),
+                // );
+            }
+        }
+        cap_page_table_cap => {
+            // if _final && cap_page_table_cap_get_capPTIsMapped(cap) != 0 {
+            //     let asid = cap_page_table_cap_get_capPTMappedASID(cap);
+            //     let find_ret = findVSpaceForASID(asid);
+            //     let pte = cap_page_table_cap_get_capPTBasePtr(cap);
+            //     if find_ret.status == exception_t::EXCEPTION_NONE && find_ret.vspace_root == pte {
+            //         deleteASID(asid, pte);
+            //     } else {
+            //         unmapPageTable(asid, cap_page_table_cap_get_capPTMappedAddress(cap), pte);
+            //     }
+            // }
+        }
+        cap_asid_control_cap => {}
+        _ => panic!("Invalid cap type :{}", cap_get_capType(cap)),
+    }
+    fc_ret.remainder = cap_null_cap_new();
+    fc_ret.cleanupInfo = cap_null_cap_new();
+    fc_ret
+}
+
+pub fn finaliseCap(cap: & cap_t, _final: bool, _exposed: bool) -> finaliseCap_ret {
+    let mut fc_ret = finaliseCap_ret::default();
+
+    if isArchCap(cap) {
+        return Arch_finaliseCap(cap, _final);
+    }
+
+    match cap_get_capType(cap) {
+        cap_endpoint_cap => {
+            if _final {
+                // TODO: cancelALLIPC()
+                // cancelAllIPC(cap_endpoint_cap_get_capEPPtr(cap) as *const endpoint_t);
+            }
+            fc_ret.remainder = cap_null_cap_new();
+            fc_ret.cleanupInfo = cap_null_cap_new();
+            return fc_ret;
+        }
+        cap_notification_cap => {
+            if _final {}
+            fc_ret.remainder = cap_null_cap_new();
+            fc_ret.cleanupInfo = cap_null_cap_new();
+            return fc_ret;
+        }
+        cap_reply_cap | cap_null_cap | cap_domain_cap => {
+            fc_ret.remainder = cap_null_cap_new();
+            fc_ret.cleanupInfo = cap_null_cap_new();
+            return fc_ret;
+        }
+        _ => {
+            if _exposed {
+                panic!("finaliseCap: failed to finalise immediately.");
+            }
+        }
+    }
+
+    match cap_get_capType(cap) {
+        cap_cnode_cap => {
+            if _final {
+                //TODO Zombie_new()
+                fc_ret.remainder = Zombie_new(
+                    1usize << cap_cnode_cap_get_capCNodeRadix(cap),
+                    cap_cnode_cap_get_capCNodeRadix(cap),
+                    cap_cnode_cap_get_capCNodePtr(cap),
+                );
+                fc_ret.cleanupInfo = cap_null_cap_new();
+                return fc_ret;
+            } else {
+                fc_ret.remainder = cap_null_cap_new();
+                fc_ret.cleanupInfo = cap_null_cap_new();
+                return fc_ret;
+            }
+        }
+        // cap_thread_cap=>{
+        //     if _final{
+                
+        //     }
+        // }
+        //FIXME::cap_thread_cap condition not included
+        // cap_thread_cap => {
+        //     if _final {
+        //         let tcb = cap_thread_cap_get_capTCBPtr(cap) as *const tcb_t;
+        //         // let cte_ptr =
+        //     }
+        // }
+        _ => {
+            fc_ret.remainder = cap_null_cap_new();
+            fc_ret.cleanupInfo = cap_null_cap_new();
+            return fc_ret;
+        }
     }
 }

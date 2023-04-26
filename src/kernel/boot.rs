@@ -19,7 +19,7 @@ use crate::{
         CONFIG_ROOT_CNODE_SIZE_BITS, CONFIG_TIME_SLICE, IT_ASID, KERNEL_ELF_BASE, KERNEL_TIMER_IRQ,
         MAX_NUM_FREEMEM_REG, MAX_NUM_RESV_REG, NUM_RESERVED_REGIONS, PADDR_TOP, PAGE_BITS,
         PPTR_BASE, PPTR_TOP, PT_INDEX_BITS, RESET_CYCLES, SEL4_BOOTINFO_HEADER_FDT,
-        SEL4_BOOTINFO_HEADER_PADDING, SIE_SEIE, SIE_STIE, TCB_OFFSET, USER_TOP,
+        SEL4_BOOTINFO_HEADER_PADDING, SIE_SEIE, SIE_STIE, TCB_OFFSET, USER_TOP, seL4_MsgMaxExtraCaps,
     },
     kernel::vspace::{
         activate_kernel_vspace, rust_create_it_address_space, rust_map_kernel_window,
@@ -30,19 +30,18 @@ use crate::{
         interrupt::{setIRQState, set_sie_mask},
         objecttype::{cap_get_capPtr, cap_get_capType, cap_null_cap, deriveCap},
         structure_gen::{
-            cap_asid_cap_new, cap_asid_control_cap_new, cap_cnode_cap_new, cap_domain_cap_new,
+            cap_asid_pool_cap_new, cap_asid_control_cap_new, cap_cnode_cap_new, cap_domain_cap_new,
             cap_frame_cap_new, cap_irq_control_cap_new, cap_thread_cap_new, cap_untyped_cap_new,
-            mdb_node_set_mdbFirstBadged, mdb_node_set_mdbRevocable, thread_state_get_tsType,
+            mdb_node_set_mdbFirstBadged, mdb_node_set_mdbRevocable,
         },
     },
     println,
     sbi::{get_time, set_timer},
     structures::{
-        arch_tcb_t, cap_t, create_frames_of_region_ret_t, cte_t, dschedule_t, exception_t,
-        lookup_fault_t, mdb_node_t, ndks_boot_t, notification_t, p_region_t, region_t,
-        rootserver_mem_t, seL4_BootInfo, seL4_BootInfoHeader, seL4_Fault_t, seL4_IPCBuffer,
-        seL4_SlotPos, seL4_SlotRegion, seL4_UntypedDesc, syscall_error_t, tcb_t, thread_state_t,
-        v_region_t,
+        cap_t, create_frames_of_region_ret_t, cte_t, dschedule_t, exception_t, lookup_fault_t,
+        mdb_node_t, ndks_boot_t, p_region_t, region_t, rootserver_mem_t, seL4_BootInfo,
+        seL4_BootInfoHeader, seL4_Fault_t, seL4_IPCBuffer, seL4_SlotPos, seL4_SlotRegion,
+        seL4_UntypedDesc, syscall_error_t, tcb_t, v_region_t, extra_caps_t,
     },
     utils::MAX_FREE_INDEX,
     BIT, IS_ALIGNED, MASK, ROUND_DOWN, ROUND_UP,
@@ -135,11 +134,11 @@ pub static mut rootserver: rootserver_mem_t = rootserver_mem_t {
     },
 };
 
-pub extern "C" fn write_stvec(val: usize) {
-    unsafe {
-        asm!("csrw stvec , {}",in(reg) val);
-    }
-}
+#[no_mangle]
+#[link_section = ".boot.bss"]
+pub static mut current_extra_caps: extra_caps_t = extra_caps_t {
+    excaprefs: [0 as *mut cte_t; seL4_MsgMaxExtraCaps],
+};
 
 pub extern "C" fn initTimer() {
     set_timer(get_time() + RESET_CYCLES);
@@ -859,7 +858,7 @@ pub fn create_ipcbuf_frame_cap(root_cnode_cap: &cap_t, pd_cap: &cap_t, vptr: usi
 }
 
 pub fn rust_create_it_asid_pool(root_cnode_cap: &cap_t) -> cap_t {
-    let ap_cap = unsafe { cap_asid_cap_new(IT_ASID >> asidLowBits, rootserver.asid_pool) };
+    let ap_cap = unsafe { cap_asid_pool_cap_new(IT_ASID >> asidLowBits, rootserver.asid_pool) };
     let ptr = cap_get_capPtr(&root_cnode_cap) as *mut cte_t;
     unsafe {
         write_slot(ptr.add(seL4_CapInitThreadASIDPool), ap_cap.clone());
@@ -1313,7 +1312,7 @@ pub extern "C" fn rust_try_init_kernel(
     }
     init_core_state(initial);
     if !create_untypeds(&root_cnode_cap, boot_mem_reuse_reg) {
-        println!("ERROR: could not create untypteds for kernel image boot memory")
+        println!("ERROR: could not create untypteds for kernel image boot memory");
     }
 
     unsafe {
@@ -1351,12 +1350,12 @@ pub extern "C" fn rust_try_init_kernel(
     true
 }
 
-pub extern "C" fn init_kernel(
-    ui_p_reg_start: usize,
-    ui_p_reg_end: usize,
-    pv_offset: usize,
-    v_entry: usize,
-    dtb_addr_p: usize,
-    dtb_size: usize,
-) {
-}
+// pub extern "C" fn init_kernel(
+//     ui_p_reg_start: usize,
+//     ui_p_reg_end: usize,
+//     pv_offset: usize,
+//     v_entry: usize,
+//     dtb_addr_p: usize,
+//     dtb_size: usize,
+// ) {
+// }

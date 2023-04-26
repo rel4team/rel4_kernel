@@ -38,6 +38,9 @@ pub const KERNEL_ELF_BASE_OFFSET: usize = KERNEL_ELF_BASE - KERNEL_ELF_PADDR_BAS
 pub const seL4_PageTableBits: usize = 12;
 pub const asidLowBits: usize = 9;
 pub const asidHighBits: usize = 7;
+pub const asidInvalid: usize = 0;
+pub const nASIDPools: usize = BIT!(asidHighBits);
+pub const ASID_BITS: usize = asidHighBits + asidLowBits;
 pub const IT_ASID: usize = 1;
 pub const RISCVPageBits: usize = 12;
 pub const RISCVMegaPageBits: usize = 21;
@@ -161,7 +164,7 @@ pub const RISCVPageMap: usize = 32;
 pub const RISCVPageUnmap: usize = 33;
 pub const RISCVPageGetAddress: usize = 34;
 pub const RISCVASIDControlMakePool: usize = 35;
-pub const RISCVASIDAssign: usize = 36;
+pub const RISCVASIDPoolAssign: usize = 36;
 pub const RISCVIRQIssueIRQHandlerTrigger: usize = 37;
 pub const nArchInvocationLabels: usize = 38;
 
@@ -252,8 +255,13 @@ pub const seL4_RevokeFirst: usize = 9;
 pub const seL4_NotEnoughMemory: usize = 10;
 pub const seL4_NumErrors: usize = 11;
 
+pub const lookup_fault_invalid_root: usize = 0;
+pub const lookup_fault_missing_capability: usize = 1;
+pub const lookup_fault_depth_mismatch: usize = 2;
+pub const lookup_fault_guard_mismatch: usize = 3;
 
-pub const lookup_fault_invalid_root :usize= 0;
-pub const lookup_fault_missing_capability:usize = 1;
-pub const lookup_fault_depth_mismatch :usize= 2;
-pub const lookup_fault_guard_mismatch :usize= 3;
+pub const seL4_Fault_NullFault: usize = 0;
+pub const seL4_Fault_CapFault: usize = 1;
+pub const seL4_Fault_UnknownSyscall: usize = 2;
+pub const seL4_Fault_UserException: usize = 3;
+pub const seL4_Fault_VMFault: usize = 5;

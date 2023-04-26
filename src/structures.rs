@@ -3,10 +3,11 @@ use crate::{
         asidLowBits, seL4_MsgMaxExtraCaps, seL4_MsgMaxLength, CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS,
         MAX_NUM_FREEMEM_REG, MAX_NUM_RESV_REG,
     },
-    kernel::{thread::n_contextRegisters, vspace::pte_t},
+    kernel::thread::n_contextRegisters,
     BIT,
 };
 
+#[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum exception_t {
     EXCEPTION_NONE,
@@ -14,25 +15,30 @@ pub enum exception_t {
     EXCEPTION_LOOKUP_FAULT,
     EXCEPTION_SYSCALL_ERROR,
     EXCEPTION_PREEMTED,
-    padding=isize::MAX-1,
+    padding = isize::MAX - 1,
 }
 
 pub struct satp_t {
     pub words: usize,
 }
 
+#[repr(C)]
+#[derive(Copy, Clone)]
 pub struct lookupPTSlot_ret_t {
-    pub ptSlot: usize,
+    pub ptSlot: *mut pte_t,
     pub ptBitsLeft: usize,
 }
 
 #[derive(Copy, Clone)]
 pub struct asid_pool_t {
-    array: [pte_t; BIT!(asidLowBits)],
+    pub array: [*mut pte_t; BIT!(asidLowBits)],
 }
+
+#[repr(C)]
+#[derive(Copy, Clone)]
 pub struct findVSpaceForASID_ret {
     pub status: exception_t,
-    pub vspace_root: pte_t,
+    pub vspace_root: *mut pte_t,
 }
 
 #[repr(C)]
@@ -198,16 +204,19 @@ pub enum cap_tag_t {
     cap_asid_pool_cap = 13,
 }
 
+#[repr(C)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct dschedule_t {
     pub domain: usize,
     pub length: usize,
 }
 
+#[repr(C)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct finaliseSlot_ret {
     pub status: exception_t,
     pub success: bool,
-    pub cleanupInfo: *const cap_t,
+    pub cleanupInfo: cap_t,
 }
 
 impl Default for finaliseSlot_ret {
@@ -215,26 +224,36 @@ impl Default for finaliseSlot_ret {
         finaliseSlot_ret {
             status: exception_t::EXCEPTION_NONE,
             success: true,
-            cleanupInfo: &(cap_t::default()) as *const cap_t,
+            cleanupInfo: cap_t::default(),
         }
     }
 }
 
+#[repr(C)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub struct pte_t {
+    pub words: [usize; 1],
+}
+
+#[repr(C)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct deriveCap_ret {
     pub status: exception_t,
     pub cap: cap_t,
 }
 
+#[repr(C)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct finaliseCap_ret {
-    pub remainder: *const cap_t,
-    pub cleanupInfo: *const cap_t,
+    pub remainder: cap_t,
+    pub cleanupInfo: cap_t,
 }
 
 impl Default for finaliseCap_ret {
     fn default() -> Self {
         finaliseCap_ret {
-            remainder: (&(cap_t::default())) as *const cap_t,
-            cleanupInfo: (&(cap_t::default())) as *const cap_t,
+            remainder: cap_t::default(),
+            cleanupInfo: cap_t::default(),
         }
     }
 }
@@ -253,25 +272,25 @@ pub struct create_frames_of_region_ret_t {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct arch_tcb_t {
     pub registers: [usize; n_contextRegisters],
 }
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct seL4_Fault_t {
     pub words: [usize; 2],
 }
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct lookup_fault_t {
     pub words: [usize; 2],
 }
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct tcb_t {
     pub tcbArch: arch_tcb_t,
     pub tcbState: thread_state_t,
@@ -350,8 +369,7 @@ pub struct cap_transfer_t {
 pub struct lookupCapAndSlot_ret_t {
     pub status: exception_t,
     pub cap: cap_t,
-    pub slot: *const cte_t,
-    
+    pub slot: *mut cte_t,
 }
 
 impl Default for lookupCapAndSlot_ret_t {
@@ -359,7 +377,7 @@ impl Default for lookupCapAndSlot_ret_t {
         lookupCapAndSlot_ret_t {
             status: exception_t::EXCEPTION_NONE,
             cap: cap_t::default(),
-            slot: 0 as *const cte_t,
+            slot: 0 as *mut cte_t,
         }
     }
 }
@@ -369,14 +387,14 @@ impl Default for lookupCapAndSlot_ret_t {
 
 pub struct lookupSlot_raw_ret_t {
     pub status: exception_t,
-    pub slot: *const cte_t,
+    pub slot: *mut cte_t,
 }
 
 impl Default for lookupSlot_raw_ret_t {
     fn default() -> Self {
         lookupSlot_raw_ret_t {
             status: exception_t::EXCEPTION_NONE,
-            slot: 0 as *const cte_t,
+            slot: 0 as *mut cte_t,
         }
     }
 }
@@ -385,14 +403,14 @@ impl Default for lookupSlot_raw_ret_t {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct lookupSlot_ret_t {
     pub status: exception_t,
-    pub slot: *const cte_t,
+    pub slot: *mut cte_t,
 }
 
 impl Default for lookupSlot_ret_t {
     fn default() -> Self {
         lookupSlot_ret_t {
             status: exception_t::EXCEPTION_NONE,
-            slot: 0 as *const cte_t,
+            slot: 0 as *mut cte_t,
         }
     }
 }
@@ -407,4 +425,29 @@ pub struct syscall_error_t {
     pub memoryLeft: usize,
     pub failedLookupWasSource: usize,
     pub _type: usize,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct seL4_CapRights_t {
+    pub word: usize,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct seL4_MessageInfo_t {
+    pub words: [usize; 1],
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct vm_attributes_t {
+    pub words: [usize; 1],
+}
+
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct extra_caps_t {
+    pub excaprefs: [*mut cte_t; seL4_MsgMaxExtraCaps],
 }

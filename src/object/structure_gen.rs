@@ -1,8 +1,11 @@
 use crate::config::{
     lookup_fault_depth_mismatch, lookup_fault_invalid_root, lookup_fault_missing_capability,
+    seL4_Fault_CapFault, seL4_Fault_NullFault, seL4_Fault_UnknownSyscall, seL4_Fault_UserException,
+    seL4_Fault_VMFault,
 };
 use crate::structures::{
-    cap_t, cap_tag_t, endpoint_t, lookup_fault_t, mdb_node_t, notification_t, thread_state_t,
+    cap_t, cap_tag_t, endpoint_t, lookup_fault_t, mdb_node_t, notification_t, pte_t, seL4_Fault_t,
+    thread_state_t,
 };
 
 //CSpace relevant
@@ -899,8 +902,11 @@ pub fn cap_frame_cap_get_capFIsDevice(cap: &cap_t) -> usize {
 
 #[inline]
 pub fn cap_frame_cap_get_capFMappedAddress(cap: &cap_t) -> usize {
-    let ret = (cap.words[0] & 0x7fffffffffusize) << 0;
-    ret | 0xffffff8000000000
+    let mut ret = (cap.words[0] & 0x7fffffffffusize) << 0;
+    if (ret & 1<<38) ==1{
+        ret |= 0xffffff8000000000;
+    }
+    ret
 }
 #[inline]
 pub fn cap_frame_cap_set_capFMappedAddress(cap: &mut cap_t, v64: usize) {
@@ -909,40 +915,40 @@ pub fn cap_frame_cap_set_capFMappedAddress(cap: &mut cap_t, v64: usize) {
 }
 
 #[inline]
-pub fn pte_ptr_get_ppn(pte_ptr: *const usize) -> usize {
+pub fn pte_ptr_get_ppn(pte_ptr: *const pte_t) -> usize {
     unsafe {
-        let ret = ((*pte_ptr) & 0x3f_ffff_ffff_fc00usize) >> 10;
+        let ret = ((*pte_ptr).words[0] & 0x3f_ffff_ffff_fc00usize) >> 10;
         ret
     }
 }
 #[inline]
-pub fn pte_ptr_get_execute(pte_ptr: *const usize) -> usize {
+pub fn pte_ptr_get_execute(pte_ptr: *const pte_t) -> usize {
     unsafe {
-        let ret = ((*pte_ptr) & 0x8usize) >> 3;
-        ret
-    }
-}
-
-#[inline]
-pub fn pte_ptr_get_write(pte_ptr: *const usize) -> usize {
-    unsafe {
-        let ret = ((*pte_ptr) & 0x4usize) >> 2;
+        let ret = ((*pte_ptr).words[0] & 0x8usize) >> 3;
         ret
     }
 }
 
 #[inline]
-pub fn pte_ptr_get_read(pte_ptr: *const usize) -> usize {
+pub fn pte_ptr_get_write(pte_ptr: *const pte_t) -> usize {
     unsafe {
-        let ret = ((*pte_ptr) & 0x2usize) >> 1;
+        let ret = ((*pte_ptr).words[0] & 0x4usize) >> 2;
         ret
     }
 }
 
 #[inline]
-pub fn pte_ptr_get_valid(pte_ptr: *const usize) -> usize {
+pub fn pte_ptr_get_read(pte_ptr: *const pte_t) -> usize {
     unsafe {
-        let ret = ((*pte_ptr) & 0x1usize) >> 0;
+        let ret = ((*pte_ptr).words[0] & 0x2usize) >> 1;
+        ret
+    }
+}
+
+#[inline]
+pub fn pte_ptr_get_valid(pte_ptr: *const pte_t) -> usize {
+    unsafe {
+        let ret = ((*pte_ptr).words[0] & 0x1usize) >> 0;
         ret
     }
 }
@@ -956,7 +962,7 @@ pub fn cap_asid_control_cap_new() -> cap_t {
 }
 
 #[inline]
-pub fn cap_asid_cap_new(capASIDBase: usize, capASIDPool: usize) -> cap_t {
+pub fn cap_asid_pool_cap_new(capASIDBase: usize, capASIDPool: usize) -> cap_t {
     let mut cap = cap_t::default();
     cap.words[0] = 0
         | (cap_asid_pool_cap & 0x1fusize) << 59
@@ -974,8 +980,11 @@ pub fn cap_asid_pool_cap_get_capASIDBase(cap: &cap_t) -> usize {
 
 #[inline]
 pub fn cap_asid_pool_cap_get_capASIDPool(cap: &cap_t) -> usize {
-    let ret = (cap.words[0] & 0x1fffffffffusize) << 2;
-    ret | 0xffffff8000000000
+    let  mut ret = (cap.words[0] & 0x1fffffffffusize) << 2;
+    if likely(!!(true && (ret & (1usize << (38))) != 0)) {
+        ret |= 0xffffff8000000000;
+    }
+    ret
 }
 
 #[inline]
@@ -1468,3 +1477,116 @@ pub fn lookup_fault_guard_mismatch_get_bitsLeft(lookup_fault: &lookup_fault_t) -
     let ret = (lookup_fault.words[0] & 0x1fcusize) >> 2;
     ret
 }
+
+#[inline]
+pub fn seL4_Fault_get_seL4_FaultType(seL4_Fault: &seL4_Fault_t) -> usize {
+    (seL4_Fault.words[0] >> 0) & 0xfusize
+}
+
+#[inline]
+pub fn seL4_Fault_NullFault_new() -> seL4_Fault_t {
+    seL4_Fault_t {
+        words: [0 | (seL4_Fault_NullFault & 0xfusize) << 0, 0],
+    }
+}
+
+#[inline]
+pub fn seL4_Fault_CapFault_new(address: usize, inReceivePhase: usize) -> seL4_Fault_t {
+    seL4_Fault_t {
+        words: [
+            0 | (inReceivePhase & 0x1usize) << 63 | (seL4_Fault_CapFault & 0xfusize) << 0,
+            0 | address << 0,
+        ],
+    }
+}
+
+#[inline]
+pub fn seL4_Fault_CapFault_get_address(seL4_Fault: &seL4_Fault_t) -> usize {
+    (seL4_Fault.words[1] & 0xffffffffffffffffusize) >> 0
+}
+
+#[inline]
+pub fn seL4_Fault_CapFault_get_inReceivePhase(seL4_Fault: &seL4_Fault_t) -> usize {
+    (seL4_Fault.words[0] & 0x8000000000000000usize) >> 63
+}
+
+#[inline]
+pub fn seL4_Fault_UnknownSyscall_new(syscallNumber: usize) -> seL4_Fault_t {
+    seL4_Fault_t {
+        words: [
+            0 | (seL4_Fault_UnknownSyscall & 0xfusize) << 0,
+            0 | syscallNumber << 0,
+        ],
+    }
+}
+
+#[inline]
+pub fn seL4_Fault_UnknownSyscall_get_syscallNumber(seL4_Fault: &seL4_Fault_t) -> usize {
+    (seL4_Fault.words[0] & 0x8000000000000000usize) >> 63
+}
+
+#[inline]
+pub fn seL4_Fault_UserException_new(number: usize, code: usize) -> seL4_Fault_t {
+    seL4_Fault_t {
+        words: [
+            0 | (number & 0xffffffffusize) << 32
+                | (code & 0xfffffffusize) << 4
+                | (seL4_Fault_UserException & 0xfusize) << 0,
+            0,
+        ],
+    }
+}
+
+#[inline]
+pub fn seL4_Fault_UserException_get_number(seL4_Fault: &seL4_Fault_t) -> usize {
+    (seL4_Fault.words[0] & 0xffffffff00000000usize) >> 32
+}
+
+#[inline]
+pub fn seL4_Fault_UserException_get_code(seL4_Fault: &seL4_Fault_t) -> usize {
+    (seL4_Fault.words[0] & 0xfffffff0usize) >> 4
+}
+
+#[inline]
+pub fn seL4_Fault_VMFault_new(address: usize, FSR: usize, instructionFault: bool) -> seL4_Fault_t {
+    seL4_Fault_t {
+        words: [
+            0 | (FSR & 0x1fusize) << 27
+                | (instructionFault as usize & 0x1usize) << 19
+                | (seL4_Fault_VMFault & 0xfusize) << 0,
+            0 | address << 0,
+        ],
+    }
+}
+
+#[inline]
+pub fn seL4_Fault_VMFault_get_address(seL4_Fault: &seL4_Fault_t) -> usize {
+    (seL4_Fault.words[1] & 0xffffffffffffffffusize) >> 0
+}
+
+#[inline]
+pub fn seL4_Fault_VMFault_get_FSR(seL4_Fault: &seL4_Fault_t) -> usize {
+    (seL4_Fault.words[0] & 0xf8000000usize) >> 27
+}
+
+#[inline]
+pub fn seL4_Fault_VMFault_get_instructionFault(seL4_Fault: &seL4_Fault_t) -> usize {
+    (seL4_Fault.words[0] & 0x80000usize) >> 19
+}
+
+// #[inline]
+// pub fn cap_asid_pool_cap_new(capASIDBase: usize, capASIDPool: usize) -> cap_t {
+//     cap_t {
+//         words: [
+//             0 | (cap_asid_pool_cap & 0x1fusize) << 59
+//                 | (capASIDBase & 0xffffusize) << 43
+//                 | (capASIDPool & 0x7ffffffffcusize) >> 2,
+//             0,
+//         ],
+//     }
+// }
+
+// #[inline]
+// pub fn cap_asid_pool_cap_get_capASIDBase(&cap:cap_t)->usize{
+//     (cap.words[0] & 0x7fff80000000000ull) >> 43
+// }

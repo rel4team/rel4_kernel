@@ -4,7 +4,7 @@ use crate::{
         SchedulerAction_ResumeCurrentThread, ThreadStateIdleThreadState, ThreadStateInactive,
         ThreadStateRestart, ThreadStateRunning, CONFIG_KERNEL_STACK_BITS, CONFIG_MAX_NUM_NODES,
         CONFIG_NUM_DOMAINS, CONFIG_NUM_PRIORITIES, L2_BITMAP_SIZE, NUM_READY_QUEUES, SSTATUS_SPIE,
-        SSTATUS_SPP,
+        SSTATUS_SPP, n_msgRegisters, msgRegister,
     },
     object::structure_gen::{
         thread_state_get_tcbQueued, thread_state_get_tsType, thread_state_set_tcbQueued,
@@ -205,6 +205,23 @@ pub fn idle_thread() {
         while true {
             asm!("wfi");
         }
+    }
+}
+
+pub fn setMR(receiver: *const tcb_t, receivedBuffer: usize, offset: usize, reg: usize) -> usize {
+    if offset >= n_msgRegisters {
+        if receivedBuffer != 0 {
+            let ptr = (receivedBuffer + (offset + 1) * 8) as *mut usize;
+            unsafe {
+                *ptr = reg;
+            }
+            return offset + 1;
+        } else {
+            return n_msgRegisters;
+        }
+    } else {
+        setRegister(receiver as *mut tcb_t, msgRegister[offset], reg);
+        return offset + 1;
     }
 }
 

@@ -1,4 +1,7 @@
-use core::{intrinsics::{likely, unlikely}, mem::{forget, size_of}};
+use core::{
+    intrinsics::{likely, unlikely},
+    mem::{forget, size_of},
+};
 
 use crate::{
     config::{seL4_FailedLookup, seL4_RangeError, tcbCTable, wordBits, wordRadix},
@@ -24,21 +27,12 @@ use super::{
     thread::getCSpace,
 };
 
-#[link(name = "kernel_all.c")]
-extern "C" {
-    fn resolveAddressBits(
-        _nodeCap: cap_t,
-        capptr: usize,
-        n_bits: usize,
-    ) -> resolveAddressBits_ret_t;
-}
-
 #[no_mangle]
 pub extern "C" fn lookupSlot(thread: *const tcb_t, capptr: usize) -> lookupSlot_raw_ret_t {
     unsafe {
         let threadRoot = &(*getCSpace(thread as usize, tcbCTable)).cap;
 
-        let c=threadRoot.clone();
+        let c = threadRoot.clone();
         let res_ret = rust_resolveAddressBits(threadRoot, capptr, wordBits);
         let ret = lookupSlot_raw_ret_t {
             status: res_ret.status,
@@ -49,11 +43,7 @@ pub extern "C" fn lookupSlot(thread: *const tcb_t, capptr: usize) -> lookupSlot_
 }
 
 #[no_mangle]
-pub extern "C" fn lookupCapAndSlot(
-    thread: *const tcb_t,
-    cPtr: usize,
-) -> lookupCapAndSlot_ret_t {
-
+pub extern "C" fn lookupCapAndSlot(thread: *const tcb_t, cPtr: usize) -> lookupCapAndSlot_ret_t {
     let lu_ret = lookupSlot(thread, cPtr);
     if lu_ret.status != exception_t::EXCEPTION_NONE {
         let ret = lookupCapAndSlot_ret_t {
@@ -69,9 +59,6 @@ pub extern "C" fn lookupCapAndSlot(
             slot: lu_ret.slot,
             cap: (*lu_ret.slot).cap.clone(),
         };
-        // ffffffff8405d2f0
-        // println!("{:#x}",ret.slot as usize);
-        // println!("{:#x} {:#x} {:#x} {:#x}",ret.status as usize,ret.slot as usize ,ret.cap.words[0],ret.cap.words[1]);
         ret
     }
 }
@@ -95,9 +82,7 @@ pub extern "C" fn rust_resolveAddressBits(
         let mut slot: *mut cte_t;
         let mut nodeCap = _nodeCap.clone();
         if unlikely(cap_get_capType(&nodeCap) != cap_cnode_cap) {
-            unsafe {
-                current_lookup_fault = lookup_fault_invalid_root_new();
-            }
+            current_lookup_fault = lookup_fault_invalid_root_new();
             ret.status = exception_t::EXCEPTION_LOOKUP_FAULT;
             return ret;
         }
@@ -111,24 +96,19 @@ pub extern "C" fn rust_resolveAddressBits(
             capGuard = cap_cnode_cap_get_capCNodeGuard(&nodeCap);
             guard = (capptr >> ((n_bits - guardBits) & MASK!(wordRadix))) & MASK!(guardBits);
             if unlikely(guardBits > n_bits || guard != capGuard) {
-                unsafe {
-                    current_lookup_fault =
-                        lookup_fault_guard_mismatch_new(capGuard, n_bits, guardBits);
-                    ret.status = exception_t::EXCEPTION_LOOKUP_FAULT;
-                    return ret;
-                }
+                current_lookup_fault = lookup_fault_guard_mismatch_new(capGuard, n_bits, guardBits);
+                ret.status = exception_t::EXCEPTION_LOOKUP_FAULT;
+                return ret;
             }
 
             if unlikely(levelBits > n_bits) {
-                unsafe {
-                    current_lookup_fault = lookup_fault_depth_mismatch_new(levelBits, n_bits);
-                }
+                current_lookup_fault = lookup_fault_depth_mismatch_new(levelBits, n_bits);
                 ret.status = exception_t::EXCEPTION_LOOKUP_FAULT;
                 return ret;
             }
 
             offset = (capptr >> (n_bits - levelBits)) & MASK!(radixBits);
-            slot = (((cap_cnode_cap_get_capCNodePtr(&nodeCap))) as *mut cte_t).add(offset);
+            slot = ((cap_cnode_cap_get_capCNodePtr(&nodeCap)) as *mut cte_t).add(offset);
 
             if likely(n_bits == levelBits) {
                 ret.slot = slot;
@@ -147,20 +127,20 @@ pub extern "C" fn rust_resolveAddressBits(
     }
 }
 
-#[no_mangle]
-pub fn rust_lookupSlotForCNodeOp(
+pub fn lookupSlotForCNodeOp(
     isSource: bool,
     root: &cap_t,
     capptr: usize,
     depth: usize,
 ) -> lookupSlot_ret_t {
     let mut ret: lookupSlot_ret_t = lookupSlot_ret_t::default();
-    if unlikely(cap_get_capType(root) != cap_cnode_cap) {
+    if unlikely(cap_get_capType(&root) != cap_cnode_cap) {
         unsafe {
             current_syscall_error._type = seL4_FailedLookup;
             current_syscall_error.failedLookupWasSource = isSource as usize;
             current_lookup_fault = lookup_fault_invalid_root_new();
         }
+        println!("in here1");
         ret.status = exception_t::EXCEPTION_SYSCALL_ERROR;
         return ret;
     }
@@ -170,11 +150,12 @@ pub fn rust_lookupSlotForCNodeOp(
             current_syscall_error.rangeErrorMin = 1;
             current_syscall_error.rangeErrorMax = wordBits;
         }
+        println!("in here2");
         ret.status = exception_t::EXCEPTION_SYSCALL_ERROR;
         return ret;
     }
 
-    let res_ret = rust_resolveAddressBits(root, capptr, depth);
+    let res_ret = rust_resolveAddressBits(&root, capptr, depth);
 
     if unlikely(ret.status != exception_t::EXCEPTION_NONE) {
         unsafe {
@@ -182,6 +163,7 @@ pub fn rust_lookupSlotForCNodeOp(
             current_syscall_error.failedLookupWasSource = isSource as usize;
         }
         ret.status = exception_t::EXCEPTION_SYSCALL_ERROR;
+        println!("in here3");
         return ret;
     }
 
@@ -192,6 +174,7 @@ pub fn rust_lookupSlotForCNodeOp(
             current_lookup_fault = lookup_fault_depth_mismatch_new(0, res_ret.bitsRemaining);
         }
         ret.status = exception_t::EXCEPTION_SYSCALL_ERROR;
+        println!("in here4");
         return ret;
     }
     ret.slot = res_ret.slot;
@@ -222,7 +205,7 @@ pub extern "C" fn rust_lookupTargetSlot(
     capptr: usize,
     depth: usize,
 ) -> lookupSlot_ret_t {
-    rust_lookupSlotForCNodeOp(false, root, capptr, depth)
+    lookupSlotForCNodeOp(false, root, capptr, depth)
 }
 
 #[no_mangle]
@@ -231,7 +214,7 @@ pub extern "C" fn rust_lookupSourceSlot(
     capptr: usize,
     depth: usize,
 ) -> lookupSlot_ret_t {
-    rust_lookupSlotForCNodeOp(true, root, capptr, depth)
+    lookupSlotForCNodeOp(true, root, capptr, depth)
 }
 
 #[no_mangle]
@@ -240,5 +223,5 @@ pub extern "C" fn rust_lookupPivotSlot(
     capptr: usize,
     depth: usize,
 ) -> lookupSlot_ret_t {
-    rust_lookupSlotForCNodeOp(true, root, capptr, depth)
+    lookupSlotForCNodeOp(true, root, capptr, depth)
 }
