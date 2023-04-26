@@ -1079,6 +1079,7 @@ pub fn thread_state_get_tsType(thread_state_ptr: &thread_state_t) -> usize {
 }
 
 #[inline]
+#[no_mangle]
 pub fn thread_state_set_tsType(thread_state_ptr: &mut thread_state_t, v64: usize) {
     (thread_state_ptr).words[0] &= !0xfusize;
     (thread_state_ptr).words[0] |= v64 & 0xfusize;
@@ -1092,40 +1093,53 @@ pub fn cap_domain_cap_new() -> cap_t {
     cap
 }
 
+
 #[inline]
-pub fn endpoint_ptr_set_epQueue_head(ptr: &mut endpoint_t, v64: usize) {
-    (ptr).words[1] &= !0xffffffffffffffffusize;
-    (ptr).words[1] |= (v64 << 0) & 0xffffffffffffffff;
+pub fn endpoint_ptr_set_epQueue_head(ptr: *mut endpoint_t, v64: usize) {
+    unsafe {
+        (*ptr).words[1] &= !0xffffffffffffffffusize;
+        (*ptr).words[1] |= (v64 << 0) & 0xffffffffffffffff;
+    }
 }
 
 #[inline]
-pub fn endpoint_ptr_get_epQueue_head(ptr: &endpoint_t) -> usize {
-    let ret = ((ptr).words[1] & 0xffffffffffffffffusize) >> 0;
-    ret | 0xffffff8000000000
+pub fn endpoint_ptr_get_epQueue_head(ptr: *const endpoint_t) -> usize {
+    unsafe {
+        let ret = ((*ptr).words[1] & 0xffffffffffffffffusize) >> 0;
+        ret
+    }
 }
 
 #[inline]
-pub fn endpoint_ptr_set_epQueue_tail(ptr: &mut endpoint_t, v64: usize) {
-    (ptr).words[0] &= !0x7ffffffffcusize;
-    (ptr).words[0] |= (v64 << 0) & 0x7ffffffffc;
+pub fn endpoint_ptr_set_epQueue_tail(ptr: *mut endpoint_t, v64: usize) {
+    unsafe {
+        (*ptr).words[0] &= !0x7ffffffffcusize;
+        (*ptr).words[0] |= (v64 << 0) & 0x7ffffffffc;
+    }
 }
 
 #[inline]
-pub fn endpoint_ptr_get_epQueue_tail(ptr: &endpoint_t) -> usize {
-    let ret = ((ptr).words[0] & 0x7ffffffffcusize) >> 0;
-    ret
+pub fn endpoint_ptr_get_epQueue_tail(ptr: *const endpoint_t) -> usize {
+    unsafe {
+        let ret = ((*ptr).words[0] & 0x7ffffffffcusize) >> 0;
+        ret
+    }
 }
 
 #[inline]
-pub fn endpoint_ptr_set_state(ptr: &mut endpoint_t, v64: usize) {
-    (ptr).words[0] &= !0x3usize;
-    (ptr).words[0] |= (v64 << 0) & 0x3;
+pub fn endpoint_ptr_set_state(ptr: *mut endpoint_t, v64: usize) {
+    unsafe {
+        (*ptr).words[0] &= !0x3usize;
+        (*ptr).words[0] |= (v64 << 0) & 0x3;
+    }
 }
 
 #[inline]
-pub fn endpoint_ptr_get_state(ptr: &endpoint_t) -> usize {
-    let ret = ((ptr).words[0] & 0x3usize) >> 0;
-    ret
+pub fn endpoint_ptr_get_state(ptr: *const endpoint_t) -> usize {
+    unsafe {
+        let ret = ((*ptr).words[0] & 0x3usize) >> 0;
+        ret
+    }
 }
 
 #[inline]

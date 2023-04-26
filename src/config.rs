@@ -265,3 +265,8 @@ pub const seL4_Fault_CapFault: usize = 1;
 pub const seL4_Fault_UnknownSyscall: usize = 2;
 pub const seL4_Fault_UserException: usize = 3;
 pub const seL4_Fault_VMFault: usize = 5;
+
+
+pub const EPState_Idle: usize = 0;
+pub const EPState_Send: usize = 1;
+pub const EPState_Recv: usize = 2;
