@@ -1,34 +1,54 @@
 use crate::{
     config::{
-        msgRegister, n_msgRegisters, seL4_IllegalOperation, seL4_InvalidArgument, seL4_TCBBits,
-        seL4_TruncatedMessage, wordBits, wordRadix, DomainSetSet, SchedulerAction_ChooseNewThread,
-        SchedulerAction_ResumeCurrentThread, ThreadStateIdleThreadState, ThreadStateInactive,
-        ThreadStateRestart, ThreadStateRunning, CONFIG_KERNEL_STACK_BITS, CONFIG_MAX_NUM_NODES,
-        CONFIG_NUM_DOMAINS, CONFIG_NUM_PRIORITIES, L2_BITMAP_SIZE, NUM_READY_QUEUES, SSTATUS_SPIE,
-        SSTATUS_SPP,
+        msgInfoRegister, msgRegister, n_msgRegisters, seL4_AlignmentError, seL4_DeleteFirst,
+        seL4_Fault_NullFault, seL4_IllegalOperation, seL4_InvalidArgument, seL4_InvalidCapability,
+        seL4_MsgMaxExtraCaps, seL4_MsgMaxLength, seL4_NotEnoughMemory, seL4_RangeError,
+        seL4_RevokeFirst, seL4_TCBBits, seL4_TruncatedMessage, tcbCaller, tcbReply, wordBits,
+        wordRadix, DomainSetSet, SchedulerAction_ChooseNewThread,
+        SchedulerAction_ResumeCurrentThread, ThreadStateBlockedOnReply, ThreadStateIdleThreadState,
+        ThreadStateInactive, ThreadStateRestart, ThreadStateRunning, CONFIG_KERNEL_STACK_BITS,
+        CONFIG_MAX_NUM_NODES, CONFIG_NUM_DOMAINS, CONFIG_NUM_PRIORITIES, L2_BITMAP_SIZE,
+        NUM_READY_QUEUES, SSTATUS_SPIE, SSTATUS_SPP, seL4_FailedLookup,
     },
     object::{
-        objecttype::{cap_get_capType, cap_thread_cap},
+        cap::cteInsert,
+        objecttype::{
+            cap_endpoint_cap, cap_get_capType, cap_null_cap, cap_reply_cap, cap_thread_cap,
+            deriveCap,
+        },
         structure_gen::{
-            thread_state_get_tcbQueued, thread_state_get_tsType, thread_state_set_tcbQueued,
-            thread_state_set_tsType, cap_thread_cap_get_capTCBPtr,
+            cap_endpoint_cap_get_capEPBadge, cap_endpoint_cap_get_capEPPtr,
+            cap_reply_cap_get_capReplyCanGrant, cap_reply_cap_get_capReplyMaster,
+            cap_reply_cap_get_capTCBPtr, cap_reply_cap_new, cap_thread_cap_get_capTCBPtr,
+            seL4_Fault_get_seL4_FaultType, thread_state_get_tcbQueued, thread_state_get_tsType,
+            thread_state_set_tcbQueued, thread_state_set_tsType,
         },
     },
     println,
     sbi::shutdown,
     structures::{
-        arch_tcb_t, cte_t, exception_t, lookup_fault_t, notification_t, seL4_Fault_t, tcb_queue_t,
-        tcb_t, thread_state_t,
+        arch_tcb_t, cap_transfer_t, cte_t, endpoint_t, exception_t, lookup_fault_t, notification_t,
+        seL4_Fault_t, seL4_MessageInfo_t, tcb_queue_t, tcb_t, thread_state_t,
     },
     syscall::getSyscallArg,
     BIT, MASK,
 };
 
-use core::{arch::asm, intrinsics::unlikely};
+use core::{
+    arch::asm,
+    intrinsics::{likely, unlikely},
+};
 
 use super::{
-    boot::{current_extra_caps, current_syscall_error},
-    vspace::setVMRoot,
+    boot::{current_extra_caps, current_syscall_error, current_lookup_fault},
+    cspace::{lookupCap, lookupSlot, rust_lookupTargetSlot},
+    transfermsg::{
+        capTransferFromWords, messageInfoFromWord, messageInfoFromWord_raw,
+        seL4_MessageInfo_ptr_get_capsUnwrapped, seL4_MessageInfo_ptr_get_extraCaps,
+        seL4_MessageInfo_ptr_get_length, seL4_MessageInfo_ptr_set_capsUnwrapped,
+        seL4_MessageInfo_ptr_set_extraCaps, seL4_MessageInfo_ptr_set_length, wordFromMEssageInfo,
+    },
+    vspace::{lookupIPCBuffer, setVMRoot}, fault::setMRs_lookup_failure,
 };
 
 #[no_mangle]
@@ -54,8 +74,10 @@ pub static mut kernel_stack_alloc: [[u8; BIT!(CONFIG_KERNEL_STACK_BITS)]; CONFIG
     [[0; BIT!(CONFIG_KERNEL_STACK_BITS)]; CONFIG_MAX_NUM_NODES];
 
 #[no_mangle]
-static mut ksReadyQueues: [tcb_queue_t; NUM_READY_QUEUES] =
-    [tcb_queue_t { head: 0, tail: 0 }; NUM_READY_QUEUES];
+static mut ksReadyQueues: [tcb_queue_t; NUM_READY_QUEUES] = [tcb_queue_t {
+    head: 0 as *mut tcb_t,
+    tail: 0 as *mut tcb_t,
+}; NUM_READY_QUEUES];
 
 #[no_mangle]
 static mut ksReadyQueuesL2Bitmap: [[usize; L2_BITMAP_SIZE]; CONFIG_NUM_DOMAINS] =
@@ -219,10 +241,10 @@ pub fn idle_thread() {
     }
 }
 
-pub fn setMR(receiver: *mut tcb_t, receivedBuffer: usize, offset: usize, reg: usize) -> usize {
+pub fn setMR(receiver: *mut tcb_t, receivedBuffer: *mut usize, offset: usize, reg: usize) -> usize {
     if offset >= n_msgRegisters {
-        if receivedBuffer != 0 {
-            let ptr = (receivedBuffer + (offset + 1) * 8) as *mut usize;
+        if receivedBuffer as usize != 0 {
+            let ptr = unsafe { receivedBuffer.add(offset + 1) };
             unsafe {
                 *ptr = reg;
             }
@@ -255,7 +277,6 @@ pub fn Arch_switchToIdleThread() {
     }
 }
 
-#[no_mangle]
 pub fn setThreadState(tptr: *mut tcb_t, ts: usize) {
     unsafe {
         thread_state_set_tsType(&mut (*tptr).tcbState, ts);
@@ -265,7 +286,7 @@ pub fn setThreadState(tptr: *mut tcb_t, ts: usize) {
     }
 }
 #[no_mangle]
-pub fn decodeDomainInvocation(invLabel: usize, length: usize, buffer: *mut usize)->exception_t {
+pub fn decodeDomainInvocation(invLabel: usize, length: usize, buffer: *mut usize) -> exception_t {
     if invLabel != DomainSetSet {
         unsafe {
             current_syscall_error._type = seL4_IllegalOperation;
@@ -327,6 +348,37 @@ pub fn setDomain(tptr: *mut tcb_t, dom: usize) {
         }
     }
 }
+
+#[no_mangle]
+pub fn setupCallerCap(sender: *const tcb_t, receiver: *const tcb_t, canGrant: bool) {
+    unsafe {
+        setThreadState(sender as *mut tcb_t, ThreadStateBlockedOnReply);
+        let replySlot = getCSpace(sender as usize, tcbReply);
+        let masterCap = &(*replySlot).cap;
+
+        assert!(cap_get_capType(masterCap) == cap_reply_cap);
+        assert!(cap_reply_cap_get_capReplyMaster(masterCap) == 1);
+        assert!(cap_reply_cap_get_capReplyCanGrant(masterCap) == 1);
+        assert!(cap_reply_cap_get_capTCBPtr(masterCap) == sender as usize);
+
+        let callerSlot = getCSpace(receiver as usize, tcbCaller);
+        let callerCap = &(*callerSlot).cap;
+
+        assert!(cap_get_capType(callerCap) == cap_null_cap);
+        cteInsert(
+            cap_reply_cap_new(canGrant as usize, 0, sender as usize),
+            replySlot,
+            callerSlot,
+        );
+    }
+}
+
+// #[no_mangle]
+// pub fn deleteCallerCap(receiver: *mut tcb_t) {
+//     let callerSlot = getCSpace(receiver as usize, tcbCaller);
+//     cteDeleteOne(callerSlot);
+// }
+
 // #[no_mangle]
 // pub fn testtcb() {
 //     let mut arch = arch_tcb_t { registers: [0; 35] };
@@ -362,16 +414,17 @@ pub fn setDomain(tptr: *mut tcb_t, dom: usize) {
 //     }
 // }
 
-// pub fn scheduleTCB(tptr: *const tcb_t) {
-//     unsafe {
-//         if tptr as usize == ksCurThread as usize
-//             && ksSchedulerAction as usize == SchedulerAction_ResumeCurrentThread
-//             && !isRunnable(tptr)
-//         {
-//             rescheduleRequired();
-//         }
-//     }
-// }
+#[no_mangle]
+pub fn scheduleTCB(tptr: *const tcb_t) {
+    unsafe {
+        if tptr as usize == ksCurThread as usize
+            && ksSchedulerAction as usize == SchedulerAction_ResumeCurrentThread
+            && !isRunnable(tptr)
+        {
+            rescheduleRequired();
+        }
+    }
+}
 
 pub fn getReStartPC(thread: *const tcb_t) -> usize {
     getRegister(thread, FaultIP)
@@ -399,10 +452,7 @@ pub fn getCSpace(ptr: usize, i: usize) -> *mut cte_t {
 
 #[link(name = "kernel_all.c")]
 extern "C" {
-    fn tcbSchedEnqueue(t: *mut tcb_t);
-    fn tcbSchedDequeue(_tcb: *mut tcb_t);
-    fn scheduleTCB(tptr: *const tcb_t);
-    fn parserTcb(t: *mut tcb_t);
+    // fn parserTcb(t: *mut tcb_t);
 }
 
 pub fn rescheduleRequired() {
@@ -508,7 +558,7 @@ pub fn chooseThread() {
             let prio = getHighestPrio(dom);
             // println!("prio:{}", prio);
             let _thread = ksReadyQueues[ready_queues_index(dom, prio)].head;
-            assert!(_thread != 0);
+            assert!(_thread as usize != 0);
             let thread = _thread as *const tcb_t;
             switchToThread(thread);
         } else {
@@ -547,6 +597,7 @@ pub fn setPriority(tptr: *const tcb_t, prio: usize) {
     }
 }
 
+#[no_mangle]
 pub fn possibleSwitchTo(target: *const tcb_t) {
     unsafe {
         if ksCurDomain != (*target).domain {
@@ -560,109 +611,114 @@ pub fn possibleSwitchTo(target: *const tcb_t) {
     }
 }
 
-// pub fn tcbSchedEnqueue(_tcb: *mut tcb_t) {
-//     unsafe {
-//         let tcb = &mut (*_tcb);
-//         if thread_state_get_tcbQueued(&tcb.tcbState) == 0 {
-//             let dom = tcb.domain;
-//             let prio = tcb.tcbPriority;
-//             let idx = ready_queues_index(dom, prio);
-//             let mut queue = ksReadyQueues[idx];
-//             if queue.tail == 0 {
-//                 queue.head = _tcb as *const tcb_t as usize;
-//                 addToBitmap(dom, prio);
-//             } else {
-//                 (*(queue.tail as *mut tcb_t)).tcbSchedNext = tcb as *const tcb_t as usize;
-//             }
-//             (*_tcb).tcbSchedPrev = queue.tail;
-//             (*_tcb).tcbSchedNext = 0;
-//             queue.tail = tcb as *const tcb_t as usize;
-//             ksReadyQueues[idx] = queue;
+#[no_mangle]
+pub fn tcbSchedEnqueue(_tcb: *mut tcb_t) {
+    unsafe {
+        let tcb = &mut (*_tcb);
+        if thread_state_get_tcbQueued(&tcb.tcbState) == 0 {
+            let dom = tcb.domain;
+            let prio = tcb.tcbPriority;
+            let idx = ready_queues_index(dom, prio);
+            let mut queue = ksReadyQueues[idx];
+            if queue.tail as usize == 0 {
+                queue.head = _tcb;
+                addToBitmap(dom, prio);
+            } else {
+                (*(queue.tail as *mut tcb_t)).tcbSchedNext = _tcb as usize;
+            }
+            (*_tcb).tcbSchedPrev = queue.tail as usize;
+            (*_tcb).tcbSchedNext = 0;
+            queue.tail = _tcb;
+            ksReadyQueues[idx] = queue;
 
-//             thread_state_set_tcbQueued(&mut tcb.tcbState, 1);
-//         }
-//     }
-// }
+            thread_state_set_tcbQueued(&mut tcb.tcbState, 1);
+        }
+    }
+}
 
-// #[inline]
-// pub fn tcbSchedDequeue(_tcb: *mut tcb_t) {
-//     unsafe {
-//         let tcb = &mut (*_tcb);
-//         if thread_state_get_tcbQueued(&tcb.tcbState) != 0 {
-//             let dom = tcb.domain;
-//             let prio = tcb.tcbPriority;
-//             let idx = ready_queues_index(dom, prio);
-//             let mut queue = ksReadyQueues[idx];
-//             if tcb.tcbSchedPrev != 0 {
-//                 (*(tcb.tcbSchedPrev as *mut tcb_t)).tcbSchedNext = tcb.tcbSchedNext;
-//             } else {
-//                 queue.head = tcb.tcbSchedNext;
-//                 if tcb.tcbSchedNext == 0 {
-//                     removeFromBitmap(dom, prio);
-//                 }
-//             }
-//             if tcb.tcbSchedNext != 0 {
-//                 (*(tcb.tcbSchedNext as *mut tcb_t)).tcbSchedPrev = tcb.tcbSchedPrev;
-//             } else {
-//                 queue.tail = tcb.tcbSchedPrev;
-//             }
+#[inline]
+#[no_mangle]
+pub fn tcbSchedDequeue(_tcb: *mut tcb_t) {
+    unsafe {
+        let tcb = &mut (*_tcb);
+        if thread_state_get_tcbQueued(&tcb.tcbState) != 0 {
+            let dom = tcb.domain;
+            let prio = tcb.tcbPriority;
+            let idx = ready_queues_index(dom, prio);
+            let mut queue = ksReadyQueues[idx];
+            if tcb.tcbSchedPrev != 0 {
+                (*(tcb.tcbSchedPrev as *mut tcb_t)).tcbSchedNext = tcb.tcbSchedNext;
+            } else {
+                queue.head = tcb.tcbSchedNext as *mut tcb_t;
+                if tcb.tcbSchedNext == 0 {
+                    removeFromBitmap(dom, prio);
+                }
+            }
+            if tcb.tcbSchedNext != 0 {
+                (*(tcb.tcbSchedNext as *mut tcb_t)).tcbSchedPrev = tcb.tcbSchedPrev;
+            } else {
+                queue.tail = tcb.tcbSchedPrev as *mut tcb_t;
+            }
 
-//             ksReadyQueues[idx] = queue;
-//             thread_state_set_tcbQueued(&mut tcb.tcbState, 0);
-//         }
-//     }
-// }
+            ksReadyQueues[idx] = queue;
+            thread_state_set_tcbQueued(&mut tcb.tcbState, 0);
+        }
+    }
+}
 
-// pub fn tcbSchedAppend(tcb: *mut tcb_t) {
-//     unsafe {
-//         if thread_state_get_tcbQueued(&(*tcb).tcbState) == 0 {
-//             let dom = (*tcb).domain;
-//             let prio = (*tcb).tcbPriority;
-//             let idx = ready_queues_index(dom, prio);
-//             let mut queue = ksReadyQueues[idx];
-//             // println!("tail:{:#x} head:{:#x}", queue.tail, queue.head);
-//             if queue.head == 0 {
-//                 queue.head = tcb as usize;
-//                 addToBitmap(dom, prio);
-//             } else {
-//                 let next = queue.tail as *mut tcb_t;
-//                 (*next).tcbSchedNext = tcb as usize;
-//             }
-//             // println!("tail:{:#x} head:{:#x}", queue.tail, queue.head);
-//             (*tcb).tcbSchedPrev = queue.tail;
-//             (*tcb).tcbSchedNext = 0;
-//             ksReadyQueues[idx] = queue;
+#[no_mangle]
+pub fn tcbSchedAppend(tcb: *mut tcb_t) {
+    unsafe {
+        if thread_state_get_tcbQueued(&(*tcb).tcbState) == 0 {
+            let dom = (*tcb).domain;
+            let prio = (*tcb).tcbPriority;
+            let idx = ready_queues_index(dom, prio);
+            let mut queue = ksReadyQueues[idx];
 
-//             thread_state_set_tcbQueued(&mut (*tcb).tcbState, 1);
-//         }
-//     }
-// }
+            if queue.head as usize == 0 {
+                queue.head = tcb;
+                addToBitmap(dom, prio);
+            } else {
+                let next = queue.tail;
+                (*next).tcbSchedNext = tcb as usize;
+            }
+            (*tcb).tcbSchedPrev = queue.tail as usize;
+            (*tcb).tcbSchedNext = 0;
+            queue.tail = tcb;
+            ksReadyQueues[idx] = queue;
 
+            thread_state_set_tcbQueued(&mut (*tcb).tcbState, 1);
+        }
+    }
+}
+
+#[no_mangle]
 pub fn tcbEPAppend(tcb: *mut tcb_t, mut queue: tcb_queue_t) -> tcb_queue_t {
     unsafe {
-        if queue.head == 0 {
-            queue.head = tcb as usize;
+        if queue.head as usize == 0 {
+            queue.head = tcb;
         } else {
             (*(queue.tail as *mut tcb_t)).tcbEPNext = tcb as usize;
         }
-        (*tcb).tcbEPPrev = queue.tail;
+        (*tcb).tcbEPPrev = queue.tail as usize;
         (*tcb).tcbEPNext = 0;
-        queue.tail = tcb as usize;
+        queue.tail = tcb as *mut tcb_t;
         queue
     }
 }
 
+#[no_mangle]
 pub fn tcbEPDequeue(tcb: *mut tcb_t, mut queue: tcb_queue_t) -> tcb_queue_t {
     unsafe {
         if (*tcb).tcbEPPrev != 0 {
             (*((*tcb).tcbEPPrev as *mut tcb_t)).tcbEPNext = (*tcb).tcbEPNext;
         } else {
-            queue.head = (*tcb).tcbEPNext as usize;
+            queue.head = (*tcb).tcbEPNext as *mut tcb_t;
         }
         if (*tcb).tcbEPNext != 0 {
             (*((*tcb).tcbEPNext as *mut tcb_t)).tcbEPPrev = (*tcb).tcbEPPrev;
         } else {
-            queue.tail = (*tcb).tcbEPPrev as usize;
+            queue.tail = (*tcb).tcbEPPrev as *mut tcb_t;
         }
         queue
     }
@@ -671,4 +727,295 @@ pub fn tcbEPDequeue(tcb: *mut tcb_t, mut queue: tcb_queue_t) -> tcb_queue_t {
 pub fn Arch_initContext(mut context: arch_tcb_t) -> arch_tcb_t {
     (context).registers[SSTATUS] = 0x00040020;
     context
+}
+
+#[no_mangle]
+pub fn doIPCTransfer(
+    sender: *mut tcb_t,
+    endpoint: *mut endpoint_t,
+    badge: usize,
+    grant: bool,
+    receiver: *mut tcb_t,
+) {
+    let receiveBuffer = lookupIPCBuffer(true, receiver) as *mut usize;
+    unsafe {
+        if likely(seL4_Fault_get_seL4_FaultType(&(*sender).tcbFault) == seL4_Fault_NullFault) {
+            let sendBuffer = lookupIPCBuffer(false, sender) as *mut usize;
+            doNormalTransfer(
+                sender,
+                sendBuffer,
+                endpoint,
+                badge,
+                grant,
+                receiver,
+                receiveBuffer,
+            );
+        } else {
+            doFaultTransfer(badge, sender, receiver, receiveBuffer);
+        }
+    }
+}
+
+#[link(name = "kernel_all.c")]
+extern "C" {
+    pub fn doFaultTransfer(
+        badge: usize,
+        sender: *mut tcb_t,
+        receiver: *mut tcb_t,
+        recvBuf: *mut usize,
+    );
+}
+
+#[no_mangle]
+pub fn doNormalTransfer(
+    sender: *mut tcb_t,
+    sendBuffer: *mut usize,
+    endpoint: *mut endpoint_t,
+    badge: usize,
+    canGrant: bool,
+    receiver: *mut tcb_t,
+    receivedBuffer: *mut usize,
+) {
+    let mut tag = messageInfoFromWord(getRegister(sender, msgInfoRegister));
+    if canGrant {
+        let status = lookupExtraCaps(sender, sendBuffer, &tag);
+
+        if unlikely(status != exception_t::EXCEPTION_NONE) {
+            unsafe {
+                current_extra_caps.excaprefs[0] = 0 as *mut cte_t;
+            }
+        }
+    } else {
+        unsafe {
+            current_extra_caps.excaprefs[0] = 0 as *mut cte_t;
+        }
+    }
+    let msgTransferred = copyMRs(
+        sender,
+        sendBuffer,
+        receiver,
+        receivedBuffer,
+        seL4_MessageInfo_ptr_get_length((&tag) as *const seL4_MessageInfo_t),
+    );
+
+    tag = transferCaps(tag, endpoint, receiver, receivedBuffer);
+
+    seL4_MessageInfo_ptr_set_length(
+        (&tag) as *const seL4_MessageInfo_t as *mut seL4_MessageInfo_t,
+        msgTransferred,
+    );
+    setRegister(receiver, msgInfoRegister, wordFromMEssageInfo(tag));
+    setRegister(receiver, badgeRegister, badge);
+}
+
+// #[no_mangle]
+// pub fn doFaultTransfer(
+//     badge: usize,
+//     sender: *mut tcb_t,
+//     receiver: *mut tcb_t,
+//     recvBuf: *mut usize,
+// ) {
+//     // let sent =setMRs_fault()
+// }
+
+pub fn transferCaps(
+    info: seL4_MessageInfo_t,
+    endpoint: *mut endpoint_t,
+    receiver: *mut tcb_t,
+    receivedBuffer: *mut usize,
+) -> seL4_MessageInfo_t {
+    unsafe {
+        seL4_MessageInfo_ptr_set_extraCaps(
+            (&info) as *const seL4_MessageInfo_t as *mut seL4_MessageInfo_t,
+            0,
+        );
+        seL4_MessageInfo_ptr_set_capsUnwrapped(
+            (&info) as *const seL4_MessageInfo_t as *mut seL4_MessageInfo_t,
+            0,
+        );
+        if current_extra_caps.excaprefs[0] as usize == 0 || receivedBuffer as usize == 0 {
+            return info;
+        }
+        let mut destSlot = getReceiveSlots(receiver, receivedBuffer);
+        let mut i = 0;
+        while i < seL4_MsgMaxExtraCaps && current_extra_caps.excaprefs[i] as usize != 0 {
+            let slot = current_extra_caps.excaprefs[i];
+            let cap = &(*slot).cap;
+            if cap_get_capType(cap) == cap_endpoint_cap
+                && (cap_endpoint_cap_get_capEPPtr(cap) == endpoint as usize)
+            {
+                setExtraBadge(receivedBuffer, cap_endpoint_cap_get_capEPBadge(cap), i);
+                seL4_MessageInfo_ptr_set_capsUnwrapped(
+                    (&info) as *const seL4_MessageInfo_t as *mut seL4_MessageInfo_t,
+                    seL4_MessageInfo_ptr_get_capsUnwrapped((&info) as *const seL4_MessageInfo_t)
+                        | (1 << i),
+                );
+            } else {
+                if destSlot as usize == 0 {
+                    break;
+                }
+                let dc_ret = deriveCap(slot, cap);
+                if dc_ret.status != exception_t::EXCEPTION_NONE
+                    || cap_get_capType(&dc_ret.cap) == cap_null_cap
+                {
+                    break;
+                }
+                cteInsert(dc_ret.cap, slot, destSlot);
+                destSlot = 0 as *mut cte_t;
+            }
+            i += 1;
+        }
+        seL4_MessageInfo_ptr_set_extraCaps(
+            (&info) as *const seL4_MessageInfo_t as *mut seL4_MessageInfo_t,
+            i,
+        );
+        return info;
+    }
+}
+
+pub fn lookupExtraCaps(
+    thread: *mut tcb_t,
+    bufferPtr: *mut usize,
+    info: &seL4_MessageInfo_t,
+) -> exception_t {
+    unsafe {
+        if bufferPtr as usize == 0 {
+            current_extra_caps.excaprefs[0] = 0 as *mut cte_t;
+            return exception_t::EXCEPTION_NONE;
+        }
+        let length = seL4_MessageInfo_ptr_get_extraCaps(info as *const seL4_MessageInfo_t);
+        let mut i = 0;
+        while i < length {
+            let cptr = getExtraCPtr(bufferPtr, i);
+            let lu_ret = lookupSlot(thread, cptr);
+            if lu_ret.status != exception_t::EXCEPTION_NONE {
+                panic!(" lookup slot error , found slot :{}", lu_ret.slot as usize);
+            }
+            current_extra_caps.excaprefs[i] = lu_ret.slot;
+            i += 1;
+        }
+        if i < seL4_MsgMaxExtraCaps {
+            current_extra_caps.excaprefs[i] = 0 as *mut cte_t;
+        }
+        return exception_t::EXCEPTION_NONE;
+    }
+}
+
+pub fn copyMRs(
+    sender: *mut tcb_t,
+    sendBuf: *mut usize,
+    receiver: *mut tcb_t,
+    recvBuf: *mut usize,
+    n: usize,
+) -> usize {
+    let mut i = 0;
+    while i < n && i < n_msgRegisters {
+        setRegister(
+            receiver,
+            msgRegister[i],
+            getRegister(sender, msgRegister[i]),
+        );
+        i += 1;
+    }
+
+    if recvBuf as usize == 0 || sendBuf as usize == 0 {
+        return i;
+    }
+
+    while i < n {
+        unsafe {
+            let recvPtr = recvBuf.add(i + 1);
+            let sendPtr = sendBuf.add(i + 1);
+            *recvPtr = *sendPtr;
+            i += 1;
+        }
+    }
+    i
+}
+
+pub fn getReceiveSlots(thread: *mut tcb_t, buffer: *mut usize) -> *mut cte_t {
+    if buffer as usize == 0 {
+        return 0 as *mut cte_t;
+    }
+    let ct = loadCapTransfer(buffer);
+    let cptr = ct.ctReceiveRoot;
+    let luc_ret = lookupCap(thread, cptr);
+    let cnode = &luc_ret.cap;
+    let lus_ret = rust_lookupTargetSlot(cnode, ct.ctReceiveIndex, ct.ctReceiveDepth);
+    lus_ret.slot
+}
+
+pub fn loadCapTransfer(buffer: *mut usize) -> cap_transfer_t {
+    let offset = seL4_MsgMaxLength + 2 + seL4_MsgMaxExtraCaps;
+    unsafe { capTransferFromWords(buffer.add(offset)) }
+}
+
+#[no_mangle]
+pub fn setExtraBadge(bufferPtr: *mut usize, badge: usize, i: usize) {
+    unsafe {
+        let ptr = bufferPtr.add(seL4_MsgMaxLength + 2 + i);
+        *ptr = badge;
+    }
+}
+
+#[no_mangle]
+pub fn getExtraCPtr(bufferPtr: *mut usize, i: usize) -> usize {
+    unsafe {
+        let ptr = bufferPtr.add(seL4_MsgMaxLength + 2 + i);
+        *ptr
+    }
+}
+
+#[no_mangle]
+pub fn setMRs_syscall_error(thread: *mut tcb_t, receivedIPCBuffer: *mut usize) -> usize {
+    unsafe {
+        match current_syscall_error._type {
+            seL4_InvalidArgument => setMR(
+                thread,
+                receivedIPCBuffer,
+                0,
+                current_syscall_error.invalidArgumentNumber,
+            ),
+            seL4_InvalidCapability => setMR(
+                thread,
+                receivedIPCBuffer,
+                0,
+                current_syscall_error.invalidCapNumber,
+            ),
+            seL4_RangeError => {
+                setMR(
+                    thread,
+                    receivedIPCBuffer,
+                    0,
+                    current_syscall_error.rangeErrorMin,
+                );
+                setMR(
+                    thread,
+                    receivedIPCBuffer,
+                    1,
+                    current_syscall_error.rangeErrorMax,
+                )
+            },
+            seL4_FailedLookup=>{
+                let flag= if current_syscall_error.failedLookupWasSource ==1 {true} else {false};
+                setMR(thread, receivedIPCBuffer, 0,
+                                  flag as usize);
+                            return setMRs_lookup_failure(thread, receivedIPCBuffer,
+                                                         &current_lookup_fault, 1);
+                    
+            }
+            seL4_IllegalOperation
+            | seL4_AlignmentError
+            | seL4_TruncatedMessage
+            | seL4_DeleteFirst
+            | seL4_RevokeFirst => 0,
+            seL4_NotEnoughMemory => setMR(
+                thread,
+                receivedIPCBuffer,
+                0,
+                current_syscall_error.memoryLeft,
+            ),
+            _ => panic!("invalid syscall error"),
+        }
+    }
 }

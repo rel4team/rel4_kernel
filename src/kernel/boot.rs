@@ -890,7 +890,7 @@ pub fn create_initial_thread(
         (*tcb).tcbArch = Arch_initContext((*tcb).tcbArch);
 
         let ptr = cap_get_capPtr(root_cnode_cap) as *mut cte_t;
-        let dc_ret = deriveCap(ptr.add(seL4_CapInitThreadIPCBuffer), ipcbuf_cap.clone());
+        let dc_ret = deriveCap(ptr.add(seL4_CapInitThreadIPCBuffer), &ipcbuf_cap.clone());
         if dc_ret.status != exception_t::EXCEPTION_NONE {
             println!("Failed to derive copy of IPC Buffer\n");
             return 0 as *mut tcb_t;

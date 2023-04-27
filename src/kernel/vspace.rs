@@ -782,7 +782,7 @@ pub fn performPageGetAddress(vbase_ptr: usize, call: bool) -> exception_t {
     unsafe {
         let thread = ksCurThread as *mut tcb_t;
         if call {
-            let ipcBuffer = lookupIPCBuffer(true, thread as *mut tcb_t);
+            let ipcBuffer = lookupIPCBuffer(true, thread as *mut tcb_t) as *mut usize;
             setRegister(thread as *mut tcb_t, badgeRegister, 0);
             let length = setMR(thread, ipcBuffer, 0, vbase_ptr);
             setRegister(
@@ -965,59 +965,7 @@ pub fn decodeRISCVFrameInvocation(
     }
 }
 
-#[no_mangle]
-pub fn process1(
-    capVMRights: usize,
-    w_rightsMask: usize,
-    asid: usize,
-    vaddr: usize,
-    attr: vm_attributes_t,
-    cap: &mut cap_t,
-    cte: *mut cte_t,
-    slot: *mut pte_t,
-) -> exception_t {
-    unsafe {
-        let vmRights = maskVMRights(capVMRights, rightsFromWord(w_rightsMask));
-        let frame_paddr = pptr_to_paddr(cap_frame_cap_get_capFBasePtr(cap));
-        cap_frame_cap_set_capFMappedASID(cap, asid);
-        cap_frame_cap_set_capFMappedAddress(cap, vaddr);
 
-        let executable = vm_attributes_get_riscvExecuteNever(attr) == 0;
-        // println!(
-        //     "vraddr {:#x} {:#x} {:#x} {:#x} {:#x}",
-        //     vmRights,frame_paddr, cap.words[0], cap.words[1], executable as usize
-        // );
-        let pte = makeUserPTE(frame_paddr, executable, vmRights);
-        setThreadState(ksCurThread, ThreadStateRestart);
-        performPageInvocationMapPTE(cap, cte as *mut cte_t, pte, slot)
-    }
-}
-
-#[no_mangle]
-pub fn process(label: usize, cap: &cap_t, cte: *mut cte_t, call: bool) -> exception_t {
-    match label {
-        RISCVPageUnmap => {
-            unsafe {
-                setThreadState(ksCurThread, ThreadStateRestart);
-            }
-            performPageInvocationUnmap(cap, cte)
-        }
-        RISCVPageGetAddress => {
-            assert!(n_msgRegisters >= 1);
-            unsafe {
-                setThreadState(ksCurThread, ThreadStateRestart);
-            }
-            performPageGetAddress(cap_frame_cap_get_capFBasePtr(cap), call)
-        }
-        _ => {
-            println!("invalid operation label:{}", label);
-            unsafe {
-                current_syscall_error._type = seL4_IllegalOperation;
-            }
-            exception_t::EXCEPTION_SYSCALL_ERROR
-        }
-    }
-}
 
 #[no_mangle]
 pub fn decodeRISCVPageTableInvocation(

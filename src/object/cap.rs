@@ -12,7 +12,7 @@ use crate::{
     },
     println,
     structures::{
-        cap_t, cap_tag_t, cte_t, exception_t, finaliseCap_ret, finaliseSlot_ret, mdb_node_t,
+        cap_t, cap_tag_t, cte_t, exception_t, finaliseCap_ret, finaliseSlot_ret, mdb_node_t, cap_transfer_t,
     },
 };
 
@@ -31,7 +31,6 @@ use super::{
     },
 };
 
-const null: usize = 0xffffff8000000000;
 
 pub fn ensureNoChildren(slot: *mut cte_t) -> exception_t {
     unsafe {
@@ -103,7 +102,7 @@ pub fn cteInsert(newCap: cap_t, _srcSlot: *mut cte_t, _destSlot: *mut cte_t) {
         (*(_destSlot as *mut cte_t)).cap = newCap.clone();
         (*(_destSlot as *mut cte_t)).cteMDBNode = newMDB;
         mdb_node_ptr_set_mdbNext(&mut (*srcSlot).cteMDBNode, _destSlot as usize);
-        if mdb_node_get_mdbNext(&newMDB) != null {
+        if mdb_node_get_mdbNext(&newMDB) != 0 {
             let cte_ptr = mdb_node_get_mdbNext(&newMDB) as *mut cte_t;
             mdb_node_ptr_set_mdbPrev(&mut (*cte_ptr).cteMDBNode, _destSlot as usize);
         }
@@ -396,3 +395,4 @@ pub fn ensureEmptySlot(slot: *mut cte_t) -> exception_t {
     }
     exception_t::EXCEPTION_NONE
 }
+

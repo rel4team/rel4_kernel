@@ -74,14 +74,14 @@ pub fn cap_get_capPtr(cap: &cap_t) -> usize {
     }
 }
 
-pub fn Arch_deriveCap(_slot: *mut cte_t, cap: cap_t) -> deriveCap_ret {
+pub fn Arch_deriveCap(_slot: *mut cte_t, cap: &cap_t) -> deriveCap_ret {
     let mut ret = deriveCap_ret {
         status: exception_t::EXCEPTION_NONE,
         cap: cap_t::default(),
     };
-    match cap_get_capType(&cap) {
+    match cap_get_capType(cap) {
         cap_page_table_cap => {
-            if cap_page_table_cap_get_capPTIsMapped(&cap) != 0 {
+            if cap_page_table_cap_get_capPTIsMapped(cap) != 0 {
                 ret.cap = cap.clone();
                 ret.status = exception_t::EXCEPTION_NONE;
             } else {
@@ -98,7 +98,7 @@ pub fn Arch_deriveCap(_slot: *mut cte_t, cap: cap_t) -> deriveCap_ret {
             ret.cap = cap.clone();
         }
         _ => {
-            panic!(" Invalid arch cap type :{}", cap_get_capType(&cap));
+            panic!(" Invalid arch cap type :{}", cap_get_capType(cap));
         }
     }
     ret
@@ -109,7 +109,7 @@ pub fn isArchCap(_cap: &cap_t) -> bool {
     cap_get_capType(_cap) % 2 != 0
 }
 
-pub fn deriveCap(slot: *mut cte_t, cap: cap_t) -> deriveCap_ret {
+pub fn deriveCap(slot: *mut cte_t, cap: &cap_t) -> deriveCap_ret {
     if isArchCap(&cap) {
         return Arch_deriveCap(slot, cap);
     }
@@ -117,7 +117,7 @@ pub fn deriveCap(slot: *mut cte_t, cap: cap_t) -> deriveCap_ret {
         status: exception_t::EXCEPTION_NONE,
         cap: cap_t::default(),
     };
-    match cap_get_capType(&cap) {
+    match cap_get_capType(cap) {
         cap_zombie_cap => {
             ret.cap = cap_null_cap_new();
         }

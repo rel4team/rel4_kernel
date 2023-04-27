@@ -172,6 +172,7 @@ pub const n_frameRegisters: usize = 16;
 pub const n_gpRegisters: usize = 16;
 pub const n_exceptionMessage: usize = 2;
 pub const n_syscallMessage: usize = 10;
+pub const MAX_MSG_SIZE:usize=n_syscallMessage;
 
 pub const CopyRegisters_suspendSource: usize = 0;
 pub const CopyRegisters_resumeTarget: usize = 1;
@@ -266,7 +267,22 @@ pub const seL4_Fault_UnknownSyscall: usize = 2;
 pub const seL4_Fault_UserException: usize = 3;
 pub const seL4_Fault_VMFault: usize = 5;
 
-
 pub const EPState_Idle: usize = 0;
 pub const EPState_Send: usize = 1;
 pub const EPState_Recv: usize = 2;
+
+pub const seL4_CapFault_IP: usize = 0;
+pub const seL4_CapFault_Addr: usize = 1;
+pub const seL4_CapFault_InRecvPhase: usize = 2;
+pub const seL4_CapFault_LookupFailureType: usize = 3;
+pub const seL4_CapFault_BitsLeft: usize = 4;
+pub const seL4_CapFault_DepthMismatch_BitsFound: usize = 5;
+pub const seL4_CapFault_GuardMismatch_GuardFound: usize = seL4_CapFault_DepthMismatch_BitsFound;
+pub const seL4_CapFault_GuardMismatch_BitsFound: usize = 6;
+
+pub const MessageID_Syscall: usize = 0;
+pub const MessageID_Exception: usize = 1;
+
+pub const NtfnState_Idle: usize = 0;
+pub const NtfnState_Waiting: usize = 1;
+pub const NtfnState_Active: usize = 2;

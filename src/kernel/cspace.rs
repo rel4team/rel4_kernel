@@ -194,7 +194,7 @@ pub extern "C" fn lookupCap(thread: *const tcb_t, cPtr: usize) -> lookupCap_ret_
     unsafe {
         lookupCap_ret_t {
             status: exception_t::EXCEPTION_NONE,
-            cap: (*lu_ret.slot).cap,
+            cap: (*lu_ret.slot).cap.clone(),
         }
     }
 }

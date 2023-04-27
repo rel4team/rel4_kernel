@@ -295,7 +295,7 @@ pub struct tcb_t {
     pub tcbArch: arch_tcb_t,
     pub tcbState: thread_state_t,
     pub tcbBoundNotification: *mut notification_t,
-    pub seL4_Fault: seL4_Fault_t,
+    pub tcbFault: seL4_Fault_t,
     pub tcbLookupFailure: lookup_fault_t,
     pub domain: usize,
     pub tcbMCP: usize,
@@ -312,8 +312,8 @@ pub struct tcb_t {
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct tcb_queue_t {
-    pub head: usize,
-    pub tail: usize,
+    pub head: *mut tcb_t,
+    pub tail: *mut tcb_t,
 }
 
 #[repr(C)]
