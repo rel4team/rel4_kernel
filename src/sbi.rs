@@ -1,5 +1,7 @@
 #![allow(unused)]
 
+use riscv::register::time;
+
 const SBI_SET_TIMER: usize = 0;
 const SBI_CONSOLE_PUTCHAR: usize = 1;
 const SBI_CONSOLE_GETCHAR: usize = 2;
@@ -40,4 +42,8 @@ pub fn shutdown() -> ! {
 
 pub fn sys_write(fd: usize, buffer: &[u8]){
     sbi_call(SYSCALL_WRITE, fd, buffer.as_ptr() as usize, buffer.len());
+}
+
+pub fn get_time() -> usize {
+    time::read()
 }
