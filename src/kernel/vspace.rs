@@ -18,9 +18,10 @@ use crate::{
     },
     kernel::boot::current_syscall_error,
     object::{
-        cap::{cteInsert, ensureEmptySlot,  isFinalcapability},
+        cap::{cteInsert, ensureEmptySlot, isFinalcapability},
         objecttype::{
-            cap_frame_cap, cap_get_capPtr, cap_get_capType, cap_page_table_cap, cap_untyped_cap, cap_asid_pool_cap, cap_asid_control_cap,
+            cap_asid_control_cap, cap_asid_pool_cap, cap_frame_cap, cap_get_capPtr,
+            cap_get_capType, cap_page_table_cap, cap_untyped_cap,
         },
         structure_gen::{
             cap_asid_pool_cap_get_capASIDBase, cap_asid_pool_cap_get_capASIDPool,
@@ -44,7 +45,7 @@ use crate::{
     riscv::read_stval,
     structures::{
         asid_pool_t, cap_t, cte_t, exception_t, findVSpaceForASID_ret, lookupPTSlot_ret_t, pte_t,
-        satp_t, seL4_CapRights_t, seL4_SlotRegion, tcb_t, v_region_t, vm_attributes_t,
+        satp_t, seL4_CapRights_t, seL4_SlotRegion, tcb_t, v_region_t,
     },
     syscall::getSyscallArg,
     utils::MAX_FREE_INDEX,
@@ -79,7 +80,7 @@ pub fn hwASIDFlush(asid: asid_t) {
 #[link(name = "kernel_all.c")]
 extern "C" {
     fn setThreadState(t: *mut tcb_t, ts: usize);
-    fn ensureNoChildren(t:*mut cte_t)->exception_t;
+    fn ensureNoChildren(t: *mut cte_t) -> exception_t;
 }
 
 #[no_mangle]
@@ -965,8 +966,6 @@ pub fn decodeRISCVFrameInvocation(
     }
 }
 
-
-
 #[no_mangle]
 pub fn decodeRISCVPageTableInvocation(
     label: usize,
@@ -1137,7 +1136,6 @@ pub fn decodeRISCVMMUInvocation(
             let untyped = unsafe { &mut (*parentSlot).cap };
             let root = unsafe { &mut (*current_extra_caps.excaprefs[1]).cap };
 
-
             let mut i = 0;
             unsafe {
                 while i < nASIDPools && riscvKSASIDTable[i] as usize != 0 {
@@ -1164,7 +1162,7 @@ pub fn decodeRISCVMMUInvocation(
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
             }
 
-            let status = unsafe{ensureNoChildren(parentSlot)};
+            let status = unsafe { ensureNoChildren(parentSlot) };
 
             if status != exception_t::EXCEPTION_NONE {
                 return status;
@@ -1210,7 +1208,7 @@ pub fn decodeRISCVMMUInvocation(
 
             if unlikely(
                 cap_get_capType(vspaceCap) != cap_page_table_cap
-                    || cap_page_table_cap_get_capPTIsMapped(vspaceCap)!=0 ,
+                    || cap_page_table_cap_get_capPTIsMapped(vspaceCap) != 0,
             ) {
                 unsafe {
                     println!("RISCVASIDPool: Invalid vspace root.");
@@ -1254,9 +1252,9 @@ pub fn decodeRISCVMMUInvocation(
                 }
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
             }
-            asid +=i;
+            asid += i;
 
-            unsafe{
+            unsafe {
                 setThreadState(ksCurThread, ThreadStateRestart);
                 performASIDPoolInvocation(asid, pool, vspaceCapSlot)
             }

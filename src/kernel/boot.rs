@@ -1,6 +1,5 @@
 extern crate core;
 use core::{
-    arch::asm,
     mem::{forget, size_of},
 };
 use riscv::register::{stvec, utvec::TrapMode};
@@ -11,15 +10,15 @@ use crate::{
         seL4_CapASIDControl, seL4_CapBootInfoFrame, seL4_CapDomain, seL4_CapIRQControl,
         seL4_CapInitThreadASIDPool, seL4_CapInitThreadCNode, seL4_CapInitThreadIPCBuffer,
         seL4_CapInitThreadTCB, seL4_CapInitThreadVspace, seL4_MaxPrio, seL4_MaxUntypedBits,
-        seL4_MinUntypedBits, seL4_NumInitialCaps, seL4_PageBits, seL4_PageTableBits, seL4_SlotBits,
-        seL4_TCBBits, seL4_VSpaceBits, seL4_WordBits, tcbBuffer, tcbCTable, tcbVTable, wordBits,
-        IRQInactive, IRQTimer, RISCVMegaPageBits, RISCVPageBits, ThreadStateRunning, VMReadWrite,
-        BI_FRAME_SIZE_BITS, CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS, CONFIG_MAX_NUM_NODES,
-        CONFIG_NUM_DOMAINS, CONFIG_PADDR_USER_DEVICE_TOP, CONFIG_PT_LEVELS,
+        seL4_MinUntypedBits, seL4_MsgMaxExtraCaps, seL4_NumInitialCaps, seL4_PageBits,
+        seL4_PageTableBits, seL4_SlotBits, seL4_TCBBits, seL4_VSpaceBits, seL4_WordBits, tcbBuffer,
+        tcbCTable, tcbVTable, wordBits, IRQInactive, IRQTimer, RISCVMegaPageBits, RISCVPageBits,
+        ThreadStateRunning, VMReadWrite, BI_FRAME_SIZE_BITS, CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS,
+        CONFIG_MAX_NUM_NODES, CONFIG_NUM_DOMAINS, CONFIG_PADDR_USER_DEVICE_TOP, CONFIG_PT_LEVELS,
         CONFIG_ROOT_CNODE_SIZE_BITS, CONFIG_TIME_SLICE, IT_ASID, KERNEL_ELF_BASE, KERNEL_TIMER_IRQ,
         MAX_NUM_FREEMEM_REG, MAX_NUM_RESV_REG, NUM_RESERVED_REGIONS, PADDR_TOP, PAGE_BITS,
         PPTR_BASE, PPTR_TOP, PT_INDEX_BITS, RESET_CYCLES, SEL4_BOOTINFO_HEADER_FDT,
-        SEL4_BOOTINFO_HEADER_PADDING, SIE_SEIE, SIE_STIE, TCB_OFFSET, USER_TOP, seL4_MsgMaxExtraCaps,
+        SEL4_BOOTINFO_HEADER_PADDING, SIE_SEIE, SIE_STIE, TCB_OFFSET, USER_TOP,
     },
     kernel::vspace::{
         activate_kernel_vspace, rust_create_it_address_space, rust_map_kernel_window,
@@ -27,10 +26,11 @@ use crate::{
     },
     object::{
         cap::cteInsert,
+        cnode::setupReplyMaster,
         interrupt::{setIRQState, set_sie_mask},
         objecttype::{cap_get_capPtr, cap_get_capType, cap_null_cap, deriveCap},
         structure_gen::{
-            cap_asid_pool_cap_new, cap_asid_control_cap_new, cap_cnode_cap_new, cap_domain_cap_new,
+            cap_asid_control_cap_new, cap_asid_pool_cap_new, cap_cnode_cap_new, cap_domain_cap_new,
             cap_frame_cap_new, cap_irq_control_cap_new, cap_thread_cap_new, cap_untyped_cap_new,
             mdb_node_set_mdbFirstBadged, mdb_node_set_mdbRevocable,
         },
@@ -38,10 +38,10 @@ use crate::{
     println,
     sbi::{get_time, set_timer},
     structures::{
-        cap_t, create_frames_of_region_ret_t, cte_t, dschedule_t, exception_t, lookup_fault_t,
-        mdb_node_t, ndks_boot_t, p_region_t, region_t, rootserver_mem_t, seL4_BootInfo,
-        seL4_BootInfoHeader, seL4_Fault_t, seL4_IPCBuffer, seL4_SlotPos, seL4_SlotRegion,
-        seL4_UntypedDesc, syscall_error_t, tcb_t, v_region_t, extra_caps_t,
+        cap_t, create_frames_of_region_ret_t, cte_t, dschedule_t, exception_t, extra_caps_t,
+        lookup_fault_t, mdb_node_t, ndks_boot_t, p_region_t, region_t, rootserver_mem_t,
+        seL4_BootInfo, seL4_BootInfoHeader, seL4_Fault_t, seL4_IPCBuffer, seL4_SlotPos,
+        seL4_SlotRegion, seL4_UntypedDesc, syscall_error_t, tcb_t, v_region_t,
     },
     utils::MAX_FREE_INDEX,
     BIT, IS_ALIGNED, MASK, ROUND_DOWN, ROUND_UP,
@@ -85,6 +85,10 @@ pub static mut current_syscall_error: syscall_error_t = syscall_error_t {
     _type: 0,
 };
 
+#[no_mangle]
+#[link_section = ".boot.bss"]
+pub static mut ksWorkUnitsCompleted: usize = 0;
+
 #[link_section = ".boot.bss"]
 static mut res_reg: [region_t; NUM_RESERVED_REGIONS] =
     [region_t { start: 0, end: 0 }; NUM_RESERVED_REGIONS];
@@ -103,7 +107,7 @@ static mut avail_p_regs_size: usize = 0;
 #[link_section = ".boot.bss"]
 static mut rootserver_mem: region_t = region_t { start: 0, end: 0 };
 #[link_section = ".boot.bss"]
-static mut ksDomSchedule: [dschedule_t; ksDomScheduleLength] = [dschedule_t {
+pub static mut ksDomSchedule: [dschedule_t; ksDomScheduleLength] = [dschedule_t {
     domain: 0,
     length: 60,
 }; ksDomScheduleLength];
@@ -663,8 +667,8 @@ pub fn write_slot(ptr: *mut cte_t, cap: cap_t) {
         (*ptr).cap = cap;
         (*ptr).cteMDBNode = mdb_node_t::default();
 
-        (*ptr).cteMDBNode = mdb_node_set_mdbRevocable((*ptr).cteMDBNode, 1);
-        (*ptr).cteMDBNode = mdb_node_set_mdbFirstBadged((*ptr).cteMDBNode, 1);
+        mdb_node_set_mdbRevocable(&mut (*ptr).cteMDBNode, 1);
+        mdb_node_set_mdbFirstBadged(&mut (*ptr).cteMDBNode, 1);
         forget(*ptr);
     }
 }
@@ -918,7 +922,7 @@ pub fn create_initial_thread(
         (*tcb).tcbMCP = seL4_MaxPrio;
         (*tcb).tcbPriority = seL4_MaxPrio;
         setThreadState(tcb, ThreadStateRunning);
-
+        setupReplyMaster(tcb);
         ksCurDomain = ksDomSchedule[ksDomScheduleIdx].domain;
         ksDomainTime = ksDomSchedule[ksDomScheduleIdx].length;
 

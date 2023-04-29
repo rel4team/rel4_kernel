@@ -1,6 +1,6 @@
 use crate::{
     config::{seL4_CapRightsBits, seL4_MsgMaxLength},
-    structures::{cap_transfer_t, seL4_CapRights_t, seL4_MessageInfo_t, vm_attributes_t},
+    structures::{cap_transfer_t, seL4_CapRights_t, seL4_MessageInfo_t, vm_attributes_t, seL4_CNode_CapData_t},
     MASK,
 };
 
@@ -194,4 +194,16 @@ pub fn capTransferFromWords(wptr: *mut usize) -> cap_transfer_t {
         };
         transfer
     }
+}
+
+
+
+#[inline]
+pub fn seL4_CNode_capData_get_guard(seL4_CNode_CapData:&seL4_CNode_CapData_t)->usize{
+    (seL4_CNode_CapData.words[0] & 0xffffffffffffffc0usize) >> 6
+}
+
+#[inline]
+pub fn seL4_CNode_capData_get_guardSize(seL4_CNode_CapData:&seL4_CNode_CapData_t)->usize{
+    (seL4_CNode_CapData.words[0] & 0x3fusize) >> 0
 }

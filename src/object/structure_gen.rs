@@ -5,7 +5,7 @@ use crate::config::{
 };
 use crate::structures::{
     cap_t, cap_tag_t, endpoint_t, lookup_fault_t, mdb_node_t, notification_t, pte_t, seL4_Fault_t,
-    thread_state_t,
+    thread_state_t, seL4_CNode_CapData_t,
 };
 
 //CSpace relevant
@@ -89,7 +89,7 @@ pub fn mdb_node_get_mdbFirstBadged(mdb_node: &mdb_node_t) -> usize {
 }
 
 #[inline]
-pub fn mdb_node_set_mdbRevocable(mut mdb_node: mdb_node_t, v64: usize) -> mdb_node_t {
+pub fn mdb_node_set_mdbRevocable(mdb_node:&mut  mdb_node_t, v64: usize) {
     assert!(
         (((!0x2usize >> 1) | 0x0) & v64)
             == (if false && (v64 & (1usize << (38))) != 0 {
@@ -100,11 +100,10 @@ pub fn mdb_node_set_mdbRevocable(mut mdb_node: mdb_node_t, v64: usize) -> mdb_no
     );
     mdb_node.words[1] &= !0x2usize;
     mdb_node.words[1] |= (v64 << 1) & 0x2;
-    mdb_node
 }
 
 #[inline]
-pub fn mdb_node_set_mdbFirstBadged(mut mdb_node: mdb_node_t, v64: usize) -> mdb_node_t {
+pub fn mdb_node_set_mdbFirstBadged( mdb_node:&mut mdb_node_t, v64: usize)  {
     assert!(
         (((!0x1usize >> 0) | 0x0) & v64)
             == (if false && (v64 & (1usize << (38))) != 0 {
@@ -115,7 +114,6 @@ pub fn mdb_node_set_mdbFirstBadged(mut mdb_node: mdb_node_t, v64: usize) -> mdb_
     );
     mdb_node.words[1] &= !0x1usize;
     mdb_node.words[1] |= (v64 << 0) & 0x1usize;
-    mdb_node
 }
 
 #[inline]
@@ -1658,3 +1656,4 @@ pub fn seL4_Fault_VMFault_get_instructionFault(seL4_Fault: &seL4_Fault_t) -> usi
 // pub fn cap_asid_pool_cap_get_capASIDBase(&cap:cap_t)->usize{
 //     (cap.words[0] & 0x7fff80000000000ull) >> 43
 // }
+

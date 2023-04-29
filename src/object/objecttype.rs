@@ -1,7 +1,12 @@
 use crate::{
-    config::seL4_SlotBits,
-    kernel::vspace::pageBitsForSize,
-    structures::{cap_t, cte_t, deriveCap_ret, exception_t, finaliseCap_ret},
+    config::{seL4_IllegalOperation, seL4_SlotBits, wordBits},
+    kernel::{
+        boot::current_syscall_error,
+        transfermsg::{seL4_CNode_capData_get_guard, seL4_CNode_capData_get_guardSize},
+        vspace::pageBitsForSize,
+    },
+    println,
+    structures::{cap_t, cte_t, deriveCap_ret, exception_t, finaliseCap_ret, seL4_CNode_CapData_t},
     MASK,
 };
 
@@ -9,14 +14,16 @@ use super::{
     cap::ensureNoChildren,
     structure_gen::{
         cap_asid_pool_cap_get_capASIDPool, cap_cnode_cap_get_capCNodePtr,
-        cap_cnode_cap_get_capCNodeRadix, cap_endpoint_cap_get_capEPBadge,
-        cap_endpoint_cap_get_capEPPtr, cap_frame_cap_get_capFBasePtr,
-        cap_frame_cap_get_capFIsDevice, cap_frame_cap_get_capFMappedASID,
-        cap_frame_cap_get_capFSize, cap_frame_cap_set_capFMappedASID,
-        cap_frame_cap_set_capFMappedAddress, cap_null_cap_new, cap_page_table_cap_get_capPTBasePtr,
-        cap_page_table_cap_get_capPTIsMapped, cap_page_table_cap_get_capPTMappedASID,
-        cap_thread_cap_get_capTCBPtr, cap_untyped_cap_get_capBlockSize, cap_untyped_cap_get_capPtr,
-        Zombie_new,
+        cap_cnode_cap_get_capCNodeRadix, cap_cnode_cap_set_capCNodeGuard,
+        cap_cnode_cap_set_capCNodeGuardSize, cap_endpoint_cap_get_capEPBadge,
+        cap_endpoint_cap_get_capEPPtr, cap_endpoint_cap_set_capEPBadge,
+        cap_frame_cap_get_capFBasePtr, cap_frame_cap_get_capFIsDevice,
+        cap_frame_cap_get_capFMappedASID, cap_frame_cap_get_capFSize,
+        cap_frame_cap_set_capFMappedASID, cap_frame_cap_set_capFMappedAddress,
+        cap_notification_cap_get_capNtfnBadge, cap_notification_cap_set_capNtfnBadge,
+        cap_null_cap_new, cap_page_table_cap_get_capPTBasePtr,
+        cap_page_table_cap_get_capPTIsMapped, cap_thread_cap_get_capTCBPtr,
+        cap_untyped_cap_get_capBlockSize, cap_untyped_cap_get_capPtr, Zombie_new,
     },
 };
 
@@ -85,7 +92,12 @@ pub fn Arch_deriveCap(_slot: *mut cte_t, cap: &cap_t) -> deriveCap_ret {
                 ret.cap = cap.clone();
                 ret.status = exception_t::EXCEPTION_NONE;
             } else {
-                panic!(" error:this page table cap is not mapped");
+                println!(" error:this page table cap is not mapped");
+                unsafe {
+                    current_syscall_error._type = seL4_IllegalOperation;
+                    ret.cap = cap_null_cap_new();
+                    ret.status = exception_t::EXCEPTION_SYSCALL_ERROR;
+                }
             }
         }
         cap_frame_cap => {
@@ -109,6 +121,7 @@ pub fn isArchCap(_cap: &cap_t) -> bool {
     cap_get_capType(_cap) % 2 != 0
 }
 
+#[no_mangle]
 pub fn deriveCap(slot: *mut cte_t, cap: &cap_t) -> deriveCap_ret {
     if isArchCap(&cap) {
         return Arch_deriveCap(slot, cap);
@@ -130,6 +143,9 @@ pub fn deriveCap(slot: *mut cte_t, cap: &cap_t) -> deriveCap_ret {
             }
         }
         cap_reply_cap => {
+            ret.cap = cap_null_cap_new();
+        }
+        cap_irq_control_cap => {
             ret.cap = cap_null_cap_new();
         }
         _ => {
@@ -274,7 +290,7 @@ pub fn Arch_finaliseCap(cap: &cap_t, _final: bool) -> finaliseCap_ret {
     fc_ret
 }
 
-pub fn finaliseCap(cap: & cap_t, _final: bool, _exposed: bool) -> finaliseCap_ret {
+pub fn finaliseCap(cap: &cap_t, _final: bool, _exposed: bool) -> finaliseCap_ret {
     let mut fc_ret = finaliseCap_ret::default();
 
     if isArchCap(cap) {
@@ -328,7 +344,7 @@ pub fn finaliseCap(cap: & cap_t, _final: bool, _exposed: bool) -> finaliseCap_re
         }
         // cap_thread_cap=>{
         //     if _final{
-                
+
         //     }
         // }
         //FIXME::cap_thread_cap condition not included
@@ -343,5 +359,45 @@ pub fn finaliseCap(cap: & cap_t, _final: bool, _exposed: bool) -> finaliseCap_re
             fc_ret.cleanupInfo = cap_null_cap_new();
             return fc_ret;
         }
+    }
+}
+
+pub fn updateCapData(preserve: bool, newData: usize, _cap: &cap_t) -> cap_t {
+    let cap = &mut (_cap.clone());
+    if isArchCap(cap) {
+        return cap.clone();
+    }
+    match cap_get_capType(cap) {
+        cap_endpoint_cap => {
+            if !preserve && cap_endpoint_cap_get_capEPBadge(cap) == 0 {
+                cap_endpoint_cap_set_capEPBadge(cap, newData);
+                return cap.clone();
+            } else {
+                return cap_null_cap_new();
+            }
+        }
+        cap_notification_cap => {
+            if !preserve && cap_notification_cap_get_capNtfnBadge(cap) == 0 {
+                cap_notification_cap_set_capNtfnBadge(cap, newData);
+                return cap.clone();
+            } else {
+                return cap_null_cap_new();
+            }
+        }
+        cap_cnode_cap => {
+            let w = seL4_CNode_CapData_t { words: [newData] };
+            let guardSize = seL4_CNode_capData_get_guardSize(&w);
+
+            if guardSize + cap_cnode_cap_get_capCNodeRadix(cap) > wordBits {
+                return cap_null_cap_new();
+            } else {
+                let guard = seL4_CNode_capData_get_guard(&w) & MASK!(guardSize);
+                let mut new_cap = cap.clone();
+                cap_cnode_cap_set_capCNodeGuard(&mut new_cap, guard);
+                cap_cnode_cap_set_capCNodeGuardSize(&mut new_cap, guardSize);
+                return new_cap;
+            }
+        }
+        _ => return cap.clone(),
     }
 }

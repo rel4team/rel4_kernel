@@ -9,8 +9,7 @@ use crate::{
         boot::current_syscall_error,
         thread::{
             doIPCTransfer, doNBRecvFailedTransfer, getCSpace, ksCurThread, possibleSwitchTo,
-            scheduleTCB, setMRs_syscall_error, setRegister, setupCallerCap, tcbEPAppend,
-            tcbEPDequeue, tcbSchedEnqueue,
+            scheduleTCB, setMRs_syscall_error, setRegister,
         },
         transfermsg::{seL4_MessageInfo_new, wordFromMEssageInfo},
         vspace::lookupIPCBuffer,
@@ -23,11 +22,9 @@ use crate::{
             thread_state_get_blockingIPCCanGrantReply, thread_state_get_blockingIPCIsCall,
             thread_state_get_blockingObject,
         },
+        tcb::{setupCallerCap, tcbEPDequeue},
     },
-    println,
-    structures::{
-        cap_t, cte_t, endpoint_t, exception_t, notification_t, tcb_queue_t, tcb_t, thread_state_t,
-    },
+    structures::{cap_t, cte_t, endpoint_t, exception_t, notification_t, tcb_queue_t, tcb_t},
 };
 
 use super::{
@@ -42,6 +39,7 @@ use super::{
         thread_state_set_blockingIPCIsCall, thread_state_set_blockingObject,
         thread_state_set_tsType,
     },
+    tcb::{tcbEPAppend, tcbSchedEnqueue},
 };
 
 #[inline]
@@ -98,8 +96,8 @@ pub fn sendIPC(
             EPState_Recv => {
                 let mut queue = ep_ptr_get_queue(epptr);
                 let dest = queue.head as *mut tcb_t;
-                // println!("head :{:#x}", dest as usize);
                 assert!(dest as usize != 0);
+
                 queue = tcbEPDequeue(dest, queue);
                 let temp = queue.head as usize;
                 ep_ptr_set_queue(epptr, queue);
@@ -139,7 +137,7 @@ pub fn receiveIPC(thread: *mut tcb_t, cap: &cap_t, isBlocking: bool) {
     unsafe {
         assert!(cap_get_capType(cap) == cap_endpoint_cap);
         let epptr = cap_endpoint_cap_get_capEPPtr(cap) as *const endpoint_t;
-        let ntfnPtr = unsafe { (*thread).tcbBoundNotification };
+        let ntfnPtr = (*thread).tcbBoundNotification;
         if ntfnPtr as usize != 0 && notification_ptr_get_state(ntfnPtr) == NtfnState_Active {
             completeSignal(ntfnPtr, thread);
             return;

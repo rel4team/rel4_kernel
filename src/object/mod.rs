@@ -4,3 +4,5 @@ pub mod interrupt;
 pub mod notification;
 pub mod objecttype;
 pub mod structure_gen;
+pub mod cnode;
+pub mod tcb;

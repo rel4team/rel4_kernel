@@ -1,4 +1,4 @@
-use core::mem::{forget, size_of};
+use core::mem::forget;
 
 use crate::{
     config::{seL4_DeleteFirst, seL4_RevokeFirst},
@@ -10,16 +10,16 @@ use crate::{
             mdb_node_get_mdbPrev, mdb_node_new,
         },
     },
-    println,
     structures::{
-        cap_t, cap_tag_t, cte_t, exception_t, finaliseCap_ret, finaliseSlot_ret, mdb_node_t, cap_transfer_t,
+        cap_t, cap_tag_t, cte_t, exception_t, finaliseCap_ret, finaliseSlot_ret, mdb_node_t,
     },
 };
 
 use super::{
     interrupt::intStateIRQNode,
     objecttype::{
-        cap_get_capType, cap_null_cap, cap_zombie_cap, isCapRevocable, sameObjectAs, sameRegionAs,
+        cap_cnode_cap, cap_get_capType, cap_null_cap, cap_thread_cap, cap_zombie_cap,
+        isCapRevocable, sameObjectAs, sameRegionAs,
     },
     structure_gen::{
         cap_endpoint_cap_get_capEPBadge, cap_get_max_free_index, cap_untyped_cap_get_capBlockSize,
@@ -30,7 +30,6 @@ use super::{
         mdb_node_set_mdbPrev, mdb_node_set_mdbRevocable,
     },
 };
-
 
 pub fn ensureNoChildren(slot: *mut cte_t) -> exception_t {
     unsafe {
@@ -96,8 +95,8 @@ pub fn cteInsert(newCap: cap_t, _srcSlot: *mut cte_t, _destSlot: *mut cte_t) {
         let mut newMDB = srcMDB.clone();
         let newCapIsRevocable: bool = isCapRevocable(&newCap, srcCap);
         mdb_node_set_mdbPrev(&mut newMDB, _srcSlot as usize);
-        mdb_node_set_mdbRevocable(newMDB, newCapIsRevocable as usize);
-        mdb_node_set_mdbFirstBadged(newMDB, newCapIsRevocable as usize);
+        mdb_node_set_mdbRevocable(&mut newMDB, newCapIsRevocable as usize);
+        mdb_node_set_mdbFirstBadged(&mut newMDB, newCapIsRevocable as usize);
         setUntypedCapAsFull(srcCap, &newCap, _srcSlot);
         (*(_destSlot as *mut cte_t)).cap = newCap.clone();
         (*(_destSlot as *mut cte_t)).cteMDBNode = newMDB;
@@ -396,3 +395,19 @@ pub fn ensureEmptySlot(slot: *mut cte_t) -> exception_t {
     exception_t::EXCEPTION_NONE
 }
 
+
+
+pub fn slotCapLongRunningDelete(slot: *mut cte_t) -> bool {
+    unsafe {
+        if cap_get_capType(&(*slot).cap) == cap_null_cap {
+            return false;
+        } else if !isFinalcapability(slot) {
+            return false;
+        }
+
+        match cap_get_capType(&(*slot).cap) {
+            cap_thread_cap | cap_zombie_cap | cap_cnode_cap => true,
+            _ => false,
+        }
+    }
+}

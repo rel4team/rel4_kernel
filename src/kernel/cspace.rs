@@ -1,6 +1,5 @@
 use core::{
     intrinsics::{likely, unlikely},
-    mem::{forget, size_of},
 };
 
 use crate::{

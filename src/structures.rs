@@ -451,3 +451,9 @@ pub struct vm_attributes_t {
 pub struct extra_caps_t {
     pub excaprefs: [*mut cte_t; seL4_MsgMaxExtraCaps],
 }
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct seL4_CNode_CapData_t {
+    pub words: [usize; 1],
+}

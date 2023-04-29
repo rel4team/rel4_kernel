@@ -1,34 +1,34 @@
 use crate::{
     config::{
-        msgInfoRegister, msgRegister, n_msgRegisters, seL4_AlignmentError, seL4_DeleteFirst,
-        seL4_Fault_NullFault, seL4_IllegalOperation, seL4_InvalidArgument, seL4_InvalidCapability,
-        seL4_MsgMaxExtraCaps, seL4_MsgMaxLength, seL4_NotEnoughMemory, seL4_RangeError,
-        seL4_RevokeFirst, seL4_TCBBits, seL4_TruncatedMessage, tcbCaller, tcbReply, wordBits,
-        wordRadix, DomainSetSet, SchedulerAction_ChooseNewThread,
+        ksDomScheduleLength, msgInfoRegister, msgRegister, n_msgRegisters, seL4_AlignmentError,
+        seL4_DeleteFirst, seL4_FailedLookup, seL4_Fault_NullFault, seL4_IllegalOperation,
+        seL4_InvalidArgument, seL4_InvalidCapability, seL4_MsgMaxExtraCaps, seL4_MsgMaxLength,
+        seL4_NotEnoughMemory, seL4_RangeError, seL4_RevokeFirst, seL4_TCBBits,
+        seL4_TruncatedMessage, DomainSetSet, SchedulerAction_ChooseNewThread,
         SchedulerAction_ResumeCurrentThread, ThreadStateBlockedOnReply, ThreadStateIdleThreadState,
         ThreadStateInactive, ThreadStateRestart, ThreadStateRunning, CONFIG_KERNEL_STACK_BITS,
-        CONFIG_MAX_NUM_NODES, CONFIG_NUM_DOMAINS, CONFIG_NUM_PRIORITIES, L2_BITMAP_SIZE,
-        NUM_READY_QUEUES, SSTATUS_SPIE, SSTATUS_SPP, seL4_FailedLookup,
+        CONFIG_MAX_NUM_NODES, CONFIG_NUM_DOMAINS, L2_BITMAP_SIZE, NUM_READY_QUEUES, SSTATUS_SPIE,
+        SSTATUS_SPP,
     },
     object::{
         cap::cteInsert,
-        objecttype::{
-            cap_endpoint_cap, cap_get_capType, cap_null_cap, cap_reply_cap, cap_thread_cap,
-            deriveCap,
-        },
+        cnode::setupReplyMaster,
+        endpoint::cancelIPC,
+        objecttype::{cap_endpoint_cap, cap_get_capType, cap_null_cap, cap_thread_cap, deriveCap},
         structure_gen::{
             cap_endpoint_cap_get_capEPBadge, cap_endpoint_cap_get_capEPPtr,
-            cap_reply_cap_get_capReplyCanGrant, cap_reply_cap_get_capReplyMaster,
-            cap_reply_cap_get_capTCBPtr, cap_reply_cap_new, cap_thread_cap_get_capTCBPtr,
-            seL4_Fault_get_seL4_FaultType, thread_state_get_tcbQueued, thread_state_get_tsType,
-            thread_state_set_tcbQueued, thread_state_set_tsType,
+            cap_thread_cap_get_capTCBPtr, seL4_Fault_get_seL4_FaultType, thread_state_get_tsType,
+            thread_state_set_tsType,
+        },
+        tcb::{
+            copyMRs, getHighestPrio, isHighestPrio, lookupExtraCaps, ready_queues_index,
+            tcbSchedAppend, tcbSchedDequeue, tcbSchedEnqueue,
         },
     },
     println,
-    sbi::shutdown,
     structures::{
-        arch_tcb_t, cap_transfer_t, cte_t, endpoint_t, exception_t, lookup_fault_t, notification_t,
-        seL4_Fault_t, seL4_MessageInfo_t, tcb_queue_t, tcb_t, thread_state_t,
+        arch_tcb_t, cap_transfer_t, cte_t, endpoint_t, exception_t, seL4_MessageInfo_t,
+        tcb_queue_t, tcb_t,
     },
     syscall::getSyscallArg,
     BIT, MASK,
@@ -40,15 +40,19 @@ use core::{
 };
 
 use super::{
-    boot::{current_extra_caps, current_syscall_error, current_lookup_fault},
-    cspace::{lookupCap, lookupSlot, rust_lookupTargetSlot},
-    transfermsg::{
-        capTransferFromWords, messageInfoFromWord, messageInfoFromWord_raw,
-        seL4_MessageInfo_ptr_get_capsUnwrapped, seL4_MessageInfo_ptr_get_extraCaps,
-        seL4_MessageInfo_ptr_get_length, seL4_MessageInfo_ptr_set_capsUnwrapped,
-        seL4_MessageInfo_ptr_set_extraCaps, seL4_MessageInfo_ptr_set_length, wordFromMEssageInfo,
+    boot::{
+        current_extra_caps, current_lookup_fault, current_syscall_error, ksDomSchedule,
+        ksWorkUnitsCompleted,
     },
-    vspace::{lookupIPCBuffer, setVMRoot}, fault::setMRs_lookup_failure,
+    cspace::{lookupCap, rust_lookupTargetSlot},
+    fault::setMRs_lookup_failure,
+    transfermsg::{
+        capTransferFromWords, messageInfoFromWord, seL4_MessageInfo_new,
+        seL4_MessageInfo_ptr_get_capsUnwrapped, seL4_MessageInfo_ptr_get_length,
+        seL4_MessageInfo_ptr_set_capsUnwrapped, seL4_MessageInfo_ptr_set_extraCaps,
+        seL4_MessageInfo_ptr_set_length, wordFromMEssageInfo,
+    },
+    vspace::{lookupIPCBuffer, setVMRoot},
 };
 
 #[no_mangle]
@@ -74,17 +78,17 @@ pub static mut kernel_stack_alloc: [[u8; BIT!(CONFIG_KERNEL_STACK_BITS)]; CONFIG
     [[0; BIT!(CONFIG_KERNEL_STACK_BITS)]; CONFIG_MAX_NUM_NODES];
 
 #[no_mangle]
-static mut ksReadyQueues: [tcb_queue_t; NUM_READY_QUEUES] = [tcb_queue_t {
+pub static mut ksReadyQueues: [tcb_queue_t; NUM_READY_QUEUES] = [tcb_queue_t {
     head: 0 as *mut tcb_t,
     tail: 0 as *mut tcb_t,
 }; NUM_READY_QUEUES];
 
 #[no_mangle]
-static mut ksReadyQueuesL2Bitmap: [[usize; L2_BITMAP_SIZE]; CONFIG_NUM_DOMAINS] =
+pub static mut ksReadyQueuesL2Bitmap: [[usize; L2_BITMAP_SIZE]; CONFIG_NUM_DOMAINS] =
     [[0; L2_BITMAP_SIZE]; CONFIG_NUM_DOMAINS];
 
 #[no_mangle]
-static mut ksReadyQueuesL1Bitmap: [usize; CONFIG_NUM_DOMAINS] = [0; CONFIG_NUM_DOMAINS];
+pub static mut ksReadyQueuesL1Bitmap: [usize; CONFIG_NUM_DOMAINS] = [0; CONFIG_NUM_DOMAINS];
 
 #[no_mangle]
 #[link_section = "._idle_thread"]
@@ -174,65 +178,6 @@ pub fn getRegister(thread: *const tcb_t, reg: usize) -> usize {
     unsafe { (*thread).tcbArch.registers[reg] }
 }
 
-#[inline]
-pub fn ready_queues_index(dom: usize, prio: usize) -> usize {
-    dom * CONFIG_NUM_PRIORITIES + prio
-}
-
-#[inline]
-pub fn prio_to_l1index(prio: usize) -> usize {
-    prio >> wordRadix
-}
-
-#[inline]
-pub fn l1index_to_prio(l1index: usize) -> usize {
-    l1index << wordRadix
-}
-
-#[inline]
-pub fn invert_l1index(l1index: usize) -> usize {
-    let inverted = L2_BITMAP_SIZE - 1 - l1index;
-    inverted
-}
-
-#[inline]
-pub fn getHighestPrio(dom: usize) -> prio_t {
-    unsafe {
-        let l1index = wordBits - 1 - ksReadyQueuesL1Bitmap[dom].leading_zeros() as usize;
-        let l1index_inverted = invert_l1index(l1index);
-        let l2index =
-            wordBits - 1 - ksReadyQueuesL2Bitmap[dom][l1index_inverted].leading_zeros() as usize;
-        l1index_to_prio(l1index) | l2index
-    }
-}
-
-#[inline]
-pub fn isHighestPrio(dom: usize, prio: prio_t) -> bool {
-    unsafe { ksReadyQueuesL1Bitmap[dom] == 0 || prio >= getHighestPrio(dom) }
-}
-
-#[inline]
-pub fn addToBitmap(dom: usize, prio: usize) {
-    unsafe {
-        let l1index = prio_to_l1index(prio);
-        let l1index_inverted = invert_l1index(l1index);
-        ksReadyQueuesL1Bitmap[dom] |= BIT!(l1index);
-        ksReadyQueuesL2Bitmap[dom][l1index_inverted] |= BIT!(prio & MASK!(wordRadix));
-    }
-}
-
-#[inline]
-pub fn removeFromBitmap(dom: usize, prio: usize) {
-    unsafe {
-        let l1index = prio_to_l1index(prio);
-        let l1index_inverted = invert_l1index(l1index);
-        ksReadyQueuesL2Bitmap[dom][l1index_inverted] &= !BIT!(prio & MASK!(wordRadix));
-        if ksReadyQueuesL2Bitmap[dom][l1index_inverted] == 0 {
-            ksReadyQueuesL1Bitmap[dom] &= !(BIT!((l1index)));
-        }
-    }
-}
-
 pub fn idle_thread() {
     unsafe {
         while true {
@@ -258,6 +203,7 @@ pub fn setMR(receiver: *mut tcb_t, receivedBuffer: *mut usize, offset: usize, re
     }
 }
 
+#[no_mangle]
 pub fn Arch_configureIdleThread(tcb: *const tcb_t) {
     setRegister(tcb as *mut tcb_t, NextIP, idle_thread as usize);
     setRegister(tcb as *mut tcb_t, SSTATUS, SSTATUS_SPP | SSTATUS_SPIE);
@@ -267,13 +213,6 @@ pub fn Arch_configureIdleThread(tcb: *const tcb_t) {
             sp,
             kernel_stack_alloc.as_ptr() as usize + BIT!(CONFIG_KERNEL_STACK_BITS),
         );
-    }
-}
-
-pub fn Arch_switchToIdleThread() {
-    unsafe {
-        let tcb = ksIdleThread as *mut tcb_t;
-        setVMRoot(tcb);
     }
 }
 
@@ -336,49 +275,6 @@ pub fn decodeDomainInvocation(invLabel: usize, length: usize, buffer: *mut usize
     exception_t::EXCEPTION_NONE
 }
 
-pub fn setDomain(tptr: *mut tcb_t, dom: usize) {
-    if isRunnable(tptr) {
-        unsafe {
-            tcbSchedEnqueue(tptr);
-        }
-    }
-    unsafe {
-        if tptr == ksCurThread {
-            rescheduleRequired();
-        }
-    }
-}
-
-#[no_mangle]
-pub fn setupCallerCap(sender: *const tcb_t, receiver: *const tcb_t, canGrant: bool) {
-    unsafe {
-        setThreadState(sender as *mut tcb_t, ThreadStateBlockedOnReply);
-        let replySlot = getCSpace(sender as usize, tcbReply);
-        let masterCap = &(*replySlot).cap;
-
-        assert!(cap_get_capType(masterCap) == cap_reply_cap);
-        assert!(cap_reply_cap_get_capReplyMaster(masterCap) == 1);
-        assert!(cap_reply_cap_get_capReplyCanGrant(masterCap) == 1);
-        assert!(cap_reply_cap_get_capTCBPtr(masterCap) == sender as usize);
-
-        let callerSlot = getCSpace(receiver as usize, tcbCaller);
-        let callerCap = &(*callerSlot).cap;
-
-        assert!(cap_get_capType(callerCap) == cap_null_cap);
-        cteInsert(
-            cap_reply_cap_new(canGrant as usize, 0, sender as usize),
-            replySlot,
-            callerSlot,
-        );
-    }
-}
-
-// #[no_mangle]
-// pub fn deleteCallerCap(receiver: *mut tcb_t) {
-//     let callerSlot = getCSpace(receiver as usize, tcbCaller);
-//     cteDeleteOne(callerSlot);
-// }
-
 // #[no_mangle]
 // pub fn testtcb() {
 //     let mut arch = arch_tcb_t { registers: [0; 35] };
@@ -438,6 +334,7 @@ pub fn setNextPC(thread: *mut tcb_t, v: usize) {
     setRegister(thread, NextIP, v);
 }
 
+#[no_mangle]
 pub fn configureIdleThread(tcb: *const tcb_t) {
     Arch_configureIdleThread(tcb);
     setThreadState(tcb as *mut tcb_t, ThreadStateIdleThreadState);
@@ -450,47 +347,9 @@ pub fn getCSpace(ptr: usize, i: usize) -> *mut cte_t {
     }
 }
 
-#[link(name = "kernel_all.c")]
-extern "C" {
-    // fn parserTcb(t: *mut tcb_t);
-}
-
-pub fn rescheduleRequired() {
-    unsafe {
-        if ksSchedulerAction as usize != SchedulerAction_ResumeCurrentThread
-            && ksSchedulerAction as usize != SchedulerAction_ChooseNewThread
-        {
-            tcbSchedEnqueue(ksSchedulerAction as *mut tcb_t);
-        }
-        ksSchedulerAction = SchedulerAction_ChooseNewThread as *mut tcb_t;
-    }
-}
-
+#[no_mangle]
 pub fn Arch_switchToThread(tcb: *const tcb_t) {
     setVMRoot(tcb as *mut tcb_t);
-}
-
-pub fn activateThread() {
-    unsafe {
-        assert!(ksCurThread as usize != 0 && ksCurThread as usize != 1);
-        let thread = ksCurThread as *mut tcb_t;
-        match thread_state_get_tsType(&(*thread).tcbState) {
-            ThreadStateRunning => {
-                Arch_switchToThread(thread);
-            }
-            ThreadStateRestart => {
-                let pc = getReStartPC(thread as *const tcb_t);
-                setNextPC(thread, pc);
-                setThreadState(thread as *mut tcb_t, ThreadStateRunning);
-                Arch_switchToThread(thread);
-            }
-            ThreadStateIdleThreadState => return,
-            _ => panic!(
-                "current thread is blocked , state id :{}",
-                thread_state_get_tsType(&(*thread).tcbState)
-            ),
-        }
-    }
 }
 
 #[inline]
@@ -498,9 +357,9 @@ pub fn updateReStartPC(tcb: *mut tcb_t) {
     setRegister(tcb, FaultIP, getRegister(tcb, NextIP));
 }
 
+#[no_mangle]
 pub fn suspend(target: *mut tcb_t) {
-    //FIXME::implement cancelIPC;
-    // cancelIPC(target);
+    cancelIPC(target);
     unsafe {
         if thread_state_get_tsType(&(*target).tcbState) == ThreadStateRunning {
             updateReStartPC(target);
@@ -510,11 +369,12 @@ pub fn suspend(target: *mut tcb_t) {
     }
 }
 
+#[no_mangle]
 pub fn restart(target: *mut tcb_t) {
     if isStopped(target) {
-        // cancelIPC(target);
+        cancelIPC(target);
         // FIXME::implemented setupReplyMaster
-        // setupReplyMaster(target);
+        setupReplyMaster(target);
         setThreadState(target, ThreadStateRestart);
         unsafe {
             tcbSchedEnqueue(target);
@@ -523,301 +383,66 @@ pub fn restart(target: *mut tcb_t) {
     }
 }
 
-pub fn doNBRecvFailedTransfer(thread: *mut tcb_t) {
-    setRegister(thread, badgeRegister, 0);
-}
-
-// pub fn nextDomain() {
-//     unsafe {
-//         ksDomScheduleIdx += 1;
-//         if ksDomScheduleIdx>=ksDomScheduleLength{
-//             ksDomScheduleIdx=0;
-//         }
-//         //FIXME ksWorkUnits not used;
-//         // ksWorkUnits
-//     }
-// }
-
-pub fn scheduleChooseNewThread() {
-    chooseThread();
-}
-
-pub fn switchToThread(thread: *const tcb_t) {
-    Arch_switchToThread(thread);
-
-    unsafe {
-        tcbSchedDequeue(thread as *mut tcb_t);
-        ksCurThread = thread as *mut tcb_t;
-    }
-}
-
-pub fn chooseThread() {
-    unsafe {
-        let dom = 0;
-        if ksReadyQueuesL1Bitmap[dom] != 0 {
-            let prio = getHighestPrio(dom);
-            // println!("prio:{}", prio);
-            let _thread = ksReadyQueues[ready_queues_index(dom, prio)].head;
-            assert!(_thread as usize != 0);
-            let thread = _thread as *const tcb_t;
-            switchToThread(thread);
-        } else {
-            // println!("[kernel] all applications finished! turn to shutdown");
-            println!("in idle thread ,waiting for interrupt");
-            shutdown();
-        }
-    }
-}
-
-pub fn switchToIdleThread() {
-    unsafe {
-        Arch_switchToIdleThread();
-        ksCurThread = ksIdleThread;
-    }
-}
-
-pub fn setMCPriority(tptr: *mut tcb_t, mcp: usize) {
-    unsafe {
-        (*tptr).tcbMCP = mcp;
-    }
-}
-
-pub fn setPriority(tptr: *const tcb_t, prio: usize) {
-    unsafe {
-        tcbSchedDequeue(tptr as *mut tcb_t);
-        let mut_tptr = tptr as *mut tcb_t;
-        (*mut_tptr).tcbPriority = prio;
-        if isRunnable(tptr) {
-            if tptr as usize == ksCurThread as usize {
-                rescheduleRequired();
-            } else {
-                possibleSwitchTo(tptr);
-            }
-        }
-    }
-}
-
-#[no_mangle]
-pub fn possibleSwitchTo(target: *const tcb_t) {
-    unsafe {
-        if ksCurDomain != (*target).domain {
-            tcbSchedEnqueue(target as *mut tcb_t);
-        } else if ksSchedulerAction as usize != SchedulerAction_ResumeCurrentThread {
-            rescheduleRequired();
-            tcbSchedEnqueue(target as *mut tcb_t);
-        } else {
-            ksSchedulerAction = target as *mut tcb_t;
-        }
-    }
-}
-
-#[no_mangle]
-pub fn tcbSchedEnqueue(_tcb: *mut tcb_t) {
-    unsafe {
-        let tcb = &mut (*_tcb);
-        if thread_state_get_tcbQueued(&tcb.tcbState) == 0 {
-            let dom = tcb.domain;
-            let prio = tcb.tcbPriority;
-            let idx = ready_queues_index(dom, prio);
-            let mut queue = ksReadyQueues[idx];
-            if queue.tail as usize == 0 {
-                queue.head = _tcb;
-                addToBitmap(dom, prio);
-            } else {
-                (*(queue.tail as *mut tcb_t)).tcbSchedNext = _tcb as usize;
-            }
-            (*_tcb).tcbSchedPrev = queue.tail as usize;
-            (*_tcb).tcbSchedNext = 0;
-            queue.tail = _tcb;
-            ksReadyQueues[idx] = queue;
-
-            thread_state_set_tcbQueued(&mut tcb.tcbState, 1);
-        }
-    }
-}
-
-#[inline]
-#[no_mangle]
-pub fn tcbSchedDequeue(_tcb: *mut tcb_t) {
-    unsafe {
-        let tcb = &mut (*_tcb);
-        if thread_state_get_tcbQueued(&tcb.tcbState) != 0 {
-            let dom = tcb.domain;
-            let prio = tcb.tcbPriority;
-            let idx = ready_queues_index(dom, prio);
-            let mut queue = ksReadyQueues[idx];
-            if tcb.tcbSchedPrev != 0 {
-                (*(tcb.tcbSchedPrev as *mut tcb_t)).tcbSchedNext = tcb.tcbSchedNext;
-            } else {
-                queue.head = tcb.tcbSchedNext as *mut tcb_t;
-                if tcb.tcbSchedNext == 0 {
-                    removeFromBitmap(dom, prio);
-                }
-            }
-            if tcb.tcbSchedNext != 0 {
-                (*(tcb.tcbSchedNext as *mut tcb_t)).tcbSchedPrev = tcb.tcbSchedPrev;
-            } else {
-                queue.tail = tcb.tcbSchedPrev as *mut tcb_t;
-            }
-
-            ksReadyQueues[idx] = queue;
-            thread_state_set_tcbQueued(&mut tcb.tcbState, 0);
-        }
-    }
-}
-
-#[no_mangle]
-pub fn tcbSchedAppend(tcb: *mut tcb_t) {
-    unsafe {
-        if thread_state_get_tcbQueued(&(*tcb).tcbState) == 0 {
-            let dom = (*tcb).domain;
-            let prio = (*tcb).tcbPriority;
-            let idx = ready_queues_index(dom, prio);
-            let mut queue = ksReadyQueues[idx];
-
-            if queue.head as usize == 0 {
-                queue.head = tcb;
-                addToBitmap(dom, prio);
-            } else {
-                let next = queue.tail;
-                (*next).tcbSchedNext = tcb as usize;
-            }
-            (*tcb).tcbSchedPrev = queue.tail as usize;
-            (*tcb).tcbSchedNext = 0;
-            queue.tail = tcb;
-            ksReadyQueues[idx] = queue;
-
-            thread_state_set_tcbQueued(&mut (*tcb).tcbState, 1);
-        }
-    }
-}
-
-#[no_mangle]
-pub fn tcbEPAppend(tcb: *mut tcb_t, mut queue: tcb_queue_t) -> tcb_queue_t {
-    unsafe {
-        if queue.head as usize == 0 {
-            queue.head = tcb;
-        } else {
-            (*(queue.tail as *mut tcb_t)).tcbEPNext = tcb as usize;
-        }
-        (*tcb).tcbEPPrev = queue.tail as usize;
-        (*tcb).tcbEPNext = 0;
-        queue.tail = tcb as *mut tcb_t;
-        queue
-    }
-}
-
-#[no_mangle]
-pub fn tcbEPDequeue(tcb: *mut tcb_t, mut queue: tcb_queue_t) -> tcb_queue_t {
-    unsafe {
-        if (*tcb).tcbEPPrev != 0 {
-            (*((*tcb).tcbEPPrev as *mut tcb_t)).tcbEPNext = (*tcb).tcbEPNext;
-        } else {
-            queue.head = (*tcb).tcbEPNext as *mut tcb_t;
-        }
-        if (*tcb).tcbEPNext != 0 {
-            (*((*tcb).tcbEPNext as *mut tcb_t)).tcbEPPrev = (*tcb).tcbEPPrev;
-        } else {
-            queue.tail = (*tcb).tcbEPPrev as *mut tcb_t;
-        }
-        queue
-    }
-}
-
-pub fn Arch_initContext(mut context: arch_tcb_t) -> arch_tcb_t {
-    (context).registers[SSTATUS] = 0x00040020;
-    context
-}
-
-#[no_mangle]
-pub fn doIPCTransfer(
-    sender: *mut tcb_t,
-    endpoint: *mut endpoint_t,
-    badge: usize,
-    grant: bool,
-    receiver: *mut tcb_t,
-) {
-    let receiveBuffer = lookupIPCBuffer(true, receiver) as *mut usize;
-    unsafe {
-        if likely(seL4_Fault_get_seL4_FaultType(&(*sender).tcbFault) == seL4_Fault_NullFault) {
-            let sendBuffer = lookupIPCBuffer(false, sender) as *mut usize;
-            doNormalTransfer(
-                sender,
-                sendBuffer,
-                endpoint,
-                badge,
-                grant,
-                receiver,
-                receiveBuffer,
-            );
-        } else {
-            doFaultTransfer(badge, sender, receiver, receiveBuffer);
-        }
-    }
-}
-
 #[link(name = "kernel_all.c")]
 extern "C" {
-    pub fn doFaultTransfer(
-        badge: usize,
+    fn cteDeleteOne(slot: *mut cte_t);
+    fn handleFaultReply(receiver: *mut tcb_t, sender: *mut tcb_t) -> bool;
+    fn setMRs_fault(
         sender: *mut tcb_t,
         receiver: *mut tcb_t,
-        recvBuf: *mut usize,
-    );
+        receivedIPCBuffer: *mut usize,
+    ) -> usize;
 }
 
 #[no_mangle]
-pub fn doNormalTransfer(
-    sender: *mut tcb_t,
-    sendBuffer: *mut usize,
-    endpoint: *mut endpoint_t,
-    badge: usize,
-    canGrant: bool,
-    receiver: *mut tcb_t,
-    receivedBuffer: *mut usize,
-) {
-    let mut tag = messageInfoFromWord(getRegister(sender, msgInfoRegister));
-    if canGrant {
-        let status = lookupExtraCaps(sender, sendBuffer, &tag);
-
-        if unlikely(status != exception_t::EXCEPTION_NONE) {
-            unsafe {
-                current_extra_caps.excaprefs[0] = 0 as *mut cte_t;
-            }
+pub fn doReplyTransfer(sender: *mut tcb_t, receiver: *mut tcb_t, slot: *mut cte_t, grant: bool) {
+    unsafe {
+        assert!(thread_state_get_tsType(&(*receiver).tcbState) == ThreadStateBlockedOnReply);
+    }
+    let fault_type = unsafe { seL4_Fault_get_seL4_FaultType(&(*receiver).tcbFault) };
+    if likely(fault_type == seL4_Fault_NullFault) {
+        doIPCTransfer(sender, 0 as *mut endpoint_t, 0, grant, receiver);
+        unsafe {
+            cteDeleteOne(slot);
         }
+        setThreadState(receiver, ThreadStateRunning);
+        possibleSwitchTo(receiver);
     } else {
         unsafe {
-            current_extra_caps.excaprefs[0] = 0 as *mut cte_t;
+            cteDeleteOne(slot);
+        }
+        let restart = unsafe { handleFaultReply(receiver, sender) };
+
+        if restart {
+            setThreadState(receiver, ThreadStateRestart);
+            possibleSwitchTo(receiver);
+        } else {
+            setThreadState(receiver, ThreadStateInactive);
         }
     }
-    let msgTransferred = copyMRs(
-        sender,
-        sendBuffer,
-        receiver,
-        receivedBuffer,
-        seL4_MessageInfo_ptr_get_length((&tag) as *const seL4_MessageInfo_t),
-    );
+}
 
-    tag = transferCaps(tag, endpoint, receiver, receivedBuffer);
-
-    seL4_MessageInfo_ptr_set_length(
-        (&tag) as *const seL4_MessageInfo_t as *mut seL4_MessageInfo_t,
-        msgTransferred,
-    );
-    setRegister(receiver, msgInfoRegister, wordFromMEssageInfo(tag));
+#[no_mangle]
+pub fn doFaultTransfer(
+    badge: usize,
+    sender: *mut tcb_t,
+    receiver: *mut tcb_t,
+    receivedIPCBuffer: *mut usize,
+) {
+    let sent = unsafe { setMRs_fault(sender, receiver, receivedIPCBuffer) };
+    let msgInfo = unsafe {
+        seL4_MessageInfo_new(
+            seL4_Fault_get_seL4_FaultType(&(*sender).tcbFault),
+            0,
+            0,
+            sent,
+        )
+    };
+    setRegister(receiver, msgInfoRegister, wordFromMEssageInfo(msgInfo));
     setRegister(receiver, badgeRegister, badge);
 }
 
-// #[no_mangle]
-// pub fn doFaultTransfer(
-//     badge: usize,
-//     sender: *mut tcb_t,
-//     receiver: *mut tcb_t,
-//     recvBuf: *mut usize,
-// ) {
-//     // let sent =setMRs_fault()
-// }
-
+#[no_mangle]
 pub fn transferCaps(
     info: seL4_MessageInfo_t,
     endpoint: *mut endpoint_t,
@@ -873,64 +498,264 @@ pub fn transferCaps(
     }
 }
 
-pub fn lookupExtraCaps(
-    thread: *mut tcb_t,
-    bufferPtr: *mut usize,
-    info: &seL4_MessageInfo_t,
-) -> exception_t {
+#[no_mangle]
+pub fn doNBRecvFailedTransfer(thread: *mut tcb_t) {
+    setRegister(thread, badgeRegister, 0);
+}
+
+#[no_mangle]
+pub fn nextDomain() {
     unsafe {
-        if bufferPtr as usize == 0 {
-            current_extra_caps.excaprefs[0] = 0 as *mut cte_t;
-            return exception_t::EXCEPTION_NONE;
+        ksDomScheduleIdx += 1;
+        if ksDomScheduleIdx >= ksDomScheduleLength {
+            ksDomScheduleIdx = 0;
         }
-        let length = seL4_MessageInfo_ptr_get_extraCaps(info as *const seL4_MessageInfo_t);
-        let mut i = 0;
-        while i < length {
-            let cptr = getExtraCPtr(bufferPtr, i);
-            let lu_ret = lookupSlot(thread, cptr);
-            if lu_ret.status != exception_t::EXCEPTION_NONE {
-                panic!(" lookup slot error , found slot :{}", lu_ret.slot as usize);
-            }
-            current_extra_caps.excaprefs[i] = lu_ret.slot;
-            i += 1;
-        }
-        if i < seL4_MsgMaxExtraCaps {
-            current_extra_caps.excaprefs[i] = 0 as *mut cte_t;
-        }
-        return exception_t::EXCEPTION_NONE;
+        ksWorkUnitsCompleted = 0;
+        ksCurDomain = ksDomSchedule[ksDomScheduleIdx].domain;
+        ksDomainTime = ksDomSchedule[ksDomScheduleIdx].length;
+        //FIXME ksWorkUnits not used;
+        // ksWorkUnits
     }
 }
 
-pub fn copyMRs(
-    sender: *mut tcb_t,
-    sendBuf: *mut usize,
-    receiver: *mut tcb_t,
-    recvBuf: *mut usize,
-    n: usize,
-) -> usize {
-    let mut i = 0;
-    while i < n && i < n_msgRegisters {
-        setRegister(
-            receiver,
-            msgRegister[i],
-            getRegister(sender, msgRegister[i]),
-        );
-        i += 1;
-    }
-
-    if recvBuf as usize == 0 || sendBuf as usize == 0 {
-        return i;
-    }
-
-    while i < n {
-        unsafe {
-            let recvPtr = recvBuf.add(i + 1);
-            let sendPtr = sendBuf.add(i + 1);
-            *recvPtr = *sendPtr;
-            i += 1;
+#[no_mangle]
+pub fn scheduleChooseNewThread() {
+    unsafe {
+        if ksDomainTime == 0 {
+            nextDomain();
         }
     }
-    i
+    chooseThread();
+}
+
+#[no_mangle]
+pub fn switchToThread(thread: *const tcb_t) {
+    Arch_switchToThread(thread);
+
+    unsafe {
+        tcbSchedDequeue(thread as *mut tcb_t);
+        ksCurThread = thread as *mut tcb_t;
+    }
+}
+
+#[no_mangle]
+pub fn Arch_switchToIdleThread() {
+    unsafe {
+        let tcb = ksIdleThread as *mut tcb_t;
+        setVMRoot(tcb);
+    }
+}
+
+#[no_mangle]
+pub fn chooseThread() {
+    unsafe {
+        let dom = 0;
+        if ksReadyQueuesL1Bitmap[dom] != 0 {
+            let prio = getHighestPrio(dom);
+            let thread = ksReadyQueues[ready_queues_index(dom, prio)].head;
+            assert!(thread as usize != 0);
+            switchToThread(thread);
+        } else {
+            switchToIdleThread();
+        }
+    }
+}
+
+#[no_mangle]
+pub fn switchToIdleThread() {
+    unsafe {
+        Arch_switchToIdleThread();
+        ksCurThread = ksIdleThread;
+    }
+}
+
+#[no_mangle]
+pub fn setDomain(tptr: *mut tcb_t, dom: usize) {
+    if isRunnable(tptr) {
+        unsafe {
+            tcbSchedEnqueue(tptr);
+        }
+    }
+    unsafe {
+        if tptr == ksCurThread {
+            rescheduleRequired();
+        }
+    }
+}
+
+#[no_mangle]
+pub fn setMCPriority(tptr: *mut tcb_t, mcp: usize) {
+    unsafe {
+        (*tptr).tcbMCP = mcp;
+    }
+}
+
+#[no_mangle]
+pub fn setPriority(tptr: *mut tcb_t, prio: usize) {
+    unsafe {
+        tcbSchedDequeue(tptr);
+        (*tptr).tcbPriority = prio;
+        if isRunnable(tptr) {
+            if tptr as usize == ksCurThread as usize {
+                rescheduleRequired();
+            } else {
+                possibleSwitchTo(tptr);
+            }
+        }
+    }
+}
+
+#[no_mangle]
+pub fn timerTick() {
+    unsafe {
+        if thread_state_get_tsType(&(*ksCurThread).tcbState) == ThreadStateRunning {
+            let tcb = &mut (*ksCurThread);
+            if tcb.tcbTimeSlice > 1 {
+                tcb.tcbTimeSlice -= 1;
+            } else {
+                tcb.tcbTimeSlice = 5;
+                tcbSchedAppend(ksCurThread);
+                rescheduleRequired();
+            }
+        }
+    }
+}
+
+#[no_mangle]
+pub fn possibleSwitchTo(target: *const tcb_t) {
+    unsafe {
+        if ksCurDomain != (*target).domain {
+            tcbSchedEnqueue(target as *mut tcb_t);
+        } else if ksSchedulerAction as usize != SchedulerAction_ResumeCurrentThread {
+            rescheduleRequired();
+            tcbSchedEnqueue(target as *mut tcb_t);
+        } else {
+            ksSchedulerAction = target as *mut tcb_t;
+        }
+    }
+}
+
+#[no_mangle]
+pub fn rescheduleRequired() {
+    unsafe {
+        if ksSchedulerAction as usize != SchedulerAction_ResumeCurrentThread
+            && ksSchedulerAction as usize != SchedulerAction_ChooseNewThread
+        {
+            tcbSchedEnqueue(ksSchedulerAction as *mut tcb_t);
+        }
+        ksSchedulerAction = SchedulerAction_ChooseNewThread as *mut tcb_t;
+    }
+}
+
+#[no_mangle]
+pub fn schedule() {
+    unsafe {
+        if ksSchedulerAction as usize != SchedulerAction_ResumeCurrentThread {
+            let was_runnable: bool;
+            if isRunnable(ksCurThread as *const tcb_t) {
+                was_runnable = true;
+                tcbSchedEnqueue(ksCurThread as *mut tcb_t);
+            } else {
+                was_runnable = false;
+            }
+
+            if ksSchedulerAction as usize == SchedulerAction_ChooseNewThread {
+                scheduleChooseNewThread();
+            } else {
+                let candidate = ksSchedulerAction as *mut tcb_t;
+                let fastfail = ksCurThread == ksIdleThread
+                    || (*candidate).tcbPriority < (*(ksCurThread as *const tcb_t)).tcbPriority;
+                if fastfail && !isHighestPrio(ksCurDomain, (*candidate).tcbPriority) {
+                    tcbSchedEnqueue(candidate as *mut tcb_t);
+                    ksSchedulerAction = SchedulerAction_ChooseNewThread as *mut tcb_t;
+                    scheduleChooseNewThread();
+                } else if was_runnable
+                    && (*candidate).tcbPriority == (*(ksCurThread as *const tcb_t)).tcbPriority
+                {
+                    tcbSchedAppend(candidate as *mut tcb_t);
+                    ksSchedulerAction = SchedulerAction_ChooseNewThread as *mut tcb_t;
+                    scheduleChooseNewThread();
+                } else {
+                    switchToThread(candidate);
+                }
+            }
+        }
+        ksSchedulerAction = SchedulerAction_ResumeCurrentThread as *mut tcb_t;
+    }
+}
+
+pub fn Arch_initContext(mut context: arch_tcb_t) -> arch_tcb_t {
+    (context).registers[SSTATUS] = 0x00040020;
+    context
+}
+
+#[no_mangle]
+pub fn doIPCTransfer(
+    sender: *mut tcb_t,
+    endpoint: *mut endpoint_t,
+    badge: usize,
+    grant: bool,
+    receiver: *mut tcb_t,
+) {
+    let receiveBuffer = lookupIPCBuffer(true, receiver) as *mut usize;
+    unsafe {
+        if likely(seL4_Fault_get_seL4_FaultType(&(*sender).tcbFault) == seL4_Fault_NullFault) {
+            let sendBuffer = lookupIPCBuffer(false, sender) as *mut usize;
+            doNormalTransfer(
+                sender,
+                sendBuffer,
+                endpoint,
+                badge,
+                grant,
+                receiver,
+                receiveBuffer,
+            );
+        } else {
+            doFaultTransfer(badge, sender, receiver, receiveBuffer);
+        }
+    }
+}
+
+#[no_mangle]
+pub fn doNormalTransfer(
+    sender: *mut tcb_t,
+    sendBuffer: *mut usize,
+    endpoint: *mut endpoint_t,
+    badge: usize,
+    canGrant: bool,
+    receiver: *mut tcb_t,
+    receivedBuffer: *mut usize,
+) {
+    let mut tag = messageInfoFromWord(getRegister(sender, msgInfoRegister));
+    if canGrant {
+        let status = lookupExtraCaps(sender, sendBuffer, &tag);
+
+        if unlikely(status != exception_t::EXCEPTION_NONE) {
+            unsafe {
+                current_extra_caps.excaprefs[0] = 0 as *mut cte_t;
+            }
+        }
+    } else {
+        unsafe {
+            current_extra_caps.excaprefs[0] = 0 as *mut cte_t;
+        }
+    }
+    let msgTransferred = copyMRs(
+        sender,
+        sendBuffer,
+        receiver,
+        receivedBuffer,
+        seL4_MessageInfo_ptr_get_length((&tag) as *const seL4_MessageInfo_t),
+    );
+
+    tag = transferCaps(tag, endpoint, receiver, receivedBuffer);
+
+    seL4_MessageInfo_ptr_set_length(
+        (&tag) as *const seL4_MessageInfo_t as *mut seL4_MessageInfo_t,
+        msgTransferred,
+    );
+    setRegister(receiver, msgInfoRegister, wordFromMEssageInfo(tag));
+    setRegister(receiver, badgeRegister, badge);
 }
 
 pub fn getReceiveSlots(thread: *mut tcb_t, buffer: *mut usize) -> *mut cte_t {
@@ -995,14 +820,15 @@ pub fn setMRs_syscall_error(thread: *mut tcb_t, receivedIPCBuffer: *mut usize) -
                     1,
                     current_syscall_error.rangeErrorMax,
                 )
-            },
-            seL4_FailedLookup=>{
-                let flag= if current_syscall_error.failedLookupWasSource ==1 {true} else {false};
-                setMR(thread, receivedIPCBuffer, 0,
-                                  flag as usize);
-                            return setMRs_lookup_failure(thread, receivedIPCBuffer,
-                                                         &current_lookup_fault, 1);
-                    
+            }
+            seL4_FailedLookup => {
+                let flag = if current_syscall_error.failedLookupWasSource == 1 {
+                    true
+                } else {
+                    false
+                };
+                setMR(thread, receivedIPCBuffer, 0, flag as usize);
+                return setMRs_lookup_failure(thread, receivedIPCBuffer, &current_lookup_fault, 1);
             }
             seL4_IllegalOperation
             | seL4_AlignmentError
@@ -1016,6 +842,29 @@ pub fn setMRs_syscall_error(thread: *mut tcb_t, receivedIPCBuffer: *mut usize) -
                 current_syscall_error.memoryLeft,
             ),
             _ => panic!("invalid syscall error"),
+        }
+    }
+}
+
+#[no_mangle]
+pub fn activateThread() {
+    unsafe {
+        assert!(ksCurThread as usize != 0 && ksCurThread as usize != 1);
+        let thread = ksCurThread;
+        match thread_state_get_tsType(&(*thread).tcbState) {
+            ThreadStateRunning => {
+                return;
+            }
+            ThreadStateRestart => {
+                let pc = getReStartPC(thread);
+                setNextPC(thread, pc);
+                setThreadState(thread, ThreadStateRunning);
+            }
+            ThreadStateIdleThreadState => return,
+            _ => panic!(
+                "current thread is blocked , state id :{}",
+                thread_state_get_tsType(&(*thread).tcbState)
+            ),
         }
     }
 }

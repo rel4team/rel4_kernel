@@ -4,22 +4,22 @@ use crate::{
         ThreadStateBlockedOnNotification, ThreadStateBlockedOnReceive, ThreadStateInactive,
         ThreadStateRestart, ThreadStateRunning,
     },
-    kernel::thread::{
-        doNBRecvFailedTransfer, possibleSwitchTo, scheduleTCB, setRegister, tcbEPAppend,
-        tcbEPDequeue, tcbSchedEnqueue,
-    },
-    println,
+    kernel::thread::{doNBRecvFailedTransfer, possibleSwitchTo, scheduleTCB, setRegister},
+    object::tcb::tcbEPDequeue,
     structures::{cap_t, exception_t, notification_t, tcb_queue_t, tcb_t},
 };
 
-use super::structure_gen::{
-    cap_notification_cap_get_capNtfnPtr, notification_ptr_get_ntfnBoundTCB,
-    notification_ptr_get_ntfnMsgIdentifier, notification_ptr_get_ntfnQueue_head,
-    notification_ptr_get_ntfnQueue_tail, notification_ptr_get_state,
-    notification_ptr_set_ntfnBoundTCB, notification_ptr_set_ntfnMsgIdentifier,
-    notification_ptr_set_ntfnQueue_head, notification_ptr_set_ntfnQueue_tail,
-    notification_ptr_set_state, thread_state_get_tsType, thread_state_set_blockingObject,
-    thread_state_set_tsType,
+use super::{
+    structure_gen::{
+        cap_notification_cap_get_capNtfnPtr, notification_ptr_get_ntfnBoundTCB,
+        notification_ptr_get_ntfnMsgIdentifier, notification_ptr_get_ntfnQueue_head,
+        notification_ptr_get_ntfnQueue_tail, notification_ptr_get_state,
+        notification_ptr_set_ntfnBoundTCB, notification_ptr_set_ntfnMsgIdentifier,
+        notification_ptr_set_ntfnQueue_head, notification_ptr_set_ntfnQueue_tail,
+        notification_ptr_set_state, thread_state_get_tsType, thread_state_set_blockingObject,
+        thread_state_set_tsType,
+    },
+    tcb::{tcbEPAppend, tcbSchedEnqueue},
 };
 
 #[no_mangle]
@@ -61,7 +61,6 @@ extern "C" {
     pub fn setThreadState(tptr: *mut tcb_t, ts: usize);
     pub fn cancelIPC(t: *mut tcb_t);
 }
-
 
 #[no_mangle]
 pub fn sendSignal(ntfnPtr: *const notification_t, badge: usize) {

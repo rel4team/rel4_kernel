@@ -172,7 +172,7 @@ pub const n_frameRegisters: usize = 16;
 pub const n_gpRegisters: usize = 16;
 pub const n_exceptionMessage: usize = 2;
 pub const n_syscallMessage: usize = 10;
-pub const MAX_MSG_SIZE:usize=n_syscallMessage;
+pub const MAX_MSG_SIZE: usize = n_syscallMessage;
 
 pub const CopyRegisters_suspendSource: usize = 0;
 pub const CopyRegisters_resumeTarget: usize = 1;
@@ -286,3 +286,5 @@ pub const MessageID_Exception: usize = 1;
 pub const NtfnState_Idle: usize = 0;
 pub const NtfnState_Waiting: usize = 1;
 pub const NtfnState_Active: usize = 2;
+
+pub const seL4_MinPrio: usize = 0;
