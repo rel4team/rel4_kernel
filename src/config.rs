@@ -103,8 +103,19 @@ pub const seL4_CapSMMUSIDControl: usize = 12;
 pub const seL4_CapSMMUCBControl: usize = 13;
 pub const seL4_NumInitialCaps: usize = 14;
 
+pub const SIP_SSIP: usize = 1;
+pub const SIP_MSIP: usize = 3;
+pub const SIP_STIP: usize = 5;
+pub const SIP_MTIP: usize = 7;
+pub const SIP_SEIP: usize = 9;
+pub const SIP_MEIP: usize = 11;
+
+pub const SIE_SSIE: usize = 1;
+pub const SIE_MSIE: usize = 3;
 pub const SIE_STIE: usize = 5;
+pub const SIE_MTIE: usize = 7;
 pub const SIE_SEIE: usize = 9;
+pub const SIE_MEIE: usize = 11;
 
 pub const seL4_MsgMaxLength: usize = 120;
 pub const msgInfoRegister: usize = 10;
@@ -288,3 +299,5 @@ pub const NtfnState_Waiting: usize = 1;
 pub const NtfnState_Active: usize = 2;
 
 pub const seL4_MinPrio: usize = 0;
+
+pub const CONFIG_MAX_NUM_WORK_UNITS_PER_PREEMPTION: usize = 100;

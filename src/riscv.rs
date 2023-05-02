@@ -13,3 +13,11 @@ pub extern "C" fn write_stvec(val: usize) {
         asm!("csrw stvec , {}",in(reg) val);
     }
 }
+
+pub fn read_sip()->usize{
+    let temp:usize;
+    unsafe{
+        asm!("csrr {}, sip",out(reg)temp);
+    }
+    temp
+}

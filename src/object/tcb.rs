@@ -7,6 +7,9 @@ use crate::{
         thread_control_update_mcp, thread_control_update_priority, thread_control_update_space,
         wordBits, wordRadix, CopyRegisters_resumeTarget, CopyRegisters_suspendSource,
         CopyRegisters_transferFrame, CopyRegisters_transferInteger, ReadRegisters_suspend,
+        TCBBindNotification, TCBConfigure, TCBCopyRegisters, TCBReadRegisters, TCBResume,
+        TCBSetIPCBuffer, TCBSetMCPriority, TCBSetPriority, TCBSetSchedParams, TCBSetSpace,
+        TCBSetTLSBase, TCBSuspend, TCBUnbindNotification, TCBWriteRegisters,
         ThreadStateBlockedOnReply, ThreadStateRestart, ThreadStateRunning, CONFIG_NUM_PRIORITIES,
         L2_BITMAP_SIZE,
     },
@@ -16,7 +19,7 @@ use crate::{
         thread::{
             getCSpace, getExtraCPtr, getReStartPC, getRegister, ksCurThread, ksReadyQueues,
             ksReadyQueuesL1Bitmap, ksReadyQueuesL2Bitmap, rescheduleRequired, restart,
-            setMCPriority, setNextPC, setPriority, setRegister, suspend,
+            setMCPriority, setNextPC, setPriority, setRegister, suspend, TLS_BASE,
         },
         transfermsg::{
             seL4_MessageInfo_new, seL4_MessageInfo_ptr_get_extraCaps, wordFromMEssageInfo,
@@ -265,7 +268,7 @@ pub fn setupCallerCap(sender: *const tcb_t, receiver: *const tcb_t, canGrant: bo
 
         assert!(cap_get_capType(callerCap) == cap_null_cap);
         cteInsert(
-            cap_reply_cap_new(canGrant as usize, 0, sender as usize),
+            &cap_reply_cap_new(canGrant as usize, 0, sender as usize),
             replySlot,
             callerSlot,
         );
@@ -909,7 +912,7 @@ pub fn invokeTCB_ThreadControl(
             if sameObjectAs(&cRoot_newCap, &(*cRoot_srcSlot).cap)
                 && sameObjectAs(tCap, &(*slot).cap)
             {
-                cteInsert(cRoot_newCap.clone(), cRoot_srcSlot, rootSlot);
+                cteInsert(&cRoot_newCap.clone(), cRoot_srcSlot, rootSlot);
             }
 
             let rootVSlot = getCSpace(target as usize, tcbVTable);
@@ -920,7 +923,7 @@ pub fn invokeTCB_ThreadControl(
             if sameObjectAs(&vRoot_newCap, &(*vRoot_srcSlot).cap)
                 && sameObjectAs(tCap, &(*slot).cap)
             {
-                cteInsert(vRoot_newCap.clone(), vRoot_srcSlot, rootVSlot);
+                cteInsert(&vRoot_newCap.clone(), vRoot_srcSlot, rootVSlot);
             }
         }
 
@@ -935,7 +938,7 @@ pub fn invokeTCB_ThreadControl(
                 && sameObjectAs(&bufferCap, &(*bufferSrcSlot).cap)
                 && sameObjectAs(tCap, &(*slot).cap)
             {
-                cteInsert(bufferCap.clone(), bufferSrcSlot, bufferSlot);
+                cteInsert(&bufferCap.clone(), bufferSrcSlot, bufferSlot);
             }
             if target == ksCurThread {
                 rescheduleRequired();
@@ -1313,10 +1316,8 @@ pub fn decodeBindNotification(cap: &cap_t) -> exception_t {
     unsafe {
         if (*tcb).tcbBoundNotification as usize != 0 {
             println!("TCB BindNotification: TCB already has a bound notification.");
-            unsafe {
-                current_syscall_error._type = seL4_IllegalOperation;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
+            current_syscall_error._type = seL4_IllegalOperation;
+            return exception_t::EXCEPTION_SYSCALL_ERROR;
         }
     }
     let ntfn_cap: &cap_t;
@@ -1370,10 +1371,8 @@ pub fn decodeSetPriority(cap: &cap_t, length: usize, buffer: *mut usize) -> exce
     unsafe {
         if length < 1 || current_extra_caps.excaprefs[0] as usize == 0 {
             println!("TCB SetPriority: Truncated message.");
-            unsafe {
-                current_syscall_error._type = seL4_TruncatedMessage;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
+            current_syscall_error._type = seL4_TruncatedMessage;
+            return exception_t::EXCEPTION_SYSCALL_ERROR;
         }
     }
     let newPrio = getSyscallArg(0, buffer);
@@ -1412,4 +1411,98 @@ pub fn decodeSetPriority(cap: &cap_t, length: usize, buffer: *mut usize) -> exce
         0 as *mut cte_t,
         thread_control_update_priority,
     )
+}
+
+#[no_mangle]
+pub fn decodeUnbindNotification(cap: &cap_t) -> exception_t {
+    let tcb = cap_thread_cap_get_capTCBPtr(cap) as *mut tcb_t;
+    unsafe {
+        if (*tcb).tcbBoundNotification as usize == 0 {
+            println!("TCB BindNotification: TCB already has a bound notification.");
+            unsafe {
+                current_syscall_error._type = seL4_IllegalOperation;
+                return exception_t::EXCEPTION_SYSCALL_ERROR;
+            }
+        }
+
+        setThreadState(ksCurThread as *mut tcb_t, ThreadStateRestart);
+    }
+    invokeTCB_NotificationControl(tcb, 0 as *mut notification_t)
+}
+
+#[no_mangle]
+pub fn invokeTCB_Suspend(thread: *mut tcb_t) -> exception_t {
+    suspend(thread);
+    exception_t::EXCEPTION_NONE
+}
+
+#[no_mangle]
+pub fn invokeTCB_Resume(thread: *mut tcb_t) -> exception_t {
+    restart(thread);
+    exception_t::EXCEPTION_NONE
+}
+
+#[no_mangle]
+pub fn invokeSetTLSBase(thread: *mut tcb_t, base: usize) -> exception_t {
+    setRegister(thread, TLS_BASE, base);
+    unsafe {
+        if thread == ksCurThread {
+            rescheduleRequired();
+        }
+    }
+    exception_t::EXCEPTION_NONE
+}
+
+#[no_mangle]
+pub fn decodeSetTLSBase(cap: &cap_t, length: usize, buffer: *mut usize) -> exception_t {
+    if length < 1 {
+        println!("TCB SetTLSBase: Truncated message.");
+        unsafe {
+            current_syscall_error._type = seL4_TruncatedMessage;
+            return exception_t::EXCEPTION_SYSCALL_ERROR;
+        }
+    }
+    let base = getSyscallArg(0, buffer);
+    unsafe {
+        setThreadState(ksCurThread, ThreadStateRestart);
+    }
+    invokeSetTLSBase(cap_thread_cap_get_capTCBPtr(cap) as *mut tcb_t, base)
+}
+
+#[no_mangle]
+pub fn decodeTCBInvocation(
+    invLabel: usize,
+    length: usize,
+    cap: &cap_t,
+    slot: *mut cte_t,
+    call: bool,
+    buffer: *mut usize,
+) -> exception_t {
+    match invLabel {
+        TCBReadRegisters => decodeReadRegisters(cap, length, call, buffer),
+        TCBWriteRegisters => decodeWriteRegisters(cap, length, buffer),
+        TCBCopyRegisters => decodeCopyRegisters(cap, length, buffer),
+        TCBSuspend => unsafe {
+            setThreadState(ksCurThread as *mut tcb_t, ThreadStateRestart);
+            invokeTCB_Suspend(cap_thread_cap_get_capTCBPtr(cap) as *mut tcb_t)
+        },
+        TCBResume => unsafe {
+            setThreadState(ksCurThread as *mut tcb_t, ThreadStateRestart);
+            invokeTCB_Resume(cap_thread_cap_get_capTCBPtr(cap) as *mut tcb_t)
+        },
+        TCBConfigure => decodeTCBConfigure(cap, length, slot, buffer),
+        TCBSetPriority => decodeSetPriority(cap, length, buffer),
+        TCBSetMCPriority => decodeSetMCPriority(cap, length, buffer),
+        TCBSetSchedParams => decodeSetSchedParams(cap, length, buffer),
+        TCBSetIPCBuffer => decodeSetIPCBuffer(cap, length, slot as *mut cte_t, buffer),
+        TCBSetSpace => decodeSetSpace(cap, length, slot as *mut cte_t, buffer),
+        TCBBindNotification => decodeBindNotification(cap),
+        TCBUnbindNotification => decodeUnbindNotification(cap),
+        TCBSetTLSBase => decodeSetTLSBase(cap, length, buffer),
+        _ => unsafe {
+            println!("TCB: Illegal operation invLabel :{}", invLabel);
+            current_syscall_error._type = seL4_IllegalOperation;
+            exception_t::EXCEPTION_SYSCALL_ERROR
+        },
+    }
 }

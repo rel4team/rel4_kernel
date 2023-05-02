@@ -100,6 +100,7 @@ pub const ra: usize = 0;
 pub const sp: usize = 1;
 const gp: usize = 2;
 const tp: usize = 3;
+pub const TLS_BASE: usize = 3;
 const t0: usize = 4;
 const t1: usize = 5;
 const t2: usize = 6;
@@ -485,7 +486,7 @@ pub fn transferCaps(
                 {
                     break;
                 }
-                cteInsert(dc_ret.cap, slot, destSlot);
+                cteInsert(&dc_ret.cap, slot, destSlot);
                 destSlot = 0 as *mut cte_t;
             }
             i += 1;
@@ -758,6 +759,7 @@ pub fn doNormalTransfer(
     setRegister(receiver, badgeRegister, badge);
 }
 
+#[no_mangle]
 pub fn getReceiveSlots(thread: *mut tcb_t, buffer: *mut usize) -> *mut cte_t {
     if buffer as usize == 0 {
         return 0 as *mut cte_t;
@@ -767,9 +769,18 @@ pub fn getReceiveSlots(thread: *mut tcb_t, buffer: *mut usize) -> *mut cte_t {
     let luc_ret = lookupCap(thread, cptr);
     let cnode = &luc_ret.cap;
     let lus_ret = rust_lookupTargetSlot(cnode, ct.ctReceiveIndex, ct.ctReceiveDepth);
+    if lus_ret.status != exception_t::EXCEPTION_NONE {
+        return 0 as *mut cte_t;
+    }
+    unsafe {
+        if cap_get_capType(&(*lus_ret.slot).cap) != cap_null_cap {
+            return 0 as *mut cte_t;
+        }
+    }
     lus_ret.slot
 }
 
+#[no_mangle]
 pub fn loadCapTransfer(buffer: *mut usize) -> cap_transfer_t {
     let offset = seL4_MsgMaxLength + 2 + seL4_MsgMaxExtraCaps;
     unsafe { capTransferFromWords(buffer.add(offset)) }

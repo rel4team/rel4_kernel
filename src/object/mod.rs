@@ -6,3 +6,4 @@ pub mod objecttype;
 pub mod structure_gen;
 pub mod cnode;
 pub mod tcb;
+pub mod untyped;

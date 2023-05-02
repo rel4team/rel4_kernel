@@ -900,17 +900,17 @@ pub fn create_initial_thread(
             return 0 as *mut tcb_t;
         }
         cteInsert(
-            root_cnode_cap.clone(),
+            &root_cnode_cap.clone(),
             ptr.add(seL4_CapInitThreadCNode),
             getCSpace(rootserver.tcb, tcbCTable),
         );
         cteInsert(
-            it_pd_cap.clone(),
+            &it_pd_cap.clone(),
             ptr.add(seL4_CapInitThreadVspace),
             getCSpace(rootserver.tcb, tcbVTable),
         );
         cteInsert(
-            dc_ret.cap.clone(),
+            &dc_ret.cap.clone(),
             ptr.add(seL4_CapInitThreadIPCBuffer),
             getCSpace(rootserver.tcb, tcbBuffer),
         );

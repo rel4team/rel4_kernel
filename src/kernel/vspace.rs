@@ -18,7 +18,7 @@ use crate::{
     },
     kernel::boot::current_syscall_error,
     object::{
-        cap::{cteInsert, ensureEmptySlot, isFinalcapability},
+        cap::{cteInsert, ensureEmptySlot, isFinalCapability},
         objecttype::{
             cap_asid_control_cap, cap_asid_pool_cap, cap_frame_cap, cap_get_capPtr,
             cap_get_capType, cap_page_table_cap, cap_untyped_cap,
@@ -539,7 +539,7 @@ pub fn performASIDControlInvocation(
     clearMemory(frame as *mut u8, pageBitsForSize(RISCV_4K_Page));
     unsafe {
         cteInsert(
-            cap_asid_pool_cap_new(asid_base, frame as usize),
+            &cap_asid_pool_cap_new(asid_base, frame as usize),
             parent,
             slot,
         );
@@ -975,7 +975,7 @@ pub fn decodeRISCVPageTableInvocation(
     buffer: *mut usize,
 ) -> exception_t {
     if label == RISCVPageTableUnmap {
-        if !isFinalcapability(cte) {
+        if !isFinalCapability(cte) {
             println!("RISCVPageTableUnmap: cannot unmap if more than once cap exists");
             unsafe {
                 current_syscall_error._type = seL4_RevokeFirst;

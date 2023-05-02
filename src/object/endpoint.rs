@@ -290,17 +290,6 @@ pub fn replyFromKernel_success_empty(thread: *mut tcb_t) {
     );
 }
 
-// #[no_mangle]
-// pub fn process1(tptr: *mut tcb_t)->*mut cte_t {
-//     unsafe {
-//         let state = &(*tptr).tcbState;
-//         // (*tptr).tcbFault = seL4_Fault_NullFault_new();
-
-//         let slot = getCSpace(tptr as usize, tcbReply);
-//         let callerCap = mdb_node_get_mdbNext(&(*slot).cteMDBNode) as *mut cte_t;
-//         callerCap
-//     }
-// }
 
 #[no_mangle]
 pub fn cancelIPC(tptr: *mut tcb_t) {
