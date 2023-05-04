@@ -18,9 +18,10 @@ use crate::{
     },
     kernel::boot::current_syscall_error,
     object::{
-        cap::{cteInsert, ensureEmptySlot,  isFinalcapability},
+        cap::{cteInsert, ensureEmptySlot, isFinalCapability},
         objecttype::{
-            cap_frame_cap, cap_get_capPtr, cap_get_capType, cap_page_table_cap, cap_untyped_cap, cap_asid_pool_cap, cap_asid_control_cap,
+            cap_asid_control_cap, cap_asid_pool_cap, cap_frame_cap, cap_get_capPtr,
+            cap_get_capType, cap_page_table_cap, cap_untyped_cap,
         },
         structure_gen::{
             cap_asid_pool_cap_get_capASIDBase, cap_asid_pool_cap_get_capASIDPool,
@@ -44,7 +45,7 @@ use crate::{
     riscv::read_stval,
     structures::{
         asid_pool_t, cap_t, cte_t, exception_t, findVSpaceForASID_ret, lookupPTSlot_ret_t, pte_t,
-        satp_t, seL4_CapRights_t, seL4_SlotRegion, tcb_t, v_region_t, vm_attributes_t,
+        satp_t, seL4_CapRights_t, seL4_SlotRegion, tcb_t, v_region_t,
     },
     syscall::getSyscallArg,
     utils::MAX_FREE_INDEX,
@@ -79,7 +80,7 @@ pub fn hwASIDFlush(asid: asid_t) {
 #[link(name = "kernel_all.c")]
 extern "C" {
     fn setThreadState(t: *mut tcb_t, ts: usize);
-    fn ensureNoChildren(t:*mut cte_t)->exception_t;
+    fn ensureNoChildren(t: *mut cte_t) -> exception_t;
 }
 
 #[no_mangle]
@@ -538,7 +539,7 @@ pub fn performASIDControlInvocation(
     clearMemory(frame as *mut u8, pageBitsForSize(RISCV_4K_Page));
     unsafe {
         cteInsert(
-            cap_asid_pool_cap_new(asid_base, frame as usize),
+            &cap_asid_pool_cap_new(asid_base, frame as usize),
             parent,
             slot,
         );
@@ -782,7 +783,7 @@ pub fn performPageGetAddress(vbase_ptr: usize, call: bool) -> exception_t {
     unsafe {
         let thread = ksCurThread as *mut tcb_t;
         if call {
-            let ipcBuffer = lookupIPCBuffer(true, thread as *mut tcb_t);
+            let ipcBuffer = lookupIPCBuffer(true, thread as *mut tcb_t) as *mut usize;
             setRegister(thread as *mut tcb_t, badgeRegister, 0);
             let length = setMR(thread, ipcBuffer, 0, vbase_ptr);
             setRegister(
@@ -966,60 +967,6 @@ pub fn decodeRISCVFrameInvocation(
 }
 
 #[no_mangle]
-pub fn process1(
-    capVMRights: usize,
-    w_rightsMask: usize,
-    asid: usize,
-    vaddr: usize,
-    attr: vm_attributes_t,
-    cap: &mut cap_t,
-    cte: *mut cte_t,
-    slot: *mut pte_t,
-) -> exception_t {
-    unsafe {
-        let vmRights = maskVMRights(capVMRights, rightsFromWord(w_rightsMask));
-        let frame_paddr = pptr_to_paddr(cap_frame_cap_get_capFBasePtr(cap));
-        cap_frame_cap_set_capFMappedASID(cap, asid);
-        cap_frame_cap_set_capFMappedAddress(cap, vaddr);
-
-        let executable = vm_attributes_get_riscvExecuteNever(attr) == 0;
-        // println!(
-        //     "vraddr {:#x} {:#x} {:#x} {:#x} {:#x}",
-        //     vmRights,frame_paddr, cap.words[0], cap.words[1], executable as usize
-        // );
-        let pte = makeUserPTE(frame_paddr, executable, vmRights);
-        setThreadState(ksCurThread, ThreadStateRestart);
-        performPageInvocationMapPTE(cap, cte as *mut cte_t, pte, slot)
-    }
-}
-
-#[no_mangle]
-pub fn process(label: usize, cap: &cap_t, cte: *mut cte_t, call: bool) -> exception_t {
-    match label {
-        RISCVPageUnmap => {
-            unsafe {
-                setThreadState(ksCurThread, ThreadStateRestart);
-            }
-            performPageInvocationUnmap(cap, cte)
-        }
-        RISCVPageGetAddress => {
-            assert!(n_msgRegisters >= 1);
-            unsafe {
-                setThreadState(ksCurThread, ThreadStateRestart);
-            }
-            performPageGetAddress(cap_frame_cap_get_capFBasePtr(cap), call)
-        }
-        _ => {
-            println!("invalid operation label:{}", label);
-            unsafe {
-                current_syscall_error._type = seL4_IllegalOperation;
-            }
-            exception_t::EXCEPTION_SYSCALL_ERROR
-        }
-    }
-}
-
-#[no_mangle]
 pub fn decodeRISCVPageTableInvocation(
     label: usize,
     length: usize,
@@ -1028,7 +975,7 @@ pub fn decodeRISCVPageTableInvocation(
     buffer: *mut usize,
 ) -> exception_t {
     if label == RISCVPageTableUnmap {
-        if !isFinalcapability(cte) {
+        if !isFinalCapability(cte) {
             println!("RISCVPageTableUnmap: cannot unmap if more than once cap exists");
             unsafe {
                 current_syscall_error._type = seL4_RevokeFirst;
@@ -1189,7 +1136,6 @@ pub fn decodeRISCVMMUInvocation(
             let untyped = unsafe { &mut (*parentSlot).cap };
             let root = unsafe { &mut (*current_extra_caps.excaprefs[1]).cap };
 
-
             let mut i = 0;
             unsafe {
                 while i < nASIDPools && riscvKSASIDTable[i] as usize != 0 {
@@ -1216,7 +1162,7 @@ pub fn decodeRISCVMMUInvocation(
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
             }
 
-            let status = unsafe{ensureNoChildren(parentSlot)};
+            let status = unsafe { ensureNoChildren(parentSlot) };
 
             if status != exception_t::EXCEPTION_NONE {
                 return status;
@@ -1262,7 +1208,7 @@ pub fn decodeRISCVMMUInvocation(
 
             if unlikely(
                 cap_get_capType(vspaceCap) != cap_page_table_cap
-                    || cap_page_table_cap_get_capPTIsMapped(vspaceCap)!=0 ,
+                    || cap_page_table_cap_get_capPTIsMapped(vspaceCap) != 0,
             ) {
                 unsafe {
                     println!("RISCVASIDPool: Invalid vspace root.");
@@ -1306,9 +1252,9 @@ pub fn decodeRISCVMMUInvocation(
                 }
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
             }
-            asid +=i;
+            asid += i;
 
-            unsafe{
+            unsafe {
                 setThreadState(ksCurThread, ThreadStateRestart);
                 performASIDPoolInvocation(asid, pool, vspaceCapSlot)
             }

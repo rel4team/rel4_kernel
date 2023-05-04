@@ -1,4 +1,8 @@
-use crate::{structures::{seL4_CapRights_t, seL4_MessageInfo_t, vm_attributes_t}, MASK, config::seL4_CapRightsBits};
+use crate::{
+    config::{seL4_CapRightsBits, seL4_MsgMaxLength},
+    structures::{cap_transfer_t, seL4_CapRights_t, seL4_MessageInfo_t, vm_attributes_t, seL4_CNode_CapData_t},
+    MASK,
+};
 
 #[inline]
 #[no_mangle]
@@ -36,12 +40,12 @@ pub fn seL4_CapRights_get_capAllowWrite(rights: &seL4_CapRights_t) -> usize {
 }
 
 #[inline]
-pub fn vmRighsFromWord(w:usize)->usize{
+pub fn vmRighsFromWord(w: usize) -> usize {
     w
 }
 
 #[inline]
-pub fn wordFromVMRights(rights:usize)->usize{
+pub fn wordFromVMRights(rights: usize) -> usize {
     rights
 }
 
@@ -49,7 +53,6 @@ pub fn wordFromVMRights(rights:usize)->usize{
 pub fn wordFromMEssageInfo(mi: seL4_MessageInfo_t) -> usize {
     mi.words[0]
 }
-
 
 #[inline]
 pub fn seL4_MessageInfo_ptr_get_length(ptr: *const seL4_MessageInfo_t) -> usize {
@@ -133,12 +136,10 @@ pub fn seL4_MessageInfo_new(
     seL4_MessageInfo
 }
 
-
 pub fn messageInfoFromWord_raw(w: usize) -> seL4_MessageInfo_t {
     let mi = seL4_MessageInfo_t { words: [w] };
     mi
 }
-
 
 #[inline]
 pub fn vm_attributes_new(value: usize) -> vm_attributes_t {
@@ -166,4 +167,43 @@ pub fn vm_attributes_set_riscvExecuteNever(
     vm_attributes.words[0] &= !0x1usize;
     vm_attributes.words[0] |= (v64 << 0) & 0x1usize;
     return vm_attributes;
+}
+
+pub fn messageInfoFromWord(w: usize) -> seL4_MessageInfo_t {
+    let mi = seL4_MessageInfo_t { words: [w] };
+    let len = seL4_MessageInfo_ptr_get_length((&mi) as *const seL4_MessageInfo_t);
+    if len > seL4_MsgMaxLength {
+        seL4_MessageInfo_ptr_set_length(
+            (&mi) as *const seL4_MessageInfo_t as *mut seL4_MessageInfo_t,
+            seL4_MsgMaxLength,
+        );
+    }
+    mi
+}
+
+#[no_mangle]
+pub fn capTransferFromWords(wptr: *mut usize) -> cap_transfer_t {
+    unsafe {
+        let ptr0 = wptr;
+        let ptr1 = wptr.add(1);
+        let ptr2 = wptr.add(2);
+        let transfer = cap_transfer_t {
+            ctReceiveRoot: *ptr0,
+            ctReceiveIndex: *ptr1,
+            ctReceiveDepth: *ptr2,
+        };
+        transfer
+    }
+}
+
+
+
+#[inline]
+pub fn seL4_CNode_capData_get_guard(seL4_CNode_CapData:&seL4_CNode_CapData_t)->usize{
+    (seL4_CNode_CapData.words[0] & 0xffffffffffffffc0usize) >> 6
+}
+
+#[inline]
+pub fn seL4_CNode_capData_get_guardSize(seL4_CNode_CapData:&seL4_CNode_CapData_t)->usize{
+    (seL4_CNode_CapData.words[0] & 0x3fusize) >> 0
 }

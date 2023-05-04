@@ -25,6 +25,8 @@ pub const PT_OFFSET_BITS: usize = 12;
 pub const CONFIG_PT_LEVELS: usize = 3;
 pub const CONFIG_TIME_SLICE: usize = 5;
 pub const seL4_PageBits: usize = 12;
+pub const seL4_LargePageBits: usize = 21;
+pub const seL4_HugePageBits: usize = 30;
 pub const PAGE_BITS: usize = seL4_PageBits;
 pub const PPTR_TOP: usize = 0xFFFFFFFF80000000;
 pub const physBase: usize = 0x80000000;
@@ -103,8 +105,19 @@ pub const seL4_CapSMMUSIDControl: usize = 12;
 pub const seL4_CapSMMUCBControl: usize = 13;
 pub const seL4_NumInitialCaps: usize = 14;
 
+pub const SIP_SSIP: usize = 1;
+pub const SIP_MSIP: usize = 3;
+pub const SIP_STIP: usize = 5;
+pub const SIP_MTIP: usize = 7;
+pub const SIP_SEIP: usize = 9;
+pub const SIP_MEIP: usize = 11;
+
+pub const SIE_SSIE: usize = 1;
+pub const SIE_MSIE: usize = 3;
 pub const SIE_STIE: usize = 5;
+pub const SIE_MTIE: usize = 7;
 pub const SIE_SEIE: usize = 9;
+pub const SIE_MEIE: usize = 11;
 
 pub const seL4_MsgMaxLength: usize = 120;
 pub const msgInfoRegister: usize = 10;
@@ -172,6 +185,7 @@ pub const n_frameRegisters: usize = 16;
 pub const n_gpRegisters: usize = 16;
 pub const n_exceptionMessage: usize = 2;
 pub const n_syscallMessage: usize = 10;
+pub const MAX_MSG_SIZE: usize = n_syscallMessage;
 
 pub const CopyRegisters_suspendSource: usize = 0;
 pub const CopyRegisters_resumeTarget: usize = 1;
@@ -240,7 +254,7 @@ pub const seL4_MaxPrio: usize = 255;
 
 pub const TIMER_CLOCK_HZ: usize = 10000000;
 pub const MS_IN_S: usize = 1000;
-pub const RESET_CYCLES: usize = TIMER_CLOCK_HZ / MS_IN_S * 2;
+pub const RESET_CYCLES: usize = (TIMER_CLOCK_HZ / MS_IN_S) * 2;
 
 pub const seL4_NoError: usize = 0;
 pub const seL4_InvalidArgument: usize = 1;
@@ -265,3 +279,52 @@ pub const seL4_Fault_CapFault: usize = 1;
 pub const seL4_Fault_UnknownSyscall: usize = 2;
 pub const seL4_Fault_UserException: usize = 3;
 pub const seL4_Fault_VMFault: usize = 5;
+
+pub const EPState_Idle: usize = 0;
+pub const EPState_Send: usize = 1;
+pub const EPState_Recv: usize = 2;
+
+pub const seL4_CapFault_IP: usize = 0;
+pub const seL4_CapFault_Addr: usize = 1;
+pub const seL4_CapFault_InRecvPhase: usize = 2;
+pub const seL4_CapFault_LookupFailureType: usize = 3;
+pub const seL4_CapFault_BitsLeft: usize = 4;
+pub const seL4_CapFault_DepthMismatch_BitsFound: usize = 5;
+pub const seL4_CapFault_GuardMismatch_GuardFound: usize = seL4_CapFault_DepthMismatch_BitsFound;
+pub const seL4_CapFault_GuardMismatch_BitsFound: usize = 6;
+
+pub const MessageID_Syscall: usize = 0;
+pub const MessageID_Exception: usize = 1;
+
+pub const NtfnState_Idle: usize = 0;
+pub const NtfnState_Waiting: usize = 1;
+pub const NtfnState_Active: usize = 2;
+
+pub const seL4_MinPrio: usize = 0;
+
+pub const CONFIG_MAX_NUM_WORK_UNITS_PER_PREEMPTION: usize = 100;
+pub const CONFIG_RETYPE_FAN_OUT_LIMIT: usize = 256;
+
+pub const seL4_UntypedObject: usize = 0;
+pub const seL4_TCBObject: usize = 1;
+pub const seL4_EndpointObject: usize = 2;
+pub const seL4_NotificationObject: usize = 3;
+pub const seL4_CapTableObject: usize = 4;
+pub const seL4_NonArchObjectTypeCount: usize = 5;
+pub const seL4_ObjectTypeCount: usize = 9;
+
+pub const SysCall: isize = -1;
+pub const SysReplyRecv: isize = -2;
+pub const SysSend: isize = -3;
+pub const SysNBSend: isize = -4;
+pub const SysRecv: isize = -5;
+pub const SysReply: isize = -6;
+pub const SysYield: isize = -7;
+pub const SysNBRecv: isize = -8;
+
+//seL4_VMFault_Msg
+pub const seL4_VMFault_IP: usize = 0;
+pub const seL4_VMFault_Addr: usize = 1;
+pub const seL4_VMFault_PrefetchFault: usize = 2;
+pub const seL4_VMFault_FSR: usize = 3;
+pub const seL4_VMFault_Length: usize = 4;

@@ -48,11 +48,10 @@ pub fn mdb_node_new(
 pub fn mdb_node_get_mdbNext(mdb_node: &mdb_node_t) -> usize {
     let mut ret: usize;
     ret = (mdb_node.words[1] & 0x7ffffffffcusize) << 0;
-    /* Possibly sign extend */
-    if core::intrinsics::likely(!!(true && (ret & (1usize << 38) != 0))) {
+    if (ret & (1usize << (38))) != 0 {
         ret |= 0xffffff8000000000;
     }
-    ret | 0xffffff8000000000
+    ret
 }
 
 #[inline]
@@ -90,7 +89,7 @@ pub fn mdb_node_get_mdbFirstBadged(mdb_node: &mdb_node_t) -> usize {
 }
 
 #[inline]
-pub fn mdb_node_set_mdbRevocable(mut mdb_node: mdb_node_t, v64: usize) -> mdb_node_t {
+pub fn mdb_node_set_mdbRevocable(mdb_node: &mut mdb_node_t, v64: usize) {
     assert!(
         (((!0x2usize >> 1) | 0x0) & v64)
             == (if false && (v64 & (1usize << (38))) != 0 {
@@ -101,11 +100,10 @@ pub fn mdb_node_set_mdbRevocable(mut mdb_node: mdb_node_t, v64: usize) -> mdb_no
     );
     mdb_node.words[1] &= !0x2usize;
     mdb_node.words[1] |= (v64 << 1) & 0x2;
-    mdb_node
 }
 
 #[inline]
-pub fn mdb_node_set_mdbFirstBadged(mut mdb_node: mdb_node_t, v64: usize) -> mdb_node_t {
+pub fn mdb_node_set_mdbFirstBadged(mdb_node: &mut mdb_node_t, v64: usize) {
     assert!(
         (((!0x1usize >> 0) | 0x0) & v64)
             == (if false && (v64 & (1usize << (38))) != 0 {
@@ -116,7 +114,6 @@ pub fn mdb_node_set_mdbFirstBadged(mut mdb_node: mdb_node_t, v64: usize) -> mdb_
     );
     mdb_node.words[1] &= !0x1usize;
     mdb_node.words[1] |= (v64 << 0) & 0x1usize;
-    mdb_node
 }
 
 #[inline]
@@ -202,46 +199,6 @@ pub fn cap_untyped_cap_new(
     capPtr: usize,
 ) -> cap_t {
     let mut cap = cap_t::default();
-    assert!(
-        (capFreeIndex & !0x7fffffffffusize)
-            == (if true && (capFreeIndex & (1usize << 38)) != 0 {
-                0x0
-            } else {
-                0
-            })
-    );
-    assert!(
-        (capIsDevice & !0x1usize)
-            == (if true && (capIsDevice & (1usize << 38)) != 0 {
-                0x0
-            } else {
-                0
-            })
-    );
-    assert!(
-        (capBlockSize & !0x3fusize)
-            == (if true && (capBlockSize & (1usize << 38)) != 0 {
-                0x0
-            } else {
-                0
-            })
-    );
-    assert!(
-        (cap_tag_t::cap_untyped_cap as usize & !0x1fusize)
-            == (if true && (cap_tag_t::cap_untyped_cap as usize & (1usize << 38)) != 0 {
-                0x0
-            } else {
-                0
-            })
-    );
-    assert!(
-        (capPtr & !0x7fffffffffusize)
-            == (if true && (capPtr & (1usize << 38)) != 0 {
-                0xffffff8000000000
-            } else {
-                0
-            })
-    );
 
     cap.words[0] = 0
         | (cap_tag_t::cap_untyped_cap as usize & 0x1fusize) << 59
@@ -280,7 +237,7 @@ pub fn cap_untyped_cap_get_capFreeIndex(cap: &cap_t) -> usize {
     assert!(((cap.words[0] >> 59) & 0x1f) == cap_tag_t::cap_untyped_cap as usize);
 
     ret = (cap.words[1] & 0xfffffffffe000000usize) >> 25;
-    if unlikely(!!(false && (ret & (1usize << (38)) != 0))) {
+    if unlikely(!!(false && ((ret & (1usize << (38))) != 0))) {
         ret |= 0x0;
     }
     ret
@@ -326,10 +283,10 @@ pub fn cap_untyped_cap_get_capPtr(cap: &cap_t) -> usize {
 
     ret = (cap.words[0] & 0x7fffffffffusize) << 0;
     /* Possibly sign extend */
-    if likely(!!(true && (ret & (1usize << (38))) != 0)) {
+    if ((1 << 38) & ret) != 0 {
         ret |= 0xffffff8000000000;
     }
-    ret | 0xffffff8000000000
+    ret
 }
 
 #[inline]
@@ -565,12 +522,8 @@ pub fn cap_endpoint_cap_get_capEPPtr(cap: &cap_t) -> usize {
     if likely(!!(true && (ret & (1usize << (38))) != 0)) {
         ret |= 0xffffff8000000000;
     }
-    ret | 0xffffff8000000000
+    ret
 }
-
-//FIXME::notification relevant cap not implemented
-
-//FIXME::reply relevant cap not implemented
 
 #[inline]
 pub fn cap_cnode_cap_get_capCNodeGuard(cap: &cap_t) -> usize {
@@ -652,10 +605,10 @@ pub fn cap_cnode_cap_get_capCNodePtr(cap: &cap_t) -> usize {
 
     ret = (cap.words[0] & 0x3fffffffffusize) << 1;
     /* Possibly sign extend */
-    if likely(!!(true && (ret & (1usize << (38))) != 0)) {
+    if (ret & (1 << 38)) != 0 {
         ret |= 0xffffff8000000000;
     }
-    ret | 0xffffff8000000000
+    ret
 }
 
 #[inline]
@@ -698,10 +651,6 @@ pub fn cap_zombie_cap_get_capZombieID(cap: &cap_t) -> usize {
     assert!(((cap.words[0] >> 59) & 0x1f) == cap_tag_t::cap_zombie_cap as usize);
 
     ret = (cap.words[1] & 0xffffffffffffffffusize) >> 0;
-    /* Possibly sign extend */
-    if unlikely(!!(false && (ret & (1usize << (38))) != 0)) {
-        ret |= 0x0;
-    }
     ret
 }
 
@@ -728,10 +677,6 @@ pub fn cap_zombie_cap_get_capZombieType(cap: &cap_t) -> usize {
     assert!(((cap.words[0] >> 59) & 0x1f) == cap_tag_t::cap_zombie_cap as usize);
 
     ret = (cap.words[0] & 0x7fusize) >> 0;
-    /* Possibly sign extend */
-    if unlikely(!!(false && (ret & (1usize << (38))) != 0)) {
-        ret |= 0x0;
-    }
     return ret;
 }
 
@@ -782,7 +727,7 @@ pub fn cap_page_table_cap_new(
     let mut cap = cap_t::default();
 
     cap.words[0] = 0
-        | (cap_page_table_cap as usize & 0x1fusize) << 59
+        | (cap_page_table_cap & 0x1fusize) << 59
         | (capPTIsMapped & 0x1usize) << 39
         | (capPTMappedAddress & 0x7fffffffffusize) >> 0;
     cap.words[1] =
@@ -804,8 +749,11 @@ pub fn cap_page_table_cap_set_capPTMappedASID(cap: &mut cap_t, v64: usize) {
 
 #[inline]
 pub fn cap_page_table_cap_get_capPTBasePtr(cap: &cap_t) -> usize {
-    let ret = (cap.words[1] & 0xfffffffffe00usize) >> 9;
-    ret | 0xffffff8000000000
+    let mut ret = (cap.words[1] & 0xfffffffffe00usize) >> 9;
+    if (ret & (1usize << (38))) != 0 {
+        ret |= 0xffffff8000000000;
+    }
+    ret
 }
 
 #[inline]
@@ -827,8 +775,11 @@ pub fn cap_page_table_cap_ptr_set_capPTIsMapped(cap: &mut cap_t, v64: usize) {
 }
 #[inline]
 pub fn cap_page_table_cap_get_capPTMappedAddress(cap: &cap_t) -> usize {
-    let ret = (cap.words[0] & 0x7fffffffffusize) << 0;
-    ret | 0xffffff8000000000
+    let mut ret = (cap.words[0] & 0x7fffffffffusize) << 0;
+    if (ret & (1usize << (38))) != 0 {
+        ret |= 0xffffff8000000000;
+    }
+    ret
 }
 
 #[inline]
@@ -872,8 +823,11 @@ pub fn cap_frame_cap_set_capFMappedASID(cap: &mut cap_t, v64: usize) {
 
 #[inline]
 pub fn cap_frame_cap_get_capFBasePtr(cap: &cap_t) -> usize {
-    let ret = (cap.words[1] & 0xfffffffffe00usize) >> 9;
-    ret | 0xffffff8000000000
+    let mut ret = (cap.words[1] & 0xfffffffffe00usize) >> 9;
+    if (ret & (1usize << (38))) != 0 {
+        ret |= 0xffffff8000000000;
+    }
+    ret
 }
 
 #[inline]
@@ -903,7 +857,7 @@ pub fn cap_frame_cap_get_capFIsDevice(cap: &cap_t) -> usize {
 #[inline]
 pub fn cap_frame_cap_get_capFMappedAddress(cap: &cap_t) -> usize {
     let mut ret = (cap.words[0] & 0x7fffffffffusize) << 0;
-    if (ret & 1<<38) ==1{
+    if (ret & (1usize << 38)) != 0 {
         ret |= 0xffffff8000000000;
     }
     ret
@@ -980,7 +934,7 @@ pub fn cap_asid_pool_cap_get_capASIDBase(cap: &cap_t) -> usize {
 
 #[inline]
 pub fn cap_asid_pool_cap_get_capASIDPool(cap: &cap_t) -> usize {
-    let  mut ret = (cap.words[0] & 0x1fffffffffusize) << 2;
+    let mut ret = (cap.words[0] & 0x1fffffffffusize) << 2;
     if likely(!!(true && (ret & (1usize << (38))) != 0)) {
         ret |= 0xffffff8000000000;
     }
@@ -995,18 +949,17 @@ pub fn thread_state_new() -> thread_state_t {
 
 #[inline]
 pub fn thread_state_get_blockingIPCBadge(thread_state_ptr: &thread_state_t) -> usize {
-    let ret = (thread_state_ptr).words[2] & 0xffffffffffffffffusize;
-    ret | 0xffffff8000000000
+    let mut ret = (thread_state_ptr).words[2] & 0xffffffffffffffffusize;
+    if (ret & (1usize << (38))) != 0 {
+        ret |= 0xffffff8000000000;
+    }
+    ret
 }
 
 #[inline]
-pub fn thread_state_set_blockingIPCBadge(
-    mut thread_state_ptr: thread_state_t,
-    v64: usize,
-) -> thread_state_t {
+pub fn thread_state_set_blockingIPCBadge(mut thread_state_ptr: &mut thread_state_t, v64: usize) {
     (thread_state_ptr).words[2] &= !0xffffffffffffffffusize;
     (thread_state_ptr).words[2] |= v64 & 0xffffffffffffffffusize;
-    thread_state_ptr
 }
 
 #[inline]
@@ -1062,7 +1015,10 @@ pub fn thread_state_set_tcbQueued(thread_state_ptr: &mut thread_state_t, v64: us
 
 #[inline]
 pub fn thread_state_get_blockingObject(thread_state_ptr: &thread_state_t) -> usize {
-    let ret = ((thread_state_ptr).words[0] & 0x7ffffffff0usize) << 0;
+    let mut ret = ((thread_state_ptr).words[0] & 0x7ffffffff0usize) << 0;
+    if (ret & (1usize << (38))) != 0 {
+        ret |= 0xffffff8000000000;
+    }
     ret
 }
 
@@ -1079,6 +1035,7 @@ pub fn thread_state_get_tsType(thread_state_ptr: &thread_state_t) -> usize {
 }
 
 #[inline]
+#[no_mangle]
 pub fn thread_state_set_tsType(thread_state_ptr: &mut thread_state_t, v64: usize) {
     (thread_state_ptr).words[0] &= !0xfusize;
     (thread_state_ptr).words[0] |= v64 & 0xfusize;
@@ -1093,39 +1050,54 @@ pub fn cap_domain_cap_new() -> cap_t {
 }
 
 #[inline]
-pub fn endpoint_ptr_set_epQueue_head(ptr: &mut endpoint_t, v64: usize) {
-    (ptr).words[1] &= !0xffffffffffffffffusize;
-    (ptr).words[1] |= (v64 << 0) & 0xffffffffffffffff;
+pub fn endpoint_ptr_set_epQueue_head(ptr: *mut endpoint_t, v64: usize) {
+    unsafe {
+        (*ptr).words[1] &= !0xffffffffffffffffusize;
+        (*ptr).words[1] |= (v64 << 0) & 0xffffffffffffffff;
+    }
 }
 
 #[inline]
-pub fn endpoint_ptr_get_epQueue_head(ptr: &endpoint_t) -> usize {
-    let ret = ((ptr).words[1] & 0xffffffffffffffffusize) >> 0;
-    ret | 0xffffff8000000000
+pub fn endpoint_ptr_get_epQueue_head(ptr: *const endpoint_t) -> usize {
+    unsafe {
+        let ret = ((*ptr).words[1] & 0xffffffffffffffffusize) >> 0;
+        ret
+    }
 }
 
 #[inline]
-pub fn endpoint_ptr_set_epQueue_tail(ptr: &mut endpoint_t, v64: usize) {
-    (ptr).words[0] &= !0x7ffffffffcusize;
-    (ptr).words[0] |= (v64 << 0) & 0x7ffffffffc;
+pub fn endpoint_ptr_set_epQueue_tail(ptr: *mut endpoint_t, v64: usize) {
+    unsafe {
+        (*ptr).words[0] &= !0x7ffffffffcusize;
+        (*ptr).words[0] |= (v64 << 0) & 0x7ffffffffc;
+    }
 }
 
 #[inline]
-pub fn endpoint_ptr_get_epQueue_tail(ptr: &endpoint_t) -> usize {
-    let ret = ((ptr).words[0] & 0x7ffffffffcusize) >> 0;
-    ret
+pub fn endpoint_ptr_get_epQueue_tail(ptr: *const endpoint_t) -> usize {
+    unsafe {
+        let mut ret = ((*ptr).words[0] & 0x7ffffffffcusize) >> 0;
+        if (ret & (1usize << (38))) != 0 {
+            ret |= 0xffffff8000000000;
+        }
+        ret
+    }
 }
 
 #[inline]
-pub fn endpoint_ptr_set_state(ptr: &mut endpoint_t, v64: usize) {
-    (ptr).words[0] &= !0x3usize;
-    (ptr).words[0] |= (v64 << 0) & 0x3;
+pub fn endpoint_ptr_set_state(ptr: *mut endpoint_t, v64: usize) {
+    unsafe {
+        (*ptr).words[0] &= !0x3usize;
+        (*ptr).words[0] |= (v64 << 0) & 0x3;
+    }
 }
 
 #[inline]
-pub fn endpoint_ptr_get_state(ptr: &endpoint_t) -> usize {
-    let ret = ((ptr).words[0] & 0x3usize) >> 0;
-    ret
+pub fn endpoint_ptr_get_state(ptr: *const endpoint_t) -> usize {
+    unsafe {
+        let ret = ((*ptr).words[0] & 0x3usize) >> 0;
+        ret
+    }
 }
 
 #[inline]
@@ -1180,74 +1152,106 @@ pub fn cap_thread_cap_new(capTCBPtr: usize) -> cap_t {
 
 #[inline]
 pub fn cap_thread_cap_get_capTCBPtr(cap: &cap_t) -> usize {
-    let ret: usize;
+    let mut ret: usize;
     ret = ((cap).words[0] & 0x7fffffffffusize) << 0;
-    ret | 0xffffff8000000000
-}
-
-#[inline]
-pub fn notification_ptr_get_ntfnBoundTCB(notification_ptr: &notification_t) -> usize {
-    let ret: usize;
-    ret = (notification_ptr).words[3] & 0x7fffffffffusize;
-    ret | 0xffffff8000000000
-}
-
-#[inline]
-pub fn notification_ptr_set_ntfnBoundTCB(ptr: &mut notification_t, v64: usize) {
-    (ptr).words[3] &= !0x7fffffffffusize;
-    (ptr).words[3] |= (v64 >> 0) & 0x7fffffffffusize;
-}
-
-#[inline]
-pub fn notification_ptr_get_ntfnMsgIdentifier(notification_ptr: &notification_t) -> usize {
-    let ret: usize;
-    ret = (notification_ptr).words[2] & 0xffffffffffffffffusize;
+    if (ret & (1usize << (38))) != 0 {
+        ret |= 0xffffff8000000000;
+    }
     ret
 }
 
 #[inline]
-pub fn notification_ptr_set_ntfnMsgIdentifier(ptr: &mut notification_t, v64: usize) {
-    (ptr).words[2] &= !0xffffffffffffffffusize;
-    (ptr).words[2] |= (v64 >> 0) & 0xffffffffffffffffusize;
-}
-
-#[inline]
-pub fn notification_ptr_get_ntfnQueue_head(notification_ptr: &notification_t) -> usize {
-    let ret: usize;
-    ret = (notification_ptr).words[1] & 0x7fffffffffusize;
-    ret | 0xffffff8000000000
-}
-
-#[inline]
-pub fn notification_ptr_set_ntfnQueue_head(ptr: &mut notification_t, v64: usize) {
-    (ptr).words[1] &= !0x7fffffffffusize;
-    (ptr).words[1] |= (v64 >> 0) & 0x7fffffffffusize;
-}
-
-#[inline]
-pub fn notification_ptr_get_ntfnQueue_tail(notification_ptr: &notification_t) -> usize {
-    let ret: usize;
-    ret = (notification_ptr).words[0] & 0xfffffffffe000000usize;
-    ret | 0xffffff8000000000
-}
-
-#[inline]
-pub fn notification_ptr_set_ntfnQueue_tail(ptr: &mut notification_t, v64: usize) {
-    (ptr).words[0] &= !0xfffffffffe000000usize;
-    (ptr).words[0] |= (v64 >> 0) & 0xfffffffffe000000usize;
-}
-
-#[inline]
-pub fn notification_ptr_get_state(notification_ptr: &notification_t) -> usize {
-    let ret: usize;
-    ret = (notification_ptr).words[0] & 0x3usize;
+pub fn notification_ptr_get_ntfnBoundTCB(notification_ptr: *const notification_t) -> usize {
+    let mut ret: usize;
+    unsafe {
+        ret = (*notification_ptr).words[3] & 0x7fffffffffusize;
+    }
+    if (ret & (1usize << (38))) != 0 {
+        ret |= 0xffffff8000000000;
+    }
     ret
 }
 
 #[inline]
-pub fn notification_ptr_set_state(ptr: &mut notification_t, v64: usize) {
-    (ptr).words[0] &= !0x3usize;
-    (ptr).words[0] |= (v64 >> 0) & 0x3usize;
+pub fn notification_ptr_set_ntfnBoundTCB(ptr: *mut notification_t, v64: usize) {
+    unsafe {
+        (*ptr).words[3] &= !0x7fffffffffusize;
+        (*ptr).words[3] |= (v64 >> 0) & 0x7fffffffffusize;
+    }
+}
+
+#[inline]
+pub fn notification_ptr_get_ntfnMsgIdentifier(notification_ptr: *const notification_t) -> usize {
+    let ret: usize;
+    unsafe {
+        ret = (*notification_ptr).words[2] & 0xffffffffffffffffusize;
+    }
+    ret
+}
+
+#[inline]
+pub fn notification_ptr_set_ntfnMsgIdentifier(ptr: *mut notification_t, v64: usize) {
+    unsafe {
+        (*ptr).words[2] &= !0xffffffffffffffffusize;
+        (*ptr).words[2] |= (v64 >> 0) & 0xffffffffffffffffusize;
+    }
+}
+
+#[inline]
+pub fn notification_ptr_get_ntfnQueue_head(notification_ptr: *const notification_t) -> usize {
+    let mut ret: usize;
+    unsafe {
+        ret = (*notification_ptr).words[1] & 0x7fffffffffusize;
+    }
+    if (ret & (1usize << (38))) != 0 {
+        ret |= 0xffffff8000000000;
+    }
+    ret
+}
+
+#[inline]
+pub fn notification_ptr_set_ntfnQueue_head(ptr: *mut notification_t, v64: usize) {
+    unsafe {
+        (*ptr).words[1] &= !0x7fffffffffusize;
+        (*ptr).words[1] |= (v64 >> 0) & 0x7fffffffff;
+    }
+}
+
+#[inline]
+pub fn notification_ptr_get_ntfnQueue_tail(notification_ptr: *const notification_t) -> usize {
+    let mut ret: usize;
+    unsafe {
+        ret = ((*notification_ptr).words[0] & 0xfffffffffe000000usize) >> 25;
+    }
+    if (ret & (1usize << (38))) != 0 {
+        ret |= 0xffffff8000000000;
+    }
+    ret
+}
+
+#[inline]
+pub fn notification_ptr_set_ntfnQueue_tail(ptr: *mut notification_t, v64: usize) {
+    unsafe {
+        (*ptr).words[0] &= !0xfffffffffe000000usize;
+        (*ptr).words[0] |= (v64 << 25) & 0xfffffffffe000000usize;
+    }
+}
+
+#[inline]
+pub fn notification_ptr_get_state(notification_ptr: *const notification_t) -> usize {
+    let ret: usize;
+    unsafe {
+        ret = (*notification_ptr).words[0] & 0x3usize;
+    }
+    ret
+}
+
+#[inline]
+pub fn notification_ptr_set_state(ptr: *mut notification_t, v64: usize) {
+    unsafe {
+        (*ptr).words[0] &= !0x3usize;
+        (*ptr).words[0] |= (v64 >> 0) & 0x3usize;
+    }
 }
 
 pub fn cap_notification_cap_new(
@@ -1280,32 +1284,35 @@ pub fn cap_notification_cap_set_capNtfnBadge(cap: &mut cap_t, v64: usize) {
 
 #[inline]
 pub fn cap_notification_cap_get_capNtfnCanReceive(cap: &cap_t) -> usize {
-    let ret = (cap).words[0] & 0x400000000000000usize;
+    let ret = ((cap).words[0] & 0x400000000000000usize)>>58;
     ret
 }
 
 #[inline]
 pub fn cap_notification_cap_set_capNtfnCanReceive(cap: &mut cap_t, v64: usize) {
     (cap).words[0] &= !0x400000000000000usize;
-    (cap).words[0] |= v64 & 0x400000000000000usize;
+    (cap).words[0] |= (v64<<58) & 0x400000000000000usize;
 }
 
 #[inline]
 pub fn cap_notification_cap_get_capNtfnCanSend(cap: &cap_t) -> usize {
-    let ret = (cap).words[0] & 0x200000000000000usize;
+    let ret = ((cap).words[0] & 0x200000000000000usize)>>57;
     ret
 }
 
 #[inline]
 pub fn cap_notification_cap_set_capNtfnCanSend(cap: &mut cap_t, v64: usize) {
     (cap).words[0] &= !0x200000000000000usize;
-    (cap).words[0] |= v64 & 0x200000000000000usize;
+    (cap).words[0] |= (v64<<57) & 0x200000000000000usize;
 }
 
 #[inline]
 pub fn cap_notification_cap_get_capNtfnPtr(cap: &cap_t) -> usize {
-    let ret = (cap).words[0] & 0x7fffffffffusize;
-    ret | 0xffffff8000000000
+    let mut ret = (cap).words[0] & 0x7fffffffffusize;
+    if (ret & (1usize << (38))) != 0 {
+        ret |= 0xffffff8000000000;
+    }
+    ret
 }
 
 #[inline]
@@ -1387,6 +1394,11 @@ pub fn cap_irq_handler_cap_new(capIRQ: usize) -> cap_t {
 pub fn cap_irq_handler_cap_get_capIRQ(cap: &cap_t) -> usize {
     let ret = (cap.words[1] & 0xfffusize) >> 0;
     ret
+}
+
+#[inline]
+pub fn lookup_fault_get_lufType(lookup_fault: &lookup_fault_t) -> usize {
+    (lookup_fault.words[0] >> 0) & 0x3usize
 }
 
 #[inline]
@@ -1522,7 +1534,8 @@ pub fn seL4_Fault_UnknownSyscall_new(syscallNumber: usize) -> seL4_Fault_t {
 
 #[inline]
 pub fn seL4_Fault_UnknownSyscall_get_syscallNumber(seL4_Fault: &seL4_Fault_t) -> usize {
-    (seL4_Fault.words[0] & 0x8000000000000000usize) >> 63
+    let ret = (seL4_Fault.words[1] & 0xffffffffffffffffusize) >> 0;
+    ret
 }
 
 #[inline]
