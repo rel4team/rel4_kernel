@@ -661,7 +661,6 @@ pub fn decodeCNodeInvocation(
         println!("CNode operation: Target slot invalid.");
         return lu_ret.status;
     }
-    // println!("invLabel :{}", invLabel);
     if invLabel >= CNodeCopy && invLabel <= CNodeMutate {
         unsafe {
             if length < 4 || current_extra_caps.excaprefs[0] as usize == 0 {

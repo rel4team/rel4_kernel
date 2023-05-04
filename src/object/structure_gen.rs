@@ -199,46 +199,6 @@ pub fn cap_untyped_cap_new(
     capPtr: usize,
 ) -> cap_t {
     let mut cap = cap_t::default();
-    assert!(
-        (capFreeIndex & !0x7fffffffffusize)
-            == (if true && (capFreeIndex & (1usize << 38)) != 0 {
-                0x0
-            } else {
-                0
-            })
-    );
-    assert!(
-        (capIsDevice & !0x1usize)
-            == (if true && (capIsDevice & (1usize << 38)) != 0 {
-                0x0
-            } else {
-                0
-            })
-    );
-    assert!(
-        (capBlockSize & !0x3fusize)
-            == (if true && (capBlockSize & (1usize << 38)) != 0 {
-                0x0
-            } else {
-                0
-            })
-    );
-    assert!(
-        (cap_tag_t::cap_untyped_cap as usize & !0x1fusize)
-            == (if true && (cap_tag_t::cap_untyped_cap as usize & (1usize << 38)) != 0 {
-                0x0
-            } else {
-                0
-            })
-    );
-    assert!(
-        (capPtr & !0x7fffffffffusize)
-            == (if true && (capPtr & (1usize << 38)) != 0 {
-                0xffffff8000000000
-            } else {
-                0
-            })
-    );
 
     cap.words[0] = 0
         | (cap_tag_t::cap_untyped_cap as usize & 0x1fusize) << 59
@@ -767,7 +727,7 @@ pub fn cap_page_table_cap_new(
     let mut cap = cap_t::default();
 
     cap.words[0] = 0
-        | (cap_page_table_cap as usize & 0x1fusize) << 59
+        | (cap_page_table_cap & 0x1fusize) << 59
         | (capPTIsMapped & 0x1usize) << 39
         | (capPTMappedAddress & 0x7fffffffffusize) >> 0;
     cap.words[1] =

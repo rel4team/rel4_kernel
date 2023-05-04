@@ -25,6 +25,8 @@ pub const PT_OFFSET_BITS: usize = 12;
 pub const CONFIG_PT_LEVELS: usize = 3;
 pub const CONFIG_TIME_SLICE: usize = 5;
 pub const seL4_PageBits: usize = 12;
+pub const seL4_LargePageBits: usize = 21;
+pub const seL4_HugePageBits: usize = 30;
 pub const PAGE_BITS: usize = seL4_PageBits;
 pub const PPTR_TOP: usize = 0xFFFFFFFF80000000;
 pub const physBase: usize = 0x80000000;
@@ -301,3 +303,12 @@ pub const NtfnState_Active: usize = 2;
 pub const seL4_MinPrio: usize = 0;
 
 pub const CONFIG_MAX_NUM_WORK_UNITS_PER_PREEMPTION: usize = 100;
+pub const CONFIG_RETYPE_FAN_OUT_LIMIT: usize = 256;
+
+pub const seL4_UntypedObject: usize = 0;
+pub const seL4_TCBObject: usize = 1;
+pub const seL4_EndpointObject: usize = 2;
+pub const seL4_NotificationObject: usize = 3;
+pub const seL4_CapTableObject: usize = 4;
+pub const seL4_NonArchObjectTypeCount: usize = 5;
+pub const seL4_ObjectTypeCount: usize = 9;

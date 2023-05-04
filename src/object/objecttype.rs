@@ -1,10 +1,20 @@
+use core::intrinsics::unlikely;
+
 use crate::{
     config::{
-        seL4_IllegalOperation, seL4_SlotBits, tcbCNodeEntries, tcbCTable, wordBits, IRQInactive,
+        asidInvalid, seL4_CapTableObject, seL4_EndpointObject, seL4_HugePageBits,
+        seL4_IllegalOperation, seL4_InvalidCapability, seL4_LargePageBits,
+        seL4_NonArchObjectTypeCount, seL4_NotificationObject, seL4_PageBits, seL4_SlotBits,
+        seL4_TCBBits, seL4_TCBObject, seL4_UntypedObject, tcbCNodeEntries, tcbCTable, wordBits,
+        IRQInactive, RISCV_4K_Page, RISCV_Giga_Page, RISCV_Mega_Page, ThreadStateRestart,
+        VMReadWrite, CONFIG_TIME_SLICE, TCB_OFFSET,
     },
     kernel::{
         boot::current_syscall_error,
-        thread::{getCSpace, suspend},
+        thread::{
+            decodeDomainInvocation, doReplyTransfer, getCSpace, ksCurDomain, ksCurThread,
+            setThreadState, suspend, Arch_initContext,
+        },
         transfermsg::{
             seL4_CNode_capData_get_guard, seL4_CNode_capData_get_guardSize,
             seL4_CapRights_get_capAllowGrant, seL4_CapRights_get_capAllowGrantReply,
@@ -25,35 +35,41 @@ use crate::{
 };
 
 use super::{
-    cap::ensureNoChildren,
-    endpoint::cancelAllIPC,
+    cap::{decodeCNodeInvocation, ensureNoChildren, insertNewCap},
+    endpoint::{cancelAllIPC, performInvocation_Endpoint},
     interrupt::{deletingIRQHandler, setIRQState},
-    notification::{cancelAllSignals, unbindMaybeNotification, unbindNotification},
+    notification::{
+        cancelAllSignals, performInvocation_Notification, unbindMaybeNotification,
+        unbindNotification,
+    },
     structure_gen::{
         cap_asid_pool_cap_get_capASIDBase, cap_asid_pool_cap_get_capASIDPool,
-        cap_cnode_cap_get_capCNodePtr, cap_cnode_cap_get_capCNodeRadix,
+        cap_cnode_cap_get_capCNodePtr, cap_cnode_cap_get_capCNodeRadix, cap_cnode_cap_new,
         cap_cnode_cap_set_capCNodeGuard, cap_cnode_cap_set_capCNodeGuardSize,
         cap_endpoint_cap_get_capCanGrant, cap_endpoint_cap_get_capCanGrantReply,
         cap_endpoint_cap_get_capCanReceive, cap_endpoint_cap_get_capCanSend,
-        cap_endpoint_cap_get_capEPBadge, cap_endpoint_cap_get_capEPPtr,
+        cap_endpoint_cap_get_capEPBadge, cap_endpoint_cap_get_capEPPtr, cap_endpoint_cap_new,
         cap_endpoint_cap_set_capCanGrant, cap_endpoint_cap_set_capCanGrantReply,
         cap_endpoint_cap_set_capCanReceive, cap_endpoint_cap_set_capCanSend,
         cap_endpoint_cap_set_capEPBadge, cap_frame_cap_get_capFBasePtr,
         cap_frame_cap_get_capFIsDevice, cap_frame_cap_get_capFMappedASID,
         cap_frame_cap_get_capFMappedAddress, cap_frame_cap_get_capFSize,
-        cap_frame_cap_get_capFVMRights, cap_frame_cap_set_capFMappedASID,
+        cap_frame_cap_get_capFVMRights, cap_frame_cap_new, cap_frame_cap_set_capFMappedASID,
         cap_frame_cap_set_capFMappedAddress, cap_frame_cap_set_capFVMRights,
         cap_irq_handler_cap_get_capIRQ, cap_notification_cap_get_capNtfnBadge,
         cap_notification_cap_get_capNtfnCanReceive, cap_notification_cap_get_capNtfnCanSend,
-        cap_notification_cap_get_capNtfnPtr, cap_notification_cap_set_capNtfnBadge,
-        cap_notification_cap_set_capNtfnCanReceive, cap_notification_cap_set_capNtfnCanSend,
-        cap_null_cap_new, cap_page_table_cap_get_capPTBasePtr,
-        cap_page_table_cap_get_capPTIsMapped, cap_page_table_cap_get_capPTMappedASID,
-        cap_page_table_cap_get_capPTMappedAddress, cap_reply_cap_get_capReplyCanGrant,
-        cap_reply_cap_set_capReplyCanGrant, cap_thread_cap_get_capTCBPtr,
-        cap_untyped_cap_get_capBlockSize, cap_untyped_cap_get_capPtr,
+        cap_notification_cap_get_capNtfnPtr, cap_notification_cap_new,
+        cap_notification_cap_set_capNtfnBadge, cap_notification_cap_set_capNtfnCanReceive,
+        cap_notification_cap_set_capNtfnCanSend, cap_null_cap_new,
+        cap_page_table_cap_get_capPTBasePtr, cap_page_table_cap_get_capPTIsMapped,
+        cap_page_table_cap_get_capPTMappedASID, cap_page_table_cap_get_capPTMappedAddress,
+        cap_page_table_cap_new, cap_reply_cap_get_capReplyCanGrant,
+        cap_reply_cap_get_capReplyMaster, cap_reply_cap_get_capTCBPtr,
+        cap_reply_cap_set_capReplyCanGrant, cap_thread_cap_get_capTCBPtr, cap_thread_cap_new,
+        cap_untyped_cap_get_capBlockSize, cap_untyped_cap_get_capPtr, cap_untyped_cap_new,
         cap_zombie_cap_get_capZombiePtr, ZombieType_ZombieTCB, Zombie_new,
     },
+    tcb::decodeTCBInvocation,
 };
 
 pub const seL4_EndpointBits: usize = 4;
@@ -78,14 +94,10 @@ pub const cap_page_table_cap: usize = 3;
 pub const cap_asid_control_cap: usize = 11;
 pub const cap_asid_pool_cap: usize = 13;
 
-pub const seL4_UntypedObject: usize = 1;
-pub const seL4_TCBObject: usize = 2;
-pub const seL4_EndpointObject: usize = 3;
-pub const seL4_CapTableObject: usize = 5;
+pub const seL4_RISCV_Giga_Page: usize = 5;
 pub const seL4_RISCV_4K_Page: usize = 6;
 pub const seL4_RISCV_Mega_Page: usize = 7;
 pub const seL4_RISCV_PageTableObject: usize = 8;
-const asidInvalid: usize = 0;
 
 #[inline]
 pub fn cap_get_capType(cap: &cap_t) -> usize {
@@ -397,6 +409,7 @@ pub fn Arch_finaliseCap(cap: &cap_t, _final: bool) -> finaliseCap_ret {
 #[link(name = "kernel_all.c")]
 extern "C" {
     fn tcbDebugRemove(tcb: *mut tcb_t);
+    fn tcbDebugAppend(tcb: *mut tcb_t);
 }
 #[no_mangle]
 pub fn finaliseCap(cap: &cap_t, _final: bool, _exposed: bool) -> finaliseCap_ret {
@@ -491,7 +504,6 @@ pub fn finaliseCap(cap: &cap_t, _final: bool, _exposed: bool) -> finaliseCap_ret
     fc_ret.cleanupInfo = cap_null_cap_new();
     return fc_ret;
 }
-
 
 pub fn updateCapData(preserve: bool, newData: usize, _cap: &cap_t) -> cap_t {
     let cap = &mut (_cap.clone());
@@ -614,6 +626,216 @@ pub fn hasCancelSendRight(cap: &cap_t) -> bool {
                 && cap_endpoint_cap_get_capCanGrantReply(cap) != 0
                 && cap_endpoint_cap_get_capCanGrant(cap) != 0
         }
+        _ => false,
+    }
+}
+
+#[no_mangle]
+pub fn createObject(
+    t: usize,
+    regionBase: *mut usize,
+    userSize: usize,
+    deviceMemory: bool,
+) -> cap_t {
+    match t {
+        seL4_TCBObject => {
+            let tcb = unsafe { (regionBase as usize + TCB_OFFSET) as *mut tcb_t };
+            unsafe {
+                (*tcb).tcbArch = Arch_initContext((*tcb).tcbArch);
+                (*tcb).tcbTimeSlice = CONFIG_TIME_SLICE;
+                (*tcb).domain = ksCurDomain;
+                tcbDebugAppend(tcb);
+            }
+            return cap_thread_cap_new(tcb as usize);
+        }
+        seL4_EndpointObject => cap_endpoint_cap_new(0, 1, 1, 1, 1, regionBase as usize),
+        seL4_NotificationObject => cap_notification_cap_new(0, 1, 1, regionBase as usize),
+        seL4_CapTableObject => cap_cnode_cap_new(userSize, 0, 0, regionBase as usize),
+        seL4_UntypedObject => {
+            cap_untyped_cap_new(0, deviceMemory as usize, userSize, regionBase as usize)
+        }
+        seL4_RISCV_4K_Page => cap_frame_cap_new(
+            asidInvalid,
+            regionBase as usize,
+            RISCV_4K_Page,
+            wordFromVMRights(VMReadWrite),
+            deviceMemory as usize,
+            0,
+        ),
+        seL4_RISCV_Giga_Page => cap_frame_cap_new(
+            asidInvalid,
+            regionBase as usize,
+            RISCV_Giga_Page,
+            wordFromVMRights(VMReadWrite),
+            deviceMemory as usize,
+            0,
+        ),
+        seL4_RISCV_Mega_Page => cap_frame_cap_new(
+            asidInvalid,
+            regionBase as usize,
+            RISCV_Mega_Page,
+            wordFromVMRights(VMReadWrite),
+            deviceMemory as usize,
+            0,
+        ),
+        seL4_RISCV_PageTableObject => {
+            cap_page_table_cap_new(asidInvalid, regionBase as usize, 0, 0)
+        }
+        _ => panic!("Invalid object type :{}", t),
+    }
+}
+
+pub fn getObjectSize(t: usize, userObjSize: usize) -> usize {
+    match t {
+        seL4_TCBObject => seL4_TCBBits,
+        seL4_EndpointObject => seL4_EndpointBits,
+        seL4_NotificationObject => seL4_NotificationBits,
+        seL4_CapTableObject => seL4_SlotBits + userObjSize,
+        seL4_UntypedObject => userObjSize,
+        seL4_RISCV_4K_Page | seL4_RISCV_PageTableObject => seL4_PageBits,
+        seL4_RISCV_Mega_Page => seL4_LargePageBits,
+        seL4_RISCV_Giga_Page => seL4_HugePageBits,
+        _ => 0,
+    }
+}
+
+#[no_mangle]
+pub fn createNewObjects(
+    t: usize,
+    parent: *mut cte_t,
+    destCNode: *mut cte_t,
+    destOffset: usize,
+    destLength: usize,
+    regionBase: *mut usize,
+    userSize: usize,
+    deviceMemory: bool,
+) {
+    let objectSize = getObjectSize(t, userSize);
+    let totalObjectSize = destLength << objectSize;
+    let mut nextFreeArea = regionBase;
+    for i in 0..destLength {
+        let cap = createObject(
+            t,
+            (regionBase as usize + (i << objectSize)) as *mut usize,
+            userSize,
+            deviceMemory,
+        );
+        unsafe {
+            insertNewCap(parent, destCNode.add(destOffset + i), &cap);
+        }
+    }
+}
+
+// #[no_mangle]
+// pub fn decodeInvocation(
+//     invLabel: usize,
+//     length: usize,
+//     capIndex: usize,
+//     slot: *mut cte_t,
+//     cap: &cap_t,
+//     block: bool,
+//     call: bool,
+//     buffer: *mut usize,
+// ) -> exception_t {
+//     match cap_get_capType(cap) {
+//         cap_null_cap => {
+//             println!("Attempted to invoke a null cap {:#x}.", capIndex);
+//             unsafe {
+//                 current_syscall_error._type = seL4_InvalidCapability;
+//                 current_syscall_error.invalidCapNumber = 0;
+//                 return exception_t::EXCEPTION_SYSCALL_ERROR;
+//             }
+//         }
+//         cap_zombie_cap => {
+//             println!("Attempted to invoke a zombie cap {:#x}.", capIndex);
+//             unsafe {
+//                 current_syscall_error._type = seL4_InvalidCapability;
+//                 current_syscall_error.invalidCapNumber = 0;
+//                 return exception_t::EXCEPTION_SYSCALL_ERROR;
+//             }
+//         }
+//         cap_endpoint_cap => {
+//             if unlikely(cap_endpoint_cap_get_capCanSend(cap) == 0) {
+//                 println!("Attempted to invoke a read-only endpoint cap {}.", capIndex);
+//                 unsafe {
+//                     current_syscall_error._type = seL4_InvalidCapability;
+//                     current_syscall_error.invalidCapNumber = 0;
+//                     return exception_t::EXCEPTION_SYSCALL_ERROR;
+//                 }
+//             }
+//             unsafe {
+//                 setThreadState(ksCurThread, ThreadStateRestart);
+//             }
+//             return performInvocation_Endpoint(
+//                 cap_endpoint_cap_get_capEPPtr(cap) as *mut endpoint_t,
+//                 cap_endpoint_cap_get_capEPBadge(cap),
+//                 cap_endpoint_cap_get_capCanGrant(cap),
+//                 cap_endpoint_cap_get_capCanGrantReply(cap),
+//                 block,
+//                 call,
+//             );
+//         }
+//         cap_notification_cap => {
+//             if unlikely(cap_notification_cap_get_capNtfnCanSend(cap) == 0) {
+//                 println!(
+//                     "Attempted to invoke a read-only notification cap {}.",
+//                     capIndex
+//                 );
+//                 unsafe {
+//                     current_syscall_error._type = seL4_InvalidCapability;
+//                     current_syscall_error.invalidCapNumber = 0;
+//                     return exception_t::EXCEPTION_SYSCALL_ERROR;
+//                 }
+//             }
+//             unsafe {
+//                 setThreadState(ksCurThread, ThreadStateRestart);
+//             }
+//             return performInvocation_Notification(
+//                 cap_notification_cap_get_capNtfnPtr(cap) as *mut notification_t,
+//                 cap_notification_cap_get_capNtfnBadge(cap),
+//             );
+//         }
+//         cap_reply_cap => {
+//             if unlikely(cap_reply_cap_get_capReplyMaster(cap) != 0) {
+//                 println!("Attempted to invoke an invalid reply cap {}.", capIndex);
+//                 unsafe {
+//                     current_syscall_error._type = seL4_InvalidCapability;
+//                     current_syscall_error.invalidCapNumber = 0;
+//                     return exception_t::EXCEPTION_SYSCALL_ERROR;
+//                 }
+//             }
+//             unsafe {
+//                 setThreadState(ksCurThread, ThreadStateRestart);
+//             }
+//             return performInvocation_Reply(
+//                 cap_reply_cap_get_capTCBPtr(cap) as *mut tcb_t,
+//                 slot,
+//                 cap_reply_cap_get_capReplyCanGrant(cap) != 0,
+//             );
+//         }
+//         cap_thread_cap=>decodeTCBInvocation(invLabel, length, cap, slot, call, buffer),
+//         cap_domain_cap=>decodeDomainInvocation(invLabel, length, buffer),
+//         cap_cnode_cap=>decodeCNodeInvocation(invLabel, length, cap, buffer),
+
+//     }
+// }
+
+#[no_mangle]
+pub fn performInvocation_Reply(
+    thread: *mut tcb_t,
+    slot: *mut cte_t,
+    canGrant: bool,
+) -> exception_t {
+    unsafe {
+        doReplyTransfer(ksCurThread, thread, slot, canGrant);
+    }
+    exception_t::EXCEPTION_NONE
+}
+
+#[no_mangle]
+pub fn Arch_isFrameType(_type: usize) -> bool {
+    match _type {
+        seL4_RISCV_4K_Page | seL4_RISCV_Giga_Page | seL4_RISCV_Mega_Page => true,
         _ => false,
     }
 }
