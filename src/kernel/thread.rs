@@ -5,13 +5,14 @@ use crate::{
         seL4_InvalidArgument, seL4_InvalidCapability, seL4_MsgMaxExtraCaps, seL4_MsgMaxLength,
         seL4_NotEnoughMemory, seL4_RangeError, seL4_RevokeFirst, seL4_TCBBits,
         seL4_TruncatedMessage, DomainSetSet, SchedulerAction_ChooseNewThread,
-        SchedulerAction_ResumeCurrentThread, ThreadStateBlockedOnReply, ThreadStateIdleThreadState,
-        ThreadStateInactive, ThreadStateRestart, ThreadStateRunning, CONFIG_KERNEL_STACK_BITS,
-        CONFIG_MAX_NUM_NODES, CONFIG_NUM_DOMAINS, L2_BITMAP_SIZE, NUM_READY_QUEUES, SSTATUS_SPIE,
-        SSTATUS_SPP,
+        SchedulerAction_ResumeCurrentThread, ThreadStateBlockedOnNotification,
+        ThreadStateBlockedOnReceive, ThreadStateBlockedOnReply, ThreadStateBlockedOnSend,
+        ThreadStateIdleThreadState, ThreadStateInactive, ThreadStateRestart, ThreadStateRunning,
+        CONFIG_KERNEL_STACK_BITS, CONFIG_MAX_NUM_NODES, CONFIG_NUM_DOMAINS, L2_BITMAP_SIZE,
+        NUM_READY_QUEUES, SSTATUS_SPIE, SSTATUS_SPP,
     },
     object::{
-        cap::cteInsert,
+        cap::{cteDeleteOne, cteInsert},
         cnode::setupReplyMaster,
         endpoint::cancelIPC,
         objecttype::{cap_endpoint_cap, cap_get_capType, cap_null_cap, cap_thread_cap, deriveCap},
@@ -45,7 +46,7 @@ use super::{
         ksWorkUnitsCompleted,
     },
     cspace::{lookupCap, rust_lookupTargetSlot},
-    fault::setMRs_lookup_failure,
+    fault::{handleFaultReply, setMRs_fault, setMRs_lookup_failure},
     transfermsg::{
         capTransferFromWords, messageInfoFromWord, seL4_MessageInfo_new,
         seL4_MessageInfo_ptr_get_capsUnwrapped, seL4_MessageInfo_ptr_get_length,
@@ -218,11 +219,10 @@ pub fn Arch_configureIdleThread(tcb: *const tcb_t) {
     }
 }
 
+#[no_mangle]
 pub fn setThreadState(tptr: *mut tcb_t, ts: usize) {
     unsafe {
         thread_state_set_tsType(&mut (*tptr).tcbState, ts);
-        // println!("type:{} ,ts :{}", thread_state_get_tsType(&(*tptr).tcbState),ts);
-        // testtcb();
         scheduleTCB(tptr);
     }
 }
@@ -255,10 +255,8 @@ pub fn decodeDomainInvocation(invLabel: usize, length: usize, buffer: *mut usize
     unsafe {
         if current_extra_caps.excaprefs[0] as usize == 0 {
             println!("Domain Configure: Truncated message.");
-            unsafe {
-                current_syscall_error._type = seL4_TruncatedMessage;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
+            current_syscall_error._type = seL4_TruncatedMessage;
+            return exception_t::EXCEPTION_SYSCALL_ERROR;
         }
     }
     let tcap = unsafe { &(*current_extra_caps.excaprefs[0]).cap };
@@ -375,25 +373,11 @@ pub fn suspend(target: *mut tcb_t) {
 pub fn restart(target: *mut tcb_t) {
     if isStopped(target) {
         cancelIPC(target);
-        // FIXME::implemented setupReplyMaster
         setupReplyMaster(target);
         setThreadState(target, ThreadStateRestart);
-        unsafe {
-            tcbSchedEnqueue(target);
-        }
+        tcbSchedEnqueue(target);
         possibleSwitchTo(target);
     }
-}
-
-#[link(name = "kernel_all.c")]
-extern "C" {
-    fn cteDeleteOne(slot: *mut cte_t);
-    fn handleFaultReply(receiver: *mut tcb_t, sender: *mut tcb_t) -> bool;
-    fn setMRs_fault(
-        sender: *mut tcb_t,
-        receiver: *mut tcb_t,
-        receivedIPCBuffer: *mut usize,
-    ) -> usize;
 }
 
 #[no_mangle]
@@ -404,16 +388,12 @@ pub fn doReplyTransfer(sender: *mut tcb_t, receiver: *mut tcb_t, slot: *mut cte_
     let fault_type = unsafe { seL4_Fault_get_seL4_FaultType(&(*receiver).tcbFault) };
     if likely(fault_type == seL4_Fault_NullFault) {
         doIPCTransfer(sender, 0 as *mut endpoint_t, 0, grant, receiver);
-        unsafe {
-            cteDeleteOne(slot);
-        }
+        cteDeleteOne(slot);
         setThreadState(receiver, ThreadStateRunning);
         possibleSwitchTo(receiver);
     } else {
-        unsafe {
-            cteDeleteOne(slot);
-        }
-        let restart = unsafe { handleFaultReply(receiver, sender) };
+        cteDeleteOne(slot);
+        let restart = handleFaultReply(receiver, sender);
 
         if restart {
             setThreadState(receiver, ThreadStateRestart);
@@ -431,7 +411,7 @@ pub fn doFaultTransfer(
     receiver: *mut tcb_t,
     receivedIPCBuffer: *mut usize,
 ) {
-    let sent = unsafe { setMRs_fault(sender, receiver, receivedIPCBuffer) };
+    let sent = setMRs_fault(sender, receiver, receivedIPCBuffer);
     let msgInfo = unsafe {
         seL4_MessageInfo_new(
             seL4_Fault_get_seL4_FaultType(&(*sender).tcbFault),
@@ -572,11 +552,9 @@ pub fn switchToIdleThread() {
 }
 
 #[no_mangle]
-pub fn setDomain(tptr: *mut tcb_t, dom: usize) {
+pub fn setDomain(tptr: *mut tcb_t, _dom: usize) {
     if isRunnable(tptr) {
-        unsafe {
-            tcbSchedEnqueue(tptr);
-        }
+        tcbSchedEnqueue(tptr);
     }
     unsafe {
         if tptr == ksCurThread {

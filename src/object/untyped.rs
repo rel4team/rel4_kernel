@@ -133,7 +133,7 @@ pub fn decodeUntypedInvocation(
     length: usize,
     slot: *mut cte_t,
     cap: &cap_t,
-    call: bool,
+    _call: bool,
     buffer: *mut usize,
 ) -> exception_t {
     if invLabel != UntypedRetype {
@@ -157,7 +157,7 @@ pub fn decodeUntypedInvocation(
     let nodeOffset = getSyscallArg(4, buffer);
     let nodeWindow = getSyscallArg(5, buffer);
 
-    let rootSlot = unsafe { current_extra_caps.excaprefs[0] };
+    let _rootSlot = unsafe { current_extra_caps.excaprefs[0] };
 
     if newType >= seL4_ObjectTypeCount {
         println!("Untyped Retype: Invalid object type.");
@@ -201,7 +201,7 @@ pub fn decodeUntypedInvocation(
     if nodeDepth == 0 {
         nodeCap = unsafe { (*current_extra_caps.excaprefs[0]).cap.clone() };
     } else {
-        let mut rootCap = unsafe { (*current_extra_caps.excaprefs[0]).cap.clone() };
+        let rootCap = unsafe { (*current_extra_caps.excaprefs[0]).cap.clone() };
         let lu_ret = rust_lookupTargetSlot(&rootCap, nodeIndex, nodeDepth);
         if lu_ret.status != exception_t::EXCEPTION_NONE {
             println!("Untyped Retype: Invalid destination address.");

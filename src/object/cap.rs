@@ -1,10 +1,8 @@
-use core::mem::forget;
-
 use crate::{
     config::{
-        seL4_DeleteFirst, seL4_FailedLookup, seL4_IllegalOperation, seL4_MinUntypedBits,
-        seL4_RevokeFirst, seL4_TruncatedMessage, tcbCaller, CNodeCancelBadgedSends, CNodeCopy,
-        CNodeDelete, CNodeMint, CNodeMove, CNodeMutate, CNodeRevoke, CNodeRotate, CNodeSaveCaller,
+        seL4_DeleteFirst, seL4_FailedLookup, seL4_IllegalOperation, seL4_RevokeFirst,
+        seL4_TruncatedMessage, tcbCaller, CNodeCancelBadgedSends, CNodeCopy, CNodeDelete,
+        CNodeMint, CNodeMove, CNodeMutate, CNodeRevoke, CNodeRotate, CNodeSaveCaller,
         ThreadStateRestart,
     },
     kernel::{
@@ -22,9 +20,7 @@ use crate::{
         },
     },
     println,
-    structures::{
-        cap_t, cte_t, endpoint_t, exception_t, finaliseCap_ret, finaliseSlot_ret, mdb_node_t, tcb_t,
-    },
+    structures::{cap_t, cte_t, endpoint_t, exception_t, finaliseCap_ret, finaliseSlot_ret, tcb_t},
     syscall::getSyscallArg,
     utils::MAX_FREE_INDEX,
 };
@@ -55,9 +51,7 @@ pub fn ensureNoChildren(slot: *mut cte_t) -> exception_t {
         if mdb_node_get_mdbNext(&(*slot).cteMDBNode) != 0 {
             let next = mdb_node_get_mdbNext(&(*slot).cteMDBNode) as *mut cte_t;
             if isMDBParentOf(slot, next) {
-                unsafe {
-                    current_syscall_error._type = seL4_RevokeFirst;
-                }
+                current_syscall_error._type = seL4_RevokeFirst;
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
             }
         }
@@ -176,12 +170,6 @@ pub fn cteMove(_newCap: &cap_t, srcSlot: *mut cte_t, destSlot: *mut cte_t) {
             );
         }
     }
-}
-
-#[link(name = "kernel_all.c")]
-extern "C" {
-    // fn postCapDeletion(cap:&cap_t);
-    // fn cteSwap(cap1: &cap_t, slot1: *mut cte_t, cap2: &cap_t, slot2: *mut cte_t);
 }
 
 #[no_mangle]
@@ -485,9 +473,7 @@ pub fn cteDeleteOne(slot: *mut cte_t) {
 pub fn ensureEmptySlot(slot: *mut cte_t) -> exception_t {
     unsafe {
         if cap_get_capType(&(*slot).cap) != cap_null_cap {
-            unsafe {
-                current_syscall_error._type = seL4_DeleteFirst;
-            }
+            current_syscall_error._type = seL4_DeleteFirst;
             return exception_t::EXCEPTION_SYSCALL_ERROR;
         }
     }
@@ -530,7 +516,9 @@ pub fn invokeCNodeSaveCaller(destSlot: *mut cte_t) -> exception_t {
     let srcSlot = unsafe { getCSpace(ksCurThread as usize, tcbCaller) };
     let cap = unsafe { &(*srcSlot).cap };
     match cap_get_capType(cap) {
-        cap_null_cap => println!("CNode SaveCaller: Reply cap not present."),
+        cap_null_cap => {
+            println!("CNode SaveCaller: Reply cap not present.");
+        }
         cap_reply_cap => {
             if cap_reply_cap_get_capReplyMaster(cap) == 0 {
                 cteMove(cap, srcSlot, destSlot);
@@ -591,47 +579,6 @@ pub fn invokeCNodeDelete(destSlot: *mut cte_t) -> exception_t {
 }
 
 #[no_mangle]
-pub fn process2(
-    buffer: *mut usize,
-    srcSlot: *mut cte_t,
-    destSlot: *mut cte_t,
-    srcCap2: &cap_t,
-    cap1: &cap_t,
-) -> exception_t {
-    let cap_rights = rightsFromWord(getSyscallArg(4, buffer));
-    let capData = getSyscallArg(5, buffer);
-    unsafe {
-        let srcCap1 = maskCapRights(cap_rights, &(*srcSlot).cap);
-        let srcCap = &srcCap1;
-        let cap1 = &updateCapData(false, capData, &srcCap);
-        let dc_ret = deriveCap(srcSlot, cap1);
-        if dc_ret.status != exception_t::EXCEPTION_NONE {
-            println!("Error deriving cap for CNode Mint operation.");
-            return dc_ret.status;
-        }
-        let newCap1 = dc_ret.cap;
-        let newCap = &newCap1;
-        let isMove = false;
-        if cap_get_capType(newCap) == cap_null_cap {
-            println!("CNode Copy/Mint/Move/Mutate: Mutated cap would be invalid.");
-            unsafe {
-                current_syscall_error._type = seL4_IllegalOperation;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
-        }
-
-        unsafe {
-            setThreadState(ksCurThread as *mut tcb_t, ThreadStateRestart);
-        }
-        if isMove {
-            return invokeCNodeMove(newCap, srcSlot, destSlot);
-        } else {
-            return invokeCNodeInsert(newCap, srcSlot, destSlot);
-        }
-    }
-}
-
-#[no_mangle]
 pub fn decodeCNodeInvocation(
     invLabel: usize,
     length: usize,
@@ -665,10 +612,8 @@ pub fn decodeCNodeInvocation(
         unsafe {
             if length < 4 || current_extra_caps.excaprefs[0] as usize == 0 {
                 println!("CNode Copy/Mint/Move/Mutate: Truncated message.");
-                unsafe {
-                    current_syscall_error._type = seL4_TruncatedMessage;
-                    return exception_t::EXCEPTION_SYSCALL_ERROR;
-                }
+                current_syscall_error._type = seL4_TruncatedMessage;
+                return exception_t::EXCEPTION_SYSCALL_ERROR;
             }
         }
         let srcIndex = getSyscallArg(2, buffer);
@@ -691,18 +636,16 @@ pub fn decodeCNodeInvocation(
         unsafe {
             if cap_get_capType(&(*srcSlot).cap) == cap_null_cap {
                 println!("CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.");
-                unsafe {
-                    current_syscall_error._type = seL4_FailedLookup;
-                    current_syscall_error.failedLookupWasSource = 1;
-                    current_lookup_fault = lookup_fault_missing_capability_new(srcDepth);
-                    return exception_t::EXCEPTION_SYSCALL_ERROR;
-                }
+                current_syscall_error._type = seL4_FailedLookup;
+                current_syscall_error.failedLookupWasSource = 1;
+                current_lookup_fault = lookup_fault_missing_capability_new(srcDepth);
+                return exception_t::EXCEPTION_SYSCALL_ERROR;
             }
         }
-        let mut newCap: &cap_t;
-        let mut srcCap: &cap_t;
-        let mut newCap1: cap_t;
-        let mut srcCap1: cap_t;
+        let newCap: &cap_t;
+        let srcCap: &cap_t;
+        let newCap1: cap_t;
+        let srcCap1: cap_t;
 
         let isMove: bool;
         match invLabel {
@@ -817,10 +760,8 @@ pub fn decodeCNodeInvocation(
             let destCap = &(*destSlot).cap;
             if !hasCancelSendRight(destCap) {
                 println!("CNode CancelBadgedSends: Target cap invalid.");
-                unsafe {
-                    current_syscall_error._type = seL4_IllegalOperation;
-                    return exception_t::EXCEPTION_SYSCALL_ERROR;
-                }
+                current_syscall_error._type = seL4_IllegalOperation;
+                return exception_t::EXCEPTION_SYSCALL_ERROR;
             }
             setThreadState(ksCurThread as *mut tcb_t, ThreadStateRestart);
             return invokeCNodeCancelBadgedSends(destCap);

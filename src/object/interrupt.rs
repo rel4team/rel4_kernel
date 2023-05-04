@@ -45,15 +45,15 @@ pub extern "C" fn intStateIRQNodeToR(ptr: *mut usize) {
 #[inline]
 pub fn set_sie_mask(mask_high: usize) {
     unsafe {
-        let temp: usize;
-        asm!("csrrs {0},sie,{1}",out(reg)temp,in(reg)mask_high);
+        let _temp: usize;
+        asm!("csrrs {0},sie,{1}",out(reg)_temp,in(reg)mask_high);
     }
 }
 #[inline]
 pub fn clear_sie_mask(mask_low: usize) {
     unsafe {
-        let temp: usize;
-        asm!("csrrc {0},sie,{1}",out(reg)temp,in(reg)mask_low);
+        let _temp: usize;
+        asm!("csrrc {0},sie,{1}",out(reg)_temp,in(reg)mask_low);
     }
 }
 
@@ -107,18 +107,14 @@ pub fn invokeIRQControl(
 #[no_mangle]
 pub fn invokeIRQHandler_SetIRQHandler(irq: usize, cap: &cap_t, slot: *mut cte_t) {
     let irqSlot = unsafe { (intStateIRQNode as *mut cte_t).add(irq) };
-    unsafe {
         cteDeleteOne(irqSlot);
-    }
     cteInsert(cap, slot, irqSlot);
 }
 
 #[no_mangle]
 pub fn invokeIRQHandler_ClearIRQHandler(irq: usize) {
     let irqSlot = unsafe { (intStateIRQNode as *mut cte_t).add(irq) };
-    unsafe {
-        cteDeleteOne(irqSlot);
-    }
+    cteDeleteOne(irqSlot);
 }
 
 #[no_mangle]
@@ -127,7 +123,7 @@ pub fn deletedIRQHandler(irq: usize) {
 }
 
 #[no_mangle]
-pub fn ackInterrupt(irq: usize) {
+pub fn ackInterrupt(_irq: usize) {
     unsafe {
         active_irq[0] = irqInvalid;
     }
@@ -298,10 +294,9 @@ pub fn handleInterrupt(irq: usize) {
     }
 
     unsafe {
-        // println!("irq :{}",intStateIRQTable[irq]);
         match intStateIRQTable[irq] {
             IRQSignal => {
-                let cte_ptr = unsafe { (intStateIRQNode as *mut cte_t).add(irq) };
+                let cte_ptr = (intStateIRQNode as *mut cte_t).add(irq);
                 let cap = &(*cte_ptr).cap;
                 if cap_get_capType(cap) == cap_notification_cap
                     && cap_notification_cap_get_capNtfnCanSend(cap) != 0

@@ -9,7 +9,7 @@ use crate::{
     object::{
         endpoint::{receiveIPC, replyFromKernel_error, replyFromKernel_success_empty},
         interrupt::handleInterrupt,
-        notification::{receiveSignal, rescheduleRequired, setThreadState},
+        notification::receiveSignal,
         objecttype::{
             cap_endpoint_cap, cap_get_capType, cap_notification_cap, cap_reply_cap,
             decodeInvocation,
@@ -34,7 +34,8 @@ use super::{
     cspace::{lookupCap, lookupCapAndSlot},
     faulthandler::handleFault,
     thread::{
-        activateThread, capRegister, doReplyTransfer, getCSpace, getRegister, ksCurThread, schedule,
+        activateThread, capRegister, doReplyTransfer, getCSpace, getRegister, ksCurThread,
+        rescheduleRequired, schedule, setThreadState,
     },
     transfermsg::{
         messageInfoFromWord, seL4_MessageInfo_ptr_get_label, seL4_MessageInfo_ptr_get_length,

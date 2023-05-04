@@ -8,27 +8,28 @@ use crate::{
             cap_endpoint_cap_get_capCanSend, cap_endpoint_cap_get_capEPBadge,
             cap_endpoint_cap_get_capEPPtr, lookup_fault_missing_capability_new,
             seL4_Fault_CapFault_new, seL4_Fault_get_seL4_FaultType,
-        }, notification::setThreadState,
+        },
     },
-    structures::{endpoint_t, exception_t, tcb_t, seL4_Fault_t},
+    structures::{endpoint_t, exception_t, seL4_Fault_t, tcb_t},
 };
 
 use super::{
     boot::{current_fault, current_lookup_fault},
     cspace::lookupCap,
+    thread::setThreadState,
 };
 
 #[no_mangle]
 pub fn handleFault(tptr: *mut tcb_t) {
     let fault = unsafe { &current_fault };
     let status = sendFaultIPC(tptr);
-    if status != exception_t::EXCEPTION_NONE{
+    if status != exception_t::EXCEPTION_NONE {
         handleDoubleFault(tptr, fault);
     }
 }
 
 #[no_mangle]
-pub fn sendFaultIPC(tptr: *mut tcb_t) ->exception_t{
+pub fn sendFaultIPC(tptr: *mut tcb_t) -> exception_t {
     let original_lookup_fault = unsafe { current_lookup_fault };
     let handlerCPtr = unsafe { (*tptr).tcbFaultHandler };
     let lu_ret = lookupCap(tptr, handlerCPtr);
@@ -70,8 +71,6 @@ pub fn sendFaultIPC(tptr: *mut tcb_t) ->exception_t{
 }
 
 #[no_mangle]
-pub fn handleDoubleFault(tptr:*mut tcb_t,ex1 : &seL4_Fault_t){
-    unsafe{
+pub fn handleDoubleFault(tptr: *mut tcb_t, _ex1: &seL4_Fault_t) {
     setThreadState(tptr, ThreadStateInactive);
-}
 }

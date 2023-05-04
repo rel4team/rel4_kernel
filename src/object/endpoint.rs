@@ -9,7 +9,7 @@ use crate::{
         boot::current_syscall_error,
         thread::{
             doIPCTransfer, doNBRecvFailedTransfer, getCSpace, ksCurThread, possibleSwitchTo,
-            scheduleTCB, setMRs_syscall_error, setRegister,
+            rescheduleRequired, scheduleTCB, setMRs_syscall_error, setRegister, setThreadState,
         },
         transfermsg::{seL4_MessageInfo_new, wordFromMEssageInfo},
         vspace::lookupIPCBuffer,
@@ -28,6 +28,7 @@ use crate::{
 };
 
 use super::{
+    cap::cteDeleteOne,
     notification::cancelSignal,
     structure_gen::{
         cap_endpoint_cap_get_capCanGrant, cap_endpoint_cap_get_capEPPtr,
@@ -219,13 +220,6 @@ pub fn receiveIPC(thread: *mut tcb_t, cap: &cap_t, isBlocking: bool) {
     }
 }
 
-#[link(name = "kernel_all.c")]
-extern "C" {
-    fn rescheduleRequired();
-    fn setThreadState(tptr: *mut tcb_t, ts: usize);
-    fn cteDeleteOne(tptr: *mut cte_t);
-}
-
 #[no_mangle]
 pub fn cancelBadgedSends(epptr: *mut endpoint_t, badge: usize) {
     unsafe {
@@ -290,44 +284,41 @@ pub fn replyFromKernel_success_empty(thread: *mut tcb_t) {
     );
 }
 
-
 #[no_mangle]
 pub fn cancelIPC(tptr: *mut tcb_t) {
-    unsafe {
-        let state = &(*tptr).tcbState;
-        match thread_state_get_tsType(state) {
-            ThreadStateBlockedOnSend | ThreadStateBlockedOnReceive => {
-                let epptr = thread_state_get_blockingObject(state) as *mut endpoint_t;
+    let state = unsafe { &(*tptr).tcbState };
+    match thread_state_get_tsType(state) {
+        ThreadStateBlockedOnSend | ThreadStateBlockedOnReceive => {
+            let epptr = thread_state_get_blockingObject(state) as *mut endpoint_t;
 
-                assert!(endpoint_ptr_get_state(epptr) != EPState_Idle);
-                let mut queue = ep_ptr_get_queue(epptr);
-                queue = tcbEPDequeue(tptr as *mut tcb_t, queue);
+            assert!(endpoint_ptr_get_state(epptr) != EPState_Idle);
+            let mut queue = ep_ptr_get_queue(epptr);
+            queue = tcbEPDequeue(tptr as *mut tcb_t, queue);
 
-                let temp = queue.head as usize;
+            let temp = queue.head as usize;
 
-                ep_ptr_set_queue(epptr, queue);
+            ep_ptr_set_queue(epptr, queue);
 
-                if temp == 0 {
-                    endpoint_ptr_set_state(epptr, EPState_Idle);
-                }
-                setThreadState(tptr, ThreadStateInactive);
+            if temp == 0 {
+                endpoint_ptr_set_state(epptr, EPState_Idle);
             }
-            ThreadStateBlockedOnNotification => {
-                let ntfnPtr = thread_state_get_blockingObject(state) as *mut notification_t;
-                cancelSignal(tptr, ntfnPtr);
-            }
-            ThreadStateBlockedOnReply => unsafe {
-                (*tptr).tcbFault = seL4_Fault_NullFault_new();
-
-                let slot = getCSpace(tptr as usize, tcbReply);
-                let callerCap = mdb_node_get_mdbNext(&(*slot).cteMDBNode) as *mut cte_t;
-                if callerCap as usize != 0 {
-                    cteDeleteOne(callerCap);
-                }
-            },
-
-            _ => {}
+            setThreadState(tptr, ThreadStateInactive);
         }
+        ThreadStateBlockedOnNotification => {
+            let ntfnPtr = thread_state_get_blockingObject(state) as *mut notification_t;
+            cancelSignal(tptr, ntfnPtr);
+        }
+        ThreadStateBlockedOnReply => unsafe {
+            (*tptr).tcbFault = seL4_Fault_NullFault_new();
+
+            let slot = getCSpace(tptr as usize, tcbReply);
+            let callerCap = mdb_node_get_mdbNext(&(*slot).cteMDBNode) as *mut cte_t;
+            if callerCap as usize != 0 {
+                cteDeleteOne(callerCap);
+            }
+        },
+
+        _ => {}
     }
 }
 
@@ -362,16 +353,14 @@ pub fn performInvocation_Endpoint(
     block: bool,
     call: bool,
 ) -> exception_t {
-    unsafe {
-        sendIPC(
-            block,
-            call,
-            badge,
-            canGrant,
-            canGrantReply,
-            unsafe { ksCurThread },
-            ep as *mut endpoint_t,
-        );
-    }
+    sendIPC(
+        block,
+        call,
+        badge,
+        canGrant,
+        canGrantReply,
+        unsafe { ksCurThread },
+        ep as *mut endpoint_t,
+    );
     exception_t::EXCEPTION_NONE
 }

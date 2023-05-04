@@ -1,4 +1,3 @@
-use core::f64::MIN;
 
 use crate::{
     config::{

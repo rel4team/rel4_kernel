@@ -3,11 +3,10 @@ use core::intrinsics::unlikely;
 use crate::{
     config::{
         asidInvalid, seL4_CapTableObject, seL4_EndpointObject, seL4_HugePageBits,
-        seL4_IllegalOperation, seL4_InvalidCapability, seL4_LargePageBits,
-        seL4_NonArchObjectTypeCount, seL4_NotificationObject, seL4_PageBits, seL4_SlotBits,
-        seL4_TCBBits, seL4_TCBObject, seL4_UntypedObject, tcbCNodeEntries, tcbCTable, wordBits,
-        IRQInactive, RISCV_4K_Page, RISCV_Giga_Page, RISCV_Mega_Page, ThreadStateRestart,
-        VMReadWrite, CONFIG_TIME_SLICE, TCB_OFFSET,
+        seL4_IllegalOperation, seL4_InvalidCapability, seL4_LargePageBits, seL4_NotificationObject,
+        seL4_PageBits, seL4_SlotBits, seL4_TCBBits, seL4_TCBObject, seL4_UntypedObject,
+        tcbCNodeEntries, tcbCTable, wordBits, IRQInactive, RISCV_4K_Page, RISCV_Giga_Page,
+        RISCV_Mega_Page, ThreadStateRestart, VMReadWrite, CONFIG_TIME_SLICE, TCB_OFFSET,
     },
     kernel::{
         boot::current_syscall_error,
@@ -642,7 +641,7 @@ pub fn createObject(
 ) -> cap_t {
     match t {
         seL4_TCBObject => {
-            let tcb = unsafe { (regionBase as usize + TCB_OFFSET) as *mut tcb_t };
+            let tcb = (regionBase as usize + TCB_OFFSET) as *mut tcb_t;
             unsafe {
                 (*tcb).tcbArch = Arch_initContext((*tcb).tcbArch);
                 (*tcb).tcbTimeSlice = CONFIG_TIME_SLICE;
@@ -714,12 +713,12 @@ pub fn createNewObjects(
     deviceMemory: bool,
 ) {
     let objectSize = getObjectSize(t, userSize);
-    let totalObjectSize = destLength << objectSize;
-    let mut nextFreeArea = regionBase;
+    let _totalObjectSize = destLength << objectSize;
+    let nextFreeArea = regionBase;
     for i in 0..destLength {
         let cap = createObject(
             t,
-            (regionBase as usize + (i << objectSize)) as *mut usize,
+            (nextFreeArea as usize + (i << objectSize)) as *mut usize,
             userSize,
             deviceMemory,
         );

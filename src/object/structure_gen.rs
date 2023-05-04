@@ -647,7 +647,7 @@ pub fn cap_zombie_cap_new(capZombieID: usize, capZombieType: usize) -> cap_t {
 
 #[inline]
 pub fn cap_zombie_cap_get_capZombieID(cap: &cap_t) -> usize {
-    let mut ret;
+    let  ret;
     assert!(((cap.words[0] >> 59) & 0x1f) == cap_tag_t::cap_zombie_cap as usize);
 
     ret = (cap.words[1] & 0xffffffffffffffffusize) >> 0;
@@ -673,7 +673,7 @@ pub fn cap_zombie_cap_set_capZombieID(cap: &mut cap_t, v64: usize) {
 
 #[inline]
 pub fn cap_zombie_cap_get_capZombieType(cap: &cap_t) -> usize {
-    let mut ret;
+    let ret;
     assert!(((cap.words[0] >> 59) & 0x1f) == cap_tag_t::cap_zombie_cap as usize);
 
     ret = (cap.words[0] & 0x7fusize) >> 0;
@@ -1284,26 +1284,26 @@ pub fn cap_notification_cap_set_capNtfnBadge(cap: &mut cap_t, v64: usize) {
 
 #[inline]
 pub fn cap_notification_cap_get_capNtfnCanReceive(cap: &cap_t) -> usize {
-    let ret = ((cap).words[0] & 0x400000000000000usize)>>58;
+    let ret = ((cap).words[0] & 0x400000000000000usize) >> 58;
     ret
 }
 
 #[inline]
 pub fn cap_notification_cap_set_capNtfnCanReceive(cap: &mut cap_t, v64: usize) {
     (cap).words[0] &= !0x400000000000000usize;
-    (cap).words[0] |= (v64<<58) & 0x400000000000000usize;
+    (cap).words[0] |= (v64 << 58) & 0x400000000000000usize;
 }
 
 #[inline]
 pub fn cap_notification_cap_get_capNtfnCanSend(cap: &cap_t) -> usize {
-    let ret = ((cap).words[0] & 0x200000000000000usize)>>57;
+    let ret = ((cap).words[0] & 0x200000000000000usize) >> 57;
     ret
 }
 
 #[inline]
 pub fn cap_notification_cap_set_capNtfnCanSend(cap: &mut cap_t, v64: usize) {
     (cap).words[0] &= !0x200000000000000usize;
-    (cap).words[0] |= (v64<<57) & 0x200000000000000usize;
+    (cap).words[0] |= (v64 << 57) & 0x200000000000000usize;
 }
 
 #[inline]

@@ -4,12 +4,16 @@ use crate::{
         ThreadStateBlockedOnNotification, ThreadStateBlockedOnReceive, ThreadStateInactive,
         ThreadStateRestart, ThreadStateRunning,
     },
-    kernel::thread::{doNBRecvFailedTransfer, possibleSwitchTo, scheduleTCB, setRegister},
+    kernel::thread::{
+        doNBRecvFailedTransfer, possibleSwitchTo, rescheduleRequired, scheduleTCB, setRegister,
+        setThreadState,
+    },
     object::tcb::tcbEPDequeue,
     structures::{cap_t, exception_t, notification_t, tcb_queue_t, tcb_t},
 };
 
 use super::{
+    endpoint::cancelIPC,
     structure_gen::{
         cap_notification_cap_get_capNtfnPtr, notification_ptr_get_ntfnBoundTCB,
         notification_ptr_get_ntfnMsgIdentifier, notification_ptr_get_ntfnQueue_head,
@@ -55,13 +59,6 @@ pub fn ntfn_ptr_set_active(ntfnPtr: *const notification_t, badge: usize) {
     notification_ptr_set_ntfnMsgIdentifier(ntfnPtr as *mut notification_t, badge);
 }
 
-#[link(name = "kernel_all.c")]
-extern "C" {
-    pub fn rescheduleRequired();
-    pub fn setThreadState(tptr: *mut tcb_t, ts: usize);
-    pub fn cancelIPC(t: *mut tcb_t);
-}
-
 #[no_mangle]
 pub fn sendSignal(ntfnPtr: *const notification_t, badge: usize) {
     match notification_ptr_get_state(ntfnPtr) {
@@ -90,9 +87,7 @@ pub fn sendSignal(ntfnPtr: *const notification_t, badge: usize) {
             if temp as usize == 0 {
                 notification_ptr_set_state(ntfnPtr as *mut notification_t, NtfnState_Idle);
             }
-            unsafe {
-                setThreadState(dest, ThreadStateRunning);
-            }
+            setThreadState(dest, ThreadStateRunning);
             setRegister(dest, badgeRegister, badge);
             possibleSwitchTo(dest);
         }
@@ -186,9 +181,7 @@ pub fn cancelSignal(threadPtr: *mut tcb_t, ntfnPtr: *mut notification_t) {
     if temp as usize == 0 {
         notification_ptr_set_state(ntfnPtr, NtfnState_Idle);
     }
-    unsafe {
-        setThreadState(threadPtr, ThreadStateInactive);
-    }
+    setThreadState(threadPtr, ThreadStateInactive);
 }
 
 #[no_mangle]
@@ -206,16 +199,12 @@ pub fn cancelAllSignals(ntfnPtr: *mut notification_t) {
         notification_ptr_set_ntfnQueue_tail(ntfnPtr, 0);
 
         while thread as usize != 0 {
-            unsafe {
-                setThreadState(thread, ThreadStateRestart);
-            }
+            setThreadState(thread, ThreadStateRestart);
             tcbSchedEnqueue(thread);
             unsafe {
                 thread = (*thread).tcbEPNext as *mut tcb_t;
             }
         }
-        unsafe {
-            rescheduleRequired();
-        }
+        rescheduleRequired();
     }
 }
