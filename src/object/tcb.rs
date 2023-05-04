@@ -588,11 +588,9 @@ pub fn decodeWriteRegisters(cap: &cap_t, length: usize, buffer: *mut usize) -> e
     let thread = cap_thread_cap_get_capTCBPtr(cap) as *mut tcb_t;
     unsafe {
         if thread == ksCurThread {
-            unsafe {
                 println!("TCB WriteRegisters: Attempted to write our own registers.");
                 current_syscall_error._type = seL4_IllegalOperation;
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
         }
         setThreadState(ksCurThread as *mut tcb_t, ThreadStateRestart);
     }
@@ -666,10 +664,8 @@ pub fn decodeTCBConfigure(
             || slotCapLongRunningDelete(getCSpace(cap_thread_cap_get_capTCBPtr(cap), tcbVTable))
         {
             println!("TCB Configure: CSpace or VSpace currently being deleted.");
-            unsafe {
                 current_syscall_error._type = seL4_IllegalOperation;
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
         }
     }
     if cRootData != 0 {
@@ -956,10 +952,8 @@ pub fn decodeSetMCPriority(cap: &cap_t, length: usize, buffer: *mut usize) -> ex
     unsafe {
         if length < 1 || current_extra_caps.excaprefs[0] as usize == 0 {
             println!("TCB SetMCPPriority: Truncated message.");
-            unsafe {
-                current_syscall_error._type = seL4_TruncatedMessage;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
+            current_syscall_error._type = seL4_TruncatedMessage;
+            return exception_t::EXCEPTION_SYSCALL_ERROR;
         }
     }
     let newMcp = getSyscallArg(0, buffer);
@@ -1012,10 +1006,8 @@ pub fn decodeSetSchedParams(cap: &cap_t, length: usize, buffer: *mut usize) -> e
     unsafe {
         if length < 2 || current_extra_caps.excaprefs[0] as usize == 0 {
             println!("TCB SetSchedParams: Truncated message.");
-            unsafe {
-                current_syscall_error._type = seL4_TruncatedMessage;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
+            current_syscall_error._type = seL4_TruncatedMessage;
+            return exception_t::EXCEPTION_SYSCALL_ERROR;
         }
     }
     let newMcp = getSyscallArg(0, buffer);
@@ -1086,10 +1078,8 @@ pub fn decodeSetIPCBuffer(
     unsafe {
         if length < 1 || current_extra_caps.excaprefs[0] as usize == 0 {
             println!("TCB SetIPCBuffer: Truncated message.");
-            unsafe {
-                current_syscall_error._type = seL4_TruncatedMessage;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
+            current_syscall_error._type = seL4_TruncatedMessage;
+            return exception_t::EXCEPTION_SYSCALL_ERROR;
         }
     }
     let cptr_bufferPtr = getSyscallArg(0, buffer);
@@ -1146,10 +1136,8 @@ pub fn decodeSetSpace(
             || current_extra_caps.excaprefs[1] as usize == 0
         {
             println!("TCB SetSpace: Truncated message.");
-            unsafe {
-                current_syscall_error._type = seL4_TruncatedMessage;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
+            current_syscall_error._type = seL4_TruncatedMessage;
+            return exception_t::EXCEPTION_SYSCALL_ERROR;
         }
     }
     let faultEP = getSyscallArg(0, buffer);
@@ -1172,15 +1160,13 @@ pub fn decodeSetSpace(
             || slotCapLongRunningDelete(getCSpace(cap_thread_cap_get_capTCBPtr(cap), tcbVTable))
         {
             println!("TCB Configure: CSpace or VSpace currently being deleted.");
-            unsafe {
-                current_syscall_error._type = seL4_IllegalOperation;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
+            current_syscall_error._type = seL4_IllegalOperation;
+            return exception_t::EXCEPTION_SYSCALL_ERROR;
         }
     }
 
     if cRootData as usize != 0 {
-        cRootCap = unsafe { updateCapData(false, cRootData, &mut cRootCap).clone() };
+        cRootCap = updateCapData(false, cRootData, &mut cRootCap).clone();
     }
     let dc_ret1 = deriveCap(cRootSlot, &cRootCap);
     if dc_ret1.status != exception_t::EXCEPTION_NONE {
@@ -1196,7 +1182,7 @@ pub fn decodeSetSpace(
     }
 
     if vRootData as usize != 0 {
-        vRootCap = unsafe { updateCapData(false, vRootData, &mut vRootCap) };
+        vRootCap = updateCapData(false, vRootData, &mut vRootCap);
     }
     let dc_ret = deriveCap(vRootSlot, &vRootCap);
     if dc_ret.status != exception_t::EXCEPTION_NONE {
@@ -1419,10 +1405,8 @@ pub fn decodeUnbindNotification(cap: &cap_t) -> exception_t {
     unsafe {
         if (*tcb).tcbBoundNotification as usize == 0 {
             println!("TCB BindNotification: TCB already has a bound notification.");
-            unsafe {
-                current_syscall_error._type = seL4_IllegalOperation;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
+            current_syscall_error._type = seL4_IllegalOperation;
+            return exception_t::EXCEPTION_SYSCALL_ERROR;
         }
 
         setThreadState(ksCurThread as *mut tcb_t, ThreadStateRestart);

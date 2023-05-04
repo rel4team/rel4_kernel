@@ -620,7 +620,7 @@ pub fn rust_init_freemem(
         }
 
         /* skip any empty regions */
-        while i >= 0 && is_reg_empty(&ndks_boot.freemem[i]) {
+        while i != usize::MAX && is_reg_empty(&ndks_boot.freemem[i]) {
             i -= 1;
         }
 
@@ -629,7 +629,7 @@ pub fn rust_init_freemem(
         let size = calculate_rootserver_size(it_v_reg, extra_bi_size_bits);
         let max = rootserver_max_size_bits(extra_bi_size_bits);
 
-        while i >= 0 && i < ndks_boot.freemem.len() {
+        while i != usize::MAX && i < ndks_boot.freemem.len() {
             /* Invariant: both i and (i + 1) are valid indices in ndks_boot.freemem. */
             assert!(i < (ndks_boot.freemem.len() - 1));
             /* Invariant; the region at index i is the current candidate.

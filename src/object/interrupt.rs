@@ -107,18 +107,14 @@ pub fn invokeIRQControl(
 #[no_mangle]
 pub fn invokeIRQHandler_SetIRQHandler(irq: usize, cap: &cap_t, slot: *mut cte_t) {
     let irqSlot = unsafe { (intStateIRQNode as *mut cte_t).add(irq) };
-    unsafe {
         cteDeleteOne(irqSlot);
-    }
     cteInsert(cap, slot, irqSlot);
 }
 
 #[no_mangle]
 pub fn invokeIRQHandler_ClearIRQHandler(irq: usize) {
     let irqSlot = unsafe { (intStateIRQNode as *mut cte_t).add(irq) };
-    unsafe {
-        cteDeleteOne(irqSlot);
-    }
+    cteDeleteOne(irqSlot);
 }
 
 #[no_mangle]
@@ -298,10 +294,9 @@ pub fn handleInterrupt(irq: usize) {
     }
 
     unsafe {
-        // println!("irq :{}",intStateIRQTable[irq]);
         match intStateIRQTable[irq] {
             IRQSignal => {
-                let cte_ptr = unsafe { (intStateIRQNode as *mut cte_t).add(irq) };
+                let cte_ptr = (intStateIRQNode as *mut cte_t).add(irq);
                 let cap = &(*cte_ptr).cap;
                 if cap_get_capType(cap) == cap_notification_cap
                     && cap_notification_cap_get_capNtfnCanSend(cap) != 0

@@ -218,11 +218,10 @@ pub fn Arch_configureIdleThread(tcb: *const tcb_t) {
     }
 }
 
+#[no_mangle]
 pub fn setThreadState(tptr: *mut tcb_t, ts: usize) {
     unsafe {
         thread_state_set_tsType(&mut (*tptr).tcbState, ts);
-        // println!("type:{} ,ts :{}", thread_state_get_tsType(&(*tptr).tcbState),ts);
-        // testtcb();
         scheduleTCB(tptr);
     }
 }

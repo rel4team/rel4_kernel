@@ -642,7 +642,7 @@ pub fn createObject(
 ) -> cap_t {
     match t {
         seL4_TCBObject => {
-            let tcb = unsafe { (regionBase as usize + TCB_OFFSET) as *mut tcb_t };
+            let tcb = (regionBase as usize + TCB_OFFSET) as *mut tcb_t;
             unsafe {
                 (*tcb).tcbArch = Arch_initContext((*tcb).tcbArch);
                 (*tcb).tcbTimeSlice = CONFIG_TIME_SLICE;
