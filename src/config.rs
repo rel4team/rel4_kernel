@@ -254,7 +254,7 @@ pub const seL4_MaxPrio: usize = 255;
 
 pub const TIMER_CLOCK_HZ: usize = 10000000;
 pub const MS_IN_S: usize = 1000;
-pub const RESET_CYCLES: usize = TIMER_CLOCK_HZ / MS_IN_S * 2;
+pub const RESET_CYCLES: usize = (TIMER_CLOCK_HZ / MS_IN_S) * 2;
 
 pub const seL4_NoError: usize = 0;
 pub const seL4_InvalidArgument: usize = 1;

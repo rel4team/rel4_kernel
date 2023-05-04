@@ -1,7 +1,5 @@
 extern crate core;
-use core::{
-    mem::{forget, size_of},
-};
+use core::mem::{forget, size_of};
 use riscv::register::{stvec, utvec::TrapMode};
 
 use crate::{
@@ -64,6 +62,10 @@ extern "C" {
     fn init_plat();
     fn tcbDebugAppend(action: *mut tcb_t);
 }
+
+#[no_mangle]
+#[link_section = ".boot.bss"]
+pub static mut active_irq: [usize; 1] = [0; 1];
 
 #[no_mangle]
 #[link_section = ".boot.bss"]

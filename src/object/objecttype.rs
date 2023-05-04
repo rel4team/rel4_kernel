@@ -22,8 +22,8 @@ use crate::{
             wordFromVMRights,
         },
         vspace::{
-            deleteASID, deleteASIDPool, findVSpaceForASID, maskVMRights, pageBitsForSize,
-            unmapPage, unmapPageTable,
+            decodeRISCVMMUInvocation, deleteASID, deleteASIDPool, findVSpaceForASID, maskVMRights,
+            pageBitsForSize, unmapPage, unmapPageTable,
         },
     },
     println,
@@ -37,7 +37,9 @@ use crate::{
 use super::{
     cap::{decodeCNodeInvocation, ensureNoChildren, insertNewCap},
     endpoint::{cancelAllIPC, performInvocation_Endpoint},
-    interrupt::{deletingIRQHandler, setIRQState},
+    interrupt::{
+        decodeIRQControlInvocation, decodeIRQHandlerInvocation, deletingIRQHandler, setIRQState,
+    },
     notification::{
         cancelAllSignals, performInvocation_Notification, unbindMaybeNotification,
         unbindNotification,
@@ -70,6 +72,7 @@ use super::{
         cap_zombie_cap_get_capZombiePtr, ZombieType_ZombieTCB, Zombie_new,
     },
     tcb::decodeTCBInvocation,
+    untyped::decodeUntypedInvocation,
 };
 
 pub const seL4_EndpointBits: usize = 4;
@@ -726,99 +729,106 @@ pub fn createNewObjects(
     }
 }
 
-// #[no_mangle]
-// pub fn decodeInvocation(
-//     invLabel: usize,
-//     length: usize,
-//     capIndex: usize,
-//     slot: *mut cte_t,
-//     cap: &cap_t,
-//     block: bool,
-//     call: bool,
-//     buffer: *mut usize,
-// ) -> exception_t {
-//     match cap_get_capType(cap) {
-//         cap_null_cap => {
-//             println!("Attempted to invoke a null cap {:#x}.", capIndex);
-//             unsafe {
-//                 current_syscall_error._type = seL4_InvalidCapability;
-//                 current_syscall_error.invalidCapNumber = 0;
-//                 return exception_t::EXCEPTION_SYSCALL_ERROR;
-//             }
-//         }
-//         cap_zombie_cap => {
-//             println!("Attempted to invoke a zombie cap {:#x}.", capIndex);
-//             unsafe {
-//                 current_syscall_error._type = seL4_InvalidCapability;
-//                 current_syscall_error.invalidCapNumber = 0;
-//                 return exception_t::EXCEPTION_SYSCALL_ERROR;
-//             }
-//         }
-//         cap_endpoint_cap => {
-//             if unlikely(cap_endpoint_cap_get_capCanSend(cap) == 0) {
-//                 println!("Attempted to invoke a read-only endpoint cap {}.", capIndex);
-//                 unsafe {
-//                     current_syscall_error._type = seL4_InvalidCapability;
-//                     current_syscall_error.invalidCapNumber = 0;
-//                     return exception_t::EXCEPTION_SYSCALL_ERROR;
-//                 }
-//             }
-//             unsafe {
-//                 setThreadState(ksCurThread, ThreadStateRestart);
-//             }
-//             return performInvocation_Endpoint(
-//                 cap_endpoint_cap_get_capEPPtr(cap) as *mut endpoint_t,
-//                 cap_endpoint_cap_get_capEPBadge(cap),
-//                 cap_endpoint_cap_get_capCanGrant(cap),
-//                 cap_endpoint_cap_get_capCanGrantReply(cap),
-//                 block,
-//                 call,
-//             );
-//         }
-//         cap_notification_cap => {
-//             if unlikely(cap_notification_cap_get_capNtfnCanSend(cap) == 0) {
-//                 println!(
-//                     "Attempted to invoke a read-only notification cap {}.",
-//                     capIndex
-//                 );
-//                 unsafe {
-//                     current_syscall_error._type = seL4_InvalidCapability;
-//                     current_syscall_error.invalidCapNumber = 0;
-//                     return exception_t::EXCEPTION_SYSCALL_ERROR;
-//                 }
-//             }
-//             unsafe {
-//                 setThreadState(ksCurThread, ThreadStateRestart);
-//             }
-//             return performInvocation_Notification(
-//                 cap_notification_cap_get_capNtfnPtr(cap) as *mut notification_t,
-//                 cap_notification_cap_get_capNtfnBadge(cap),
-//             );
-//         }
-//         cap_reply_cap => {
-//             if unlikely(cap_reply_cap_get_capReplyMaster(cap) != 0) {
-//                 println!("Attempted to invoke an invalid reply cap {}.", capIndex);
-//                 unsafe {
-//                     current_syscall_error._type = seL4_InvalidCapability;
-//                     current_syscall_error.invalidCapNumber = 0;
-//                     return exception_t::EXCEPTION_SYSCALL_ERROR;
-//                 }
-//             }
-//             unsafe {
-//                 setThreadState(ksCurThread, ThreadStateRestart);
-//             }
-//             return performInvocation_Reply(
-//                 cap_reply_cap_get_capTCBPtr(cap) as *mut tcb_t,
-//                 slot,
-//                 cap_reply_cap_get_capReplyCanGrant(cap) != 0,
-//             );
-//         }
-//         cap_thread_cap=>decodeTCBInvocation(invLabel, length, cap, slot, call, buffer),
-//         cap_domain_cap=>decodeDomainInvocation(invLabel, length, buffer),
-//         cap_cnode_cap=>decodeCNodeInvocation(invLabel, length, cap, buffer),
-
-//     }
-// }
+#[no_mangle]
+pub fn decodeInvocation(
+    invLabel: usize,
+    length: usize,
+    capIndex: usize,
+    slot: *mut cte_t,
+    cap: &mut cap_t,
+    block: bool,
+    call: bool,
+    buffer: *mut usize,
+) -> exception_t {
+    // println!("cap :{:#x} {:#x}")
+    // println!("type:{}", cap_get_capType(cap));
+    match cap_get_capType(cap) {
+        cap_null_cap => {
+            println!("Attempted to invoke a null cap {:#x}.", capIndex);
+            unsafe {
+                current_syscall_error._type = seL4_InvalidCapability;
+                current_syscall_error.invalidCapNumber = 0;
+                return exception_t::EXCEPTION_SYSCALL_ERROR;
+            }
+        }
+        cap_zombie_cap => {
+            println!("Attempted to invoke a zombie cap {:#x}.", capIndex);
+            unsafe {
+                current_syscall_error._type = seL4_InvalidCapability;
+                current_syscall_error.invalidCapNumber = 0;
+                return exception_t::EXCEPTION_SYSCALL_ERROR;
+            }
+        }
+        cap_endpoint_cap => {
+            if unlikely(cap_endpoint_cap_get_capCanSend(cap) == 0) {
+                println!("Attempted to invoke a read-only endpoint cap {}.", capIndex);
+                unsafe {
+                    current_syscall_error._type = seL4_InvalidCapability;
+                    current_syscall_error.invalidCapNumber = 0;
+                    return exception_t::EXCEPTION_SYSCALL_ERROR;
+                }
+            }
+            unsafe {
+                setThreadState(ksCurThread, ThreadStateRestart);
+            }
+            return performInvocation_Endpoint(
+                cap_endpoint_cap_get_capEPPtr(cap) as *mut endpoint_t,
+                cap_endpoint_cap_get_capEPBadge(cap),
+                cap_endpoint_cap_get_capCanGrant(cap) != 0,
+                cap_endpoint_cap_get_capCanGrantReply(cap) != 0,
+                block,
+                call,
+            );
+        }
+        cap_notification_cap => {
+            if unlikely(cap_notification_cap_get_capNtfnCanSend(cap) == 0) {
+                println!(
+                    "Attempted to invoke a read-only notification cap {}.",
+                    capIndex
+                );
+                unsafe {
+                    current_syscall_error._type = seL4_InvalidCapability;
+                    current_syscall_error.invalidCapNumber = 0;
+                    return exception_t::EXCEPTION_SYSCALL_ERROR;
+                }
+            }
+            unsafe {
+                setThreadState(ksCurThread, ThreadStateRestart);
+            }
+            return performInvocation_Notification(
+                cap_notification_cap_get_capNtfnPtr(cap) as *mut notification_t,
+                cap_notification_cap_get_capNtfnBadge(cap),
+            );
+        }
+        cap_reply_cap => {
+            if unlikely(cap_reply_cap_get_capReplyMaster(cap) != 0) {
+                println!("Attempted to invoke an invalid reply cap {}.", capIndex);
+                unsafe {
+                    current_syscall_error._type = seL4_InvalidCapability;
+                    current_syscall_error.invalidCapNumber = 0;
+                    return exception_t::EXCEPTION_SYSCALL_ERROR;
+                }
+            }
+            unsafe {
+                setThreadState(ksCurThread, ThreadStateRestart);
+            }
+            return performInvocation_Reply(
+                cap_reply_cap_get_capTCBPtr(cap) as *mut tcb_t,
+                slot,
+                cap_reply_cap_get_capReplyCanGrant(cap) != 0,
+            );
+        }
+        cap_thread_cap => decodeTCBInvocation(invLabel, length, cap, slot, call, buffer),
+        cap_domain_cap => decodeDomainInvocation(invLabel, length, buffer),
+        cap_cnode_cap => decodeCNodeInvocation(invLabel, length, cap, buffer),
+        cap_untyped_cap => decodeUntypedInvocation(invLabel, length, slot, cap, call, buffer),
+        cap_irq_control_cap => decodeIRQControlInvocation(invLabel, length, slot, buffer),
+        cap_irq_handler_cap => {
+            decodeIRQHandlerInvocation(invLabel, cap_irq_handler_cap_get_capIRQ(cap))
+        }
+        _ => decodeRISCVMMUInvocation(invLabel, length, capIndex, slot, cap, call, buffer),
+    }
+}
 
 #[no_mangle]
 pub fn performInvocation_Reply(
