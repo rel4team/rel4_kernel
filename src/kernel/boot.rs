@@ -1143,10 +1143,6 @@ pub extern "C" fn rust_try_init_kernel(
         end: ui_p_reg_end,
     });
 
-    let ui_p_reg = p_region_t {
-        start: ui_p_reg_start,
-        end: ui_p_reg_end,
-    };
     let mut extra_bi_size = 0;
     let mut extra_bi_offset = 0;
     let ui_v_reg = v_region_t {

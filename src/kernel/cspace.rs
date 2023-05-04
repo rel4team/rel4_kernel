@@ -1,6 +1,4 @@
-use core::{
-    intrinsics::{likely, unlikely},
-};
+use core::intrinsics::{likely, unlikely};
 
 use crate::{
     config::{seL4_FailedLookup, seL4_RangeError, tcbCTable, wordBits, wordRadix},
@@ -30,8 +28,6 @@ use super::{
 pub extern "C" fn lookupSlot(thread: *const tcb_t, capptr: usize) -> lookupSlot_raw_ret_t {
     unsafe {
         let threadRoot = &(*getCSpace(thread as usize, tcbCTable)).cap;
-
-        let c = threadRoot.clone();
         let res_ret = rust_resolveAddressBits(threadRoot, capptr, wordBits);
         let ret = lookupSlot_raw_ret_t {
             status: res_ret.status,

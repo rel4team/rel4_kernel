@@ -2,8 +2,8 @@ use core::arch::asm;
 
 use crate::{
     config::{
-        RISCVInstructionAccessFault, RISCVInstructionIllegal, RISCVInstructionPageFault,
-        RISCVLoadAccessFault, RISCVLoadPageFault, RISCVStoreAccessFault, RISCVStorePageFault,
+        RISCVInstructionAccessFault, RISCVInstructionPageFault, RISCVLoadAccessFault,
+        RISCVLoadPageFault, RISCVStoreAccessFault, RISCVStorePageFault,
     },
     kernel::thread::ksCurThread,
     riscv::read_scause,
@@ -81,11 +81,6 @@ pub fn c_handle_exception() {
         }
     }
     restore_user_context();
-}
-
-#[link(name = "kernel_all.c")]
-extern "C" {
-    fn handleUnknownSyscall(syscall: usize);
 }
 
 // #[no_mangle]

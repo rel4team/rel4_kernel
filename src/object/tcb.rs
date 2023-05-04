@@ -19,7 +19,7 @@ use crate::{
         thread::{
             getCSpace, getExtraCPtr, getReStartPC, getRegister, ksCurThread, ksReadyQueues,
             ksReadyQueuesL1Bitmap, ksReadyQueuesL2Bitmap, rescheduleRequired, restart,
-            setMCPriority, setNextPC, setPriority, setRegister, suspend, TLS_BASE,
+            setMCPriority, setNextPC, setPriority, setRegister, setThreadState, suspend, TLS_BASE,
         },
         transfermsg::{
             seL4_MessageInfo_new, seL4_MessageInfo_ptr_get_extraCaps, wordFromMEssageInfo,
@@ -44,6 +44,7 @@ use crate::{
 };
 
 use super::{
+    cap::{cteDelete, cteDeleteOne, slotCapLongRunningDelete},
     // cap::cteDelete,
     notification::{bindNotification, unbindNotification},
     objecttype::{cap_cnode_cap, cap_notification_cap, cap_thread_cap, deriveCap, sameObjectAs},
@@ -243,14 +244,6 @@ pub fn tcbEPDequeue(tcb: *mut tcb_t, mut queue: tcb_queue_t) -> tcb_queue_t {
     }
 }
 
-#[link(name = "kernel_all.c")]
-extern "C" {
-    fn setThreadState(t: *mut tcb_t, ts: usize);
-    fn cteDeleteOne(t: *mut cte_t);
-    fn cteDelete(t: *mut cte_t, b: bool) -> exception_t;
-    fn slotCapLongRunningDelete(t: *mut cte_t) -> bool;
-}
-
 #[no_mangle]
 pub fn setupCallerCap(sender: *const tcb_t, receiver: *const tcb_t, canGrant: bool) {
     unsafe {
@@ -278,9 +271,7 @@ pub fn setupCallerCap(sender: *const tcb_t, receiver: *const tcb_t, canGrant: bo
 #[no_mangle]
 pub fn deleteCallerCap(receiver: *mut tcb_t) {
     let callerSlot = getCSpace(receiver as usize, tcbCaller);
-    unsafe {
-        cteDeleteOne(callerSlot);
-    }
+    cteDeleteOne(callerSlot);
 }
 
 #[no_mangle]
@@ -513,9 +504,7 @@ pub fn invokeTCB_ReadRegisters(
             wordFromMEssageInfo(seL4_MessageInfo_new(0, 0, 0, i + j)),
         );
     }
-    unsafe {
-        setThreadState(thread, ThreadStateRunning);
-    }
+    setThreadState(thread, ThreadStateRunning);
     exception_t::EXCEPTION_NONE
 }
 
@@ -588,18 +577,13 @@ pub fn decodeWriteRegisters(cap: &cap_t, length: usize, buffer: *mut usize) -> e
     let thread = cap_thread_cap_get_capTCBPtr(cap) as *mut tcb_t;
     unsafe {
         if thread == ksCurThread {
-                println!("TCB WriteRegisters: Attempted to write our own registers.");
-                current_syscall_error._type = seL4_IllegalOperation;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
+            println!("TCB WriteRegisters: Attempted to write our own registers.");
+            current_syscall_error._type = seL4_IllegalOperation;
+            return exception_t::EXCEPTION_SYSCALL_ERROR;
         }
         setThreadState(ksCurThread as *mut tcb_t, ThreadStateRestart);
     }
     invokeTCB_WriteRegisters(thread, flags & BIT!(0), w, 0, buffer)
-}
-
-#[link(name = "kernel_all.c")]
-extern "C" {
-    // fn updateCapData(preserve: bool, newData: usize, cap: *const cap_t) -> *const cap_t;
 }
 
 #[no_mangle]
@@ -614,8 +598,8 @@ pub fn decodeTCBConfigure(
     let mut vRootCap: cap_t;
     let mut dc_ret: deriveCap_ret;
     let mut bufferSlot: *mut cte_t;
-    let mut cRootSlot: *mut cte_t;
-    let mut vRootSlot: *mut cte_t;
+    let cRootSlot: *mut cte_t;
+    let vRootSlot: *mut cte_t;
     let cRootData: usize;
     let vRootData: usize;
     let bufferAddr: usize;
@@ -664,8 +648,8 @@ pub fn decodeTCBConfigure(
             || slotCapLongRunningDelete(getCSpace(cap_thread_cap_get_capTCBPtr(cap), tcbVTable))
         {
             println!("TCB Configure: CSpace or VSpace currently being deleted.");
-                current_syscall_error._type = seL4_IllegalOperation;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
+            current_syscall_error._type = seL4_IllegalOperation;
+            return exception_t::EXCEPTION_SYSCALL_ERROR;
         }
     }
     if cRootData != 0 {

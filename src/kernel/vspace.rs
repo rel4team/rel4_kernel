@@ -18,7 +18,7 @@ use crate::{
     },
     kernel::boot::current_syscall_error,
     object::{
-        cap::{cteInsert, ensureEmptySlot, isFinalCapability},
+        cap::{cteInsert, ensureEmptySlot, ensureNoChildren, isFinalCapability},
         objecttype::{
             cap_asid_control_cap, cap_asid_pool_cap, cap_frame_cap, cap_get_capPtr,
             cap_get_capType, cap_page_table_cap, cap_untyped_cap,
@@ -58,7 +58,7 @@ use super::{
         ndks_boot, provide_cap, rootserver, write_slot,
     },
     cspace::rust_lookupTargetSlot,
-    thread::{getCSpace, ksCurThread, setMR, setRegister},
+    thread::{getCSpace, ksCurThread, setMR, setRegister, setThreadState},
     transfermsg::{
         rightsFromWord, seL4_CapRights_get_capAllowRead, seL4_CapRights_get_capAllowWrite,
         seL4_MessageInfo_new, vmAttributesFromWord, vm_attributes_get_riscvExecuteNever,
@@ -76,11 +76,6 @@ pub fn hwASIDFlush(asid: asid_t) {
     unsafe {
         asm!("sfence.vma x0, {0}",in(reg) asid);
     }
-}
-#[link(name = "kernel_all.c")]
-extern "C" {
-    fn setThreadState(t: *mut tcb_t, ts: usize);
-    fn ensureNoChildren(t: *mut cte_t) -> exception_t;
 }
 
 #[no_mangle]
@@ -488,7 +483,7 @@ pub extern "C" fn lookupIPCBuffer(isReceiver: bool, thread: *mut tcb_t) -> usize
 }
 
 #[no_mangle]
-pub fn handleVMFault(thread: *mut tcb_t, _type: usize) -> exception_t {
+pub fn handleVMFault(_thread: *mut tcb_t, _type: usize) -> exception_t {
     let addr = read_stval();
     match _type {
         RISCVLoadPageFault | RISCVLoadAccessFault => {
@@ -537,13 +532,11 @@ pub fn performASIDControlInvocation(
         );
     }
     clearMemory(frame as *mut u8, pageBitsForSize(RISCV_4K_Page));
-    unsafe {
-        cteInsert(
-            &cap_asid_pool_cap_new(asid_base, frame as usize),
-            parent,
-            slot,
-        );
-    }
+    cteInsert(
+        &cap_asid_pool_cap_new(asid_base, frame as usize),
+        parent,
+        slot,
+    );
     assert!((asid_base & MASK!(asidLowBits)) == 0);
     unsafe {
         riscvKSASIDTable[asid_base >> asidLowBits] = frame as usize as *mut asid_pool_t;
@@ -1102,7 +1095,7 @@ pub fn decodeRISCVPageTableInvocation(
 pub fn decodeRISCVMMUInvocation(
     label: usize,
     length: usize,
-    cptr: usize,
+    _cptr: usize,
     cte: *mut cte_t,
     cap: &mut cap_t,
     call: bool,
@@ -1162,7 +1155,7 @@ pub fn decodeRISCVMMUInvocation(
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
             }
 
-            let status = unsafe { ensureNoChildren(parentSlot) };
+            let status = ensureNoChildren(parentSlot);
 
             if status != exception_t::EXCEPTION_NONE {
                 return status;
