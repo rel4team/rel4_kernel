@@ -312,3 +312,19 @@ pub const seL4_NotificationObject: usize = 3;
 pub const seL4_CapTableObject: usize = 4;
 pub const seL4_NonArchObjectTypeCount: usize = 5;
 pub const seL4_ObjectTypeCount: usize = 9;
+
+pub const SysCall: isize = -1;
+pub const SysReplyRecv: isize = -2;
+pub const SysSend: isize = -3;
+pub const SysNBSend: isize = -4;
+pub const SysRecv: isize = -5;
+pub const SysReply: isize = -6;
+pub const SysYield: isize = -7;
+pub const SysNBRecv: isize = -8;
+
+//seL4_VMFault_Msg
+pub const seL4_VMFault_IP: usize = 0;
+pub const seL4_VMFault_Addr: usize = 1;
+pub const seL4_VMFault_PrefetchFault: usize = 2;
+pub const seL4_VMFault_FSR: usize = 3;
+pub const seL4_VMFault_Length: usize = 4;

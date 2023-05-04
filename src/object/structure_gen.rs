@@ -1534,7 +1534,8 @@ pub fn seL4_Fault_UnknownSyscall_new(syscallNumber: usize) -> seL4_Fault_t {
 
 #[inline]
 pub fn seL4_Fault_UnknownSyscall_get_syscallNumber(seL4_Fault: &seL4_Fault_t) -> usize {
-    (seL4_Fault.words[0] & 0x8000000000000000usize) >> 63
+    let ret = (seL4_Fault.words[1] & 0xffffffffffffffffusize) >> 0;
+    ret
 }
 
 #[inline]

@@ -187,6 +187,7 @@ pub fn idle_thread() {
     }
 }
 
+#[no_mangle]
 pub fn setMR(receiver: *mut tcb_t, receivedBuffer: *mut usize, offset: usize, reg: usize) -> usize {
     if offset >= n_msgRegisters {
         if receivedBuffer as usize != 0 {

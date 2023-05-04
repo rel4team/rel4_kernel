@@ -1,6 +1,6 @@
 use core::arch::asm;
 
-use crate::{config::RESET_CYCLES, sbi::set_timer, println};
+use crate::{config::RESET_CYCLES, sbi::set_timer};
 
 pub fn read_stval() -> usize {
     let temp: usize;
@@ -28,6 +28,30 @@ pub fn read_time() -> usize {
     let temp: usize;
     unsafe {
         asm!("rdtime {}",out(reg)temp);
+    }
+    temp
+}
+
+pub fn read_scause() -> usize {
+    let temp: usize;
+    unsafe {
+        asm!("csrr {}, scause",out(reg)temp);
+    }
+    temp
+}
+
+pub fn read_sepc() -> usize {
+    let temp: usize;
+    unsafe {
+        asm!("csrr {}, sepc",out(reg)temp);
+    }
+    temp
+}
+
+pub fn read_sstatus() -> usize {
+    let temp: usize;
+    unsafe {
+        asm!("csrr {}, sstatus",out(reg)temp);
     }
     temp
 }
