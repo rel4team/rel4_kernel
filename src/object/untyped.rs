@@ -73,7 +73,6 @@ pub fn resetUntypedCap(srcSlot: *mut cte_t) -> exception_t {
             cap_untyped_cap_set_capFreeIndex(prev_cap, 0);
         } else {
             let mut offset: isize = ROUND_DOWN!(offset - 1, chunk) as isize;
-            //FIXEME::why - BIT??
             while offset != -(BIT!(chunk) as isize) {
                 clearMemory(
                     GET_OFFSET_FREE_PTR(regionBase, offset as usize) as *mut u8,

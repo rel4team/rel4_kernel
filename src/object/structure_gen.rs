@@ -1587,19 +1587,3 @@ pub fn seL4_Fault_VMFault_get_instructionFault(seL4_Fault: &seL4_Fault_t) -> usi
     (seL4_Fault.words[0] & 0x80000usize) >> 19
 }
 
-// #[inline]
-// pub fn cap_asid_pool_cap_new(capASIDBase: usize, capASIDPool: usize) -> cap_t {
-//     cap_t {
-//         words: [
-//             0 | (cap_asid_pool_cap & 0x1fusize) << 59
-//                 | (capASIDBase & 0xffffusize) << 43
-//                 | (capASIDPool & 0x7ffffffffcusize) >> 2,
-//             0,
-//         ],
-//     }
-// }
-
-// #[inline]
-// pub fn cap_asid_pool_cap_get_capASIDBase(&cap:cap_t)->usize{
-//     (cap.words[0] & 0x7fff80000000000ull) >> 43
-// }
