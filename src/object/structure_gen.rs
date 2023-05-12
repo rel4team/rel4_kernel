@@ -168,10 +168,6 @@ pub fn cap_get_capType(cap: &cap_t) -> usize {
     (cap.words[0] >> 59) & 0x1fusize
 }
 
-#[inline]
-pub fn cap_capType_equals(cap: &cap_t, cap_type_tag: usize) -> i32 {
-    (((cap.words[0] >> 59) & 0x1fusize) == cap_type_tag) as i32
-}
 
 #[inline]
 pub fn cap_null_cap_new() -> cap_t {
@@ -392,9 +388,7 @@ pub fn cap_endpoint_cap_set_capEPBadge(cap: &mut cap_t, v64: usize) {
 }
 
 #[inline]
-pub fn cap_endpoint_cap_get_capCanGrantReply(_cap: *const cap_t) -> usize {
-    unsafe {
-        let cap = *_cap;
+pub fn cap_endpoint_cap_get_capCanGrantReply(cap: & cap_t) -> usize {
         let mut ret: usize;
         assert!(((cap.words[0] >> 59) & 0x1f) == cap_tag_t::cap_endpoint_cap as usize);
 
@@ -404,7 +398,6 @@ pub fn cap_endpoint_cap_get_capCanGrantReply(_cap: *const cap_t) -> usize {
             ret |= 0x0;
         }
         return ret;
-    }
 }
 
 #[inline]

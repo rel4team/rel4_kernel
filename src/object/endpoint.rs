@@ -11,7 +11,7 @@ use crate::{
             doIPCTransfer, doNBRecvFailedTransfer, getCSpace, ksCurThread, possibleSwitchTo,
             rescheduleRequired, scheduleTCB, setMRs_syscall_error, setRegister, setThreadState,
         },
-        transfermsg::{seL4_MessageInfo_new, wordFromMEssageInfo},
+        transfermsg::{seL4_MessageInfo_new, wordFromMessageInfo},
         vspace::lookupIPCBuffer,
     },
     object::{
@@ -269,7 +269,7 @@ pub fn replyFromKernel_error(thread: *mut tcb_t) {
         setRegister(
             thread,
             msgInfoRegister,
-            wordFromMEssageInfo(seL4_MessageInfo_new(current_syscall_error._type, 0, 0, len)),
+            wordFromMessageInfo(seL4_MessageInfo_new(current_syscall_error._type, 0, 0, len)),
         );
     }
 }
@@ -280,7 +280,7 @@ pub fn replyFromKernel_success_empty(thread: *mut tcb_t) {
     setRegister(
         thread,
         msgInfoRegister,
-        wordFromMEssageInfo(seL4_MessageInfo_new(0, 0, 0, 0)),
+        wordFromMessageInfo(seL4_MessageInfo_new(0, 0, 0, 0)),
     );
 }
 

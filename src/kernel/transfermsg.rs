@@ -50,7 +50,7 @@ pub fn wordFromVMRights(rights: usize) -> usize {
 }
 
 #[inline]
-pub fn wordFromMEssageInfo(mi: seL4_MessageInfo_t) -> usize {
+pub fn wordFromMessageInfo(mi: seL4_MessageInfo_t) -> usize {
     mi.words[0]
 }
 

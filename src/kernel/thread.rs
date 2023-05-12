@@ -51,7 +51,7 @@ use super::{
         capTransferFromWords, messageInfoFromWord, seL4_MessageInfo_new,
         seL4_MessageInfo_ptr_get_capsUnwrapped, seL4_MessageInfo_ptr_get_length,
         seL4_MessageInfo_ptr_set_capsUnwrapped, seL4_MessageInfo_ptr_set_extraCaps,
-        seL4_MessageInfo_ptr_set_length, wordFromMEssageInfo,
+        seL4_MessageInfo_ptr_set_length, wordFromMessageInfo,
     },
     vspace::{lookupIPCBuffer, setVMRoot},
 };
@@ -420,7 +420,7 @@ pub fn doFaultTransfer(
             sent,
         )
     };
-    setRegister(receiver, msgInfoRegister, wordFromMEssageInfo(msgInfo));
+    setRegister(receiver, msgInfoRegister, wordFromMessageInfo(msgInfo));
     setRegister(receiver, badgeRegister, badge);
 }
 
@@ -734,7 +734,7 @@ pub fn doNormalTransfer(
         (&tag) as *const seL4_MessageInfo_t as *mut seL4_MessageInfo_t,
         msgTransferred,
     );
-    setRegister(receiver, msgInfoRegister, wordFromMEssageInfo(tag));
+    setRegister(receiver, msgInfoRegister, wordFromMessageInfo(tag));
     setRegister(receiver, badgeRegister, badge);
 }
 

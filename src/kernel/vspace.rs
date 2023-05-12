@@ -62,7 +62,7 @@ use super::{
     transfermsg::{
         rightsFromWord, seL4_CapRights_get_capAllowRead, seL4_CapRights_get_capAllowWrite,
         seL4_MessageInfo_new, vmAttributesFromWord, vm_attributes_get_riscvExecuteNever,
-        wordFromMEssageInfo,
+        wordFromMessageInfo,
     },
 };
 
@@ -782,7 +782,7 @@ pub fn performPageGetAddress(vbase_ptr: usize, call: bool) -> exception_t {
             setRegister(
                 thread,
                 msgInfoRegister,
-                wordFromMEssageInfo(seL4_MessageInfo_new(0, 0, 0, length)),
+                wordFromMessageInfo(seL4_MessageInfo_new(0, 0, 0, length)),
             );
         }
         setThreadState(thread, ThreadStateRestart);

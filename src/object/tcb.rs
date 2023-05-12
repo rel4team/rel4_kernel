@@ -22,7 +22,7 @@ use crate::{
             setMCPriority, setNextPC, setPriority, setRegister, setThreadState, suspend, TLS_BASE,
         },
         transfermsg::{
-            seL4_MessageInfo_new, seL4_MessageInfo_ptr_get_extraCaps, wordFromMEssageInfo,
+            seL4_MessageInfo_new, seL4_MessageInfo_ptr_get_extraCaps, wordFromMessageInfo,
         },
         vspace::{checkValidIPCBuffer, isValidVTableRoot, lookupIPCBuffer},
     },
@@ -501,7 +501,7 @@ pub fn invokeTCB_ReadRegisters(
         setRegister(
             thread,
             msgInfoRegister,
-            wordFromMEssageInfo(seL4_MessageInfo_new(0, 0, 0, i + j)),
+            wordFromMessageInfo(seL4_MessageInfo_new(0, 0, 0, i + j)),
         );
     }
     setThreadState(thread, ThreadStateRunning);

@@ -8,3 +8,4 @@ pub mod thread;
 pub mod transfermsg;
 pub mod vspace;
 pub mod c_traps;
+pub mod fastpath;

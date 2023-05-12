@@ -122,6 +122,7 @@ pub const SIE_MEIE: usize = 11;
 pub const seL4_MsgMaxLength: usize = 120;
 pub const msgInfoRegister: usize = 10;
 pub const badgeRegister: usize = 9;
+pub const seL4_MsgLengthBits:usize =7;
 pub const seL4_MsgExtraCapBits: usize = 2;
 pub const seL4_MsgMaxExtraCaps: usize = BIT!(seL4_MsgExtraCapBits) - 1;
 pub const n_msgRegisters: usize = 4;
@@ -328,3 +329,4 @@ pub const seL4_VMFault_Addr: usize = 1;
 pub const seL4_VMFault_PrefetchFault: usize = 2;
 pub const seL4_VMFault_FSR: usize = 3;
 pub const seL4_VMFault_Length: usize = 4;
+
