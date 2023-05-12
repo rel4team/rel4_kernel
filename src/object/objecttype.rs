@@ -107,8 +107,8 @@ pub fn cap_get_capType(cap: &cap_t) -> usize {
 }
 
 #[inline]
-pub fn cap_capType_equals(cap: &cap_t, cap_type_tag: usize) -> i32 {
-    (((cap.words[0] >> 59) & 0x1fusize) == cap_type_tag) as i32
+pub fn cap_capType_equals(cap: &cap_t, cap_type_tag: usize) -> bool {
+    ((cap.words[0] >> 59) & 0x1fusize) == cap_type_tag
 }
 
 pub fn cap_get_capPtr(cap: &cap_t) -> usize {

@@ -1040,7 +1040,6 @@ pub fn create_untypeds_for_region(
             }
         }
         reg.start += BIT!(size_bits);
-        // println!("start :{:#x} end:{:#x}",reg.start ,reg.end);
     }
     return true;
 }
