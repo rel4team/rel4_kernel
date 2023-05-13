@@ -32,6 +32,7 @@ mod structures;
 mod object;
 mod riscv;
 mod syscall;
+mod boot;
 
 
 struct Stdout;

@@ -6,7 +6,7 @@ use crate::{
         UntypedRetype, CONFIG_RESET_CHUNK_BITS, CONFIG_RETYPE_FAN_OUT_LIMIT,
     },
     kernel::{
-        boot::{clearMemory, current_extra_caps, current_lookup_fault, current_syscall_error},
+        boot::{current_extra_caps, current_lookup_fault, current_syscall_error},
         cspace::rust_lookupTargetSlot,
         thread::{ksCurThread, setThreadState},
     },
@@ -14,7 +14,7 @@ use crate::{
     println,
     structures::{cap_t, cte_t, exception_t},
     syscall::getSyscallArg,
-    BIT, MASK, ROUND_DOWN,
+    BIT, MASK, ROUND_DOWN, boot::clearMemory,
 };
 
 use super::{

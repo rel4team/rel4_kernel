@@ -9,7 +9,7 @@ use crate::{
         ThreadStateBlockedOnReceive, ThreadStateBlockedOnReply, ThreadStateBlockedOnSend,
         ThreadStateIdleThreadState, ThreadStateInactive, ThreadStateRestart, ThreadStateRunning,
         CONFIG_KERNEL_STACK_BITS, CONFIG_MAX_NUM_NODES, CONFIG_NUM_DOMAINS, L2_BITMAP_SIZE,
-        NUM_READY_QUEUES, SSTATUS_SPIE, SSTATUS_SPP,
+        NUM_READY_QUEUES, SSTATUS_SPIE, SSTATUS_SPP, TCB_OFFSET,
     },
     object::{
         cap::{cteDeleteOne, cteInsert},
@@ -136,6 +136,15 @@ pub const SSTATUS: usize = 32;
 pub const FaultIP: usize = 33;
 pub const NextIP: usize = 34;
 pub const n_contextRegisters: usize = 35;
+
+
+pub fn create_idle_thread() {
+    unsafe {
+        let pptr = ksIdleThreadTCB.as_ptr() as *mut usize;
+        ksIdleThread = pptr.add(TCB_OFFSET) as *mut tcb_t;
+        configureIdleThread(ksIdleThread as *const tcb_t);
+    }
+}
 
 #[inline]
 pub fn isStopped(thread: *const tcb_t) -> bool {

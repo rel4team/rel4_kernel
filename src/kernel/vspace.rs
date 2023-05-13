@@ -4,7 +4,7 @@ use riscv::register::satp;
 use crate::{
     config::{
         asidHighBits, asidInvalid, asidLowBits, badgeRegister, msgInfoRegister, nASIDPools,
-        n_msgRegisters, seL4_ASIDPoolBits, seL4_AlignmentError, seL4_CapInitThreadVspace,
+        n_msgRegisters, seL4_ASIDPoolBits, seL4_AlignmentError,
         seL4_DeleteFirst, seL4_FailedLookup, seL4_IPCBufferSizeBits, seL4_IllegalOperation,
         seL4_InvalidArgument, seL4_InvalidCapability, seL4_PageBits, seL4_PageTableBits,
         seL4_RevokeFirst, seL4_TruncatedMessage, tcbBuffer, tcbVTable, RISCVASIDControlMakePool,
@@ -49,13 +49,12 @@ use crate::{
     },
     syscall::getSyscallArg,
     utils::MAX_FREE_INDEX,
-    BIT, IS_ALIGNED, MASK, ROUND_DOWN,
+    BIT, IS_ALIGNED, MASK, ROUND_DOWN, boot::{rootserver, ndks_boot, provide_cap, clearMemory},
 };
 
 use super::{
     boot::{
-        clearMemory, current_extra_caps, current_fault, current_lookup_fault, it_alloc_paging,
-        ndks_boot, provide_cap, rootserver, write_slot,
+        current_extra_caps, current_fault, current_lookup_fault,
     },
     cspace::rust_lookupTargetSlot,
     thread::{getCSpace, ksCurThread, setMR, setRegister, setThreadState},
@@ -89,7 +88,7 @@ static mut kernel_image_level2_pt: [pte_t; BIT!(PT_INDEX_BITS)] =
     [pte_t { words: [0] }; BIT!(PT_INDEX_BITS)];
 
 #[no_mangle]
-static mut riscvKSASIDTable: [*mut asid_pool_t; BIT!(asidHighBits)] =
+pub static mut riscvKSASIDTable: [*mut asid_pool_t; BIT!(asidHighBits)] =
     [0 as *mut asid_pool_t; BIT!(asidHighBits)];
 
 #[inline]
@@ -187,11 +186,11 @@ pub fn RISCV_GET_PT_INDEX(addr: usize, n: usize) -> usize {
         & MASK!(PT_INDEX_BITS)
 }
 
-fn RISCV_GET_LVL_PGSIZE_BITS(n: usize) -> usize {
+pub fn RISCV_GET_LVL_PGSIZE_BITS(n: usize) -> usize {
     ((PT_INDEX_BITS) * (((CONFIG_PT_LEVELS) - 1) - (n))) + seL4_PageBits
 }
 
-fn RISCV_GET_LVL_PGSIZE(n: usize) -> usize {
+pub fn RISCV_GET_LVL_PGSIZE(n: usize) -> usize {
     BIT!(RISCV_GET_LVL_PGSIZE_BITS(n))
 }
 
@@ -349,35 +348,35 @@ pub fn map_it_frame_cap(_vspace_cap: &cap_t, _frame_cap: &cap_t) {
     }
 }
 
-pub fn rust_create_it_address_space(root_cnode_cap: &cap_t, it_v_reg: v_region_t) -> cap_t {
-    unsafe {
-        copyGlobalMappings(rootserver.vspace);
-        let lvl1pt_cap = cap_page_table_cap_new(IT_ASID, rootserver.vspace, 1, rootserver.vspace);
-        let ptr = cap_get_capPtr(root_cnode_cap) as *mut cte_t;
-        let slot_pos_before = ndks_boot.slot_pos_cur;
-        write_slot(ptr.add(seL4_CapInitThreadVspace), lvl1pt_cap.clone());
-        let mut i = 0;
-        while i < CONFIG_PT_LEVELS - 1 {
-            let mut pt_vptr = ROUND_DOWN!(it_v_reg.start, RISCV_GET_LVL_PGSIZE_BITS(i));
-            while pt_vptr < it_v_reg.end {
-                if !provide_cap(
-                    root_cnode_cap,
-                    create_it_pt_cap(&lvl1pt_cap, it_alloc_paging(), pt_vptr, IT_ASID),
-                ) {
-                    return cap_null_cap_new();
-                }
-                pt_vptr += RISCV_GET_LVL_PGSIZE(i);
-            }
-            i += 1;
-        }
-        let slot_pos_after = ndks_boot.slot_pos_cur;
-        (*ndks_boot.bi_frame).userImagePaging = seL4_SlotRegion {
-            start: slot_pos_before,
-            end: slot_pos_after,
-        };
-        lvl1pt_cap
-    }
-}
+// pub fn rust_create_it_address_space(root_cnode_cap: &cap_t, it_v_reg: v_region_t) -> cap_t {
+//     unsafe {
+//         copyGlobalMappings(rootserver.vspace);
+//         let lvl1pt_cap = cap_page_table_cap_new(IT_ASID, rootserver.vspace, 1, rootserver.vspace);
+//         let ptr = cap_get_capPtr(root_cnode_cap) as *mut cte_t;
+//         let slot_pos_before = ndks_boot.slot_pos_cur;
+//         write_slot(ptr.add(seL4_CapInitThreadVspace), lvl1pt_cap.clone());
+//         let mut i = 0;
+//         while i < CONFIG_PT_LEVELS - 1 {
+//             let mut pt_vptr = ROUND_DOWN!(it_v_reg.start, RISCV_GET_LVL_PGSIZE_BITS(i));
+//             while pt_vptr < it_v_reg.end {
+//                 if !provide_cap(
+//                     root_cnode_cap,
+//                     create_it_pt_cap(&lvl1pt_cap, it_alloc_paging(), pt_vptr, IT_ASID),
+//                 ) {
+//                     return cap_null_cap_new();
+//                 }
+//                 pt_vptr += RISCV_GET_LVL_PGSIZE(i);
+//             }
+//             i += 1;
+//         }
+//         let slot_pos_after = ndks_boot.slot_pos_cur;
+//         (*ndks_boot.bi_frame).userImagePaging = seL4_SlotRegion {
+//             start: slot_pos_before,
+//             end: slot_pos_after,
+//         };
+//         lvl1pt_cap
+//     }
+// }
 
 pub fn rust_create_unmapped_it_frame_cap(pptr: pptr_t, _use_large: bool) -> cap_t {
     cap_frame_cap_new(0, pptr, 0, 0, 0, 0)
