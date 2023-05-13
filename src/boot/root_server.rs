@@ -1,17 +1,16 @@
 use super::{calculate_extra_bi_size_bits};
-use super::utils::{arch_get_n_paging, write_slot, provide_cap, clearMemory};
+use super::utils::{arch_get_n_paging, write_slot, provide_cap, clearMemory, getCSpace, create_it_pt_cap};
 use super::{ndks_boot, utils::is_reg_empty};
+use crate::cspace::{cap::*, cte_insert};
 use crate::kernel::boot::ksDomSchedule;
-use crate::kernel::thread::{ksDomScheduleIdx, Arch_initContext, getCSpace, capRegister, setRegister, setNextPC, setThreadState, ksCurDomain, ksDomainTime};
-use crate::kernel::vspace::{copyGlobalMappings, create_it_pt_cap, map_it_frame_cap, rust_create_unmapped_it_frame_cap, riscvKSASIDTable, RISCV_GET_LVL_PGSIZE_BITS, RISCV_GET_LVL_PGSIZE, pptr_to_paddr};
-use crate::object::cap::cteInsert;
+use crate::kernel::thread::{ksDomScheduleIdx, Arch_initContext, capRegister, setRegister, setNextPC, setThreadState, ksCurDomain, ksDomainTime};
+use crate::kernel::vspace::{copyGlobalMappings, map_it_frame_cap, riscvKSASIDTable, RISCV_GET_LVL_PGSIZE_BITS, RISCV_GET_LVL_PGSIZE, pptr_to_paddr, pptr_t};
 use crate::object::cnode::setupReplyMaster;
 use crate::object::interrupt::setIRQState;
-use crate::object::objecttype::{cap_get_capType, cap_null_cap, cap_get_capPtr, deriveCap};
-use crate::object::structure_gen::{cap_cnode_cap_new, cap_domain_cap_new, cap_irq_control_cap_new, cap_page_table_cap_new, cap_null_cap_new, cap_frame_cap_new, cap_asid_pool_cap_new, cap_asid_control_cap_new, cap_thread_cap_new};
+use crate::structures::{region_t, rootserver_mem_t, v_region_t, tcb_t, exception_t, asid_pool_t, seL4_SlotRegion, create_frames_of_region_ret_t, seL4_BootInfo, seL4_IPCBuffer};
 use crate::{BIT, ROUND_DOWN, println};
 use crate::config::*;
-use crate::structures::*;
+use crate::cspace::cte_t;
 
 #[no_mangle]
 #[link_section = ".boot.bss"]
@@ -43,7 +42,7 @@ pub fn root_server_init(it_v_reg: v_region_t, extra_bi_size_bits: usize, ipcbuf_
     let root_cnode_cap = unsafe {
         create_root_cnode()
     };
-    if cap_get_capType(&root_cnode_cap) == cap_null_cap {
+    if root_cnode_cap.get_cap_type() == CapTag::CapNullCap {
         println!("ERROR: root c-node creation failed\n");
         return None;
     }
@@ -56,7 +55,7 @@ pub fn root_server_init(it_v_reg: v_region_t, extra_bi_size_bits: usize, ipcbuf_
     let it_pd_cap = unsafe {
         rust_create_it_address_space(&root_cnode_cap, it_v_reg)
     };
-    if cap_get_capType(&it_pd_cap) == cap_null_cap {
+    if it_pd_cap.get_cap_type() == CapTag::CapNullCap {
         println!("ERROR: address space creation for initial thread failed");
         return None;
     }
@@ -67,12 +66,12 @@ pub fn root_server_init(it_v_reg: v_region_t, extra_bi_size_bits: usize, ipcbuf_
     let ipcbuf_cap = unsafe {
         create_ipcbuf_frame_cap(&root_cnode_cap, &it_pd_cap, ipcbuf_vptr)
     };
-    if cap_get_capType(&ipcbuf_cap) == cap_null_cap {
+    if ipcbuf_cap.get_cap_type() == CapTag::CapNullCap {
         println!("ERROR: could not create IPC buffer for initial thread");
         return None;
     }
 
-    if cap_get_capType(&ipcbuf_cap) == cap_null_cap {
+    if ipcbuf_cap.get_cap_type() == CapTag::CapNullCap {
         println!("ERROR: could not create IPC buffer for initial thread");
         return None;
     }
@@ -118,25 +117,28 @@ unsafe fn create_initial_thread(
 
     (*tcb).tcbArch = Arch_initContext((*tcb).tcbArch);
 
-    let ptr = cap_get_capPtr(root_cnode_cap) as *mut cte_t;
-    let dc_ret = deriveCap(ptr.add(seL4_CapInitThreadIPCBuffer), &ipcbuf_cap.clone());
+    let ptr = root_cnode_cap.get_cap_ptr() as *mut cte_t;
+    let cte = unsafe {
+        &mut *(ptr.add(seL4_CapInitThreadIPCBuffer))
+    };
+    let dc_ret = cte.derive_cap(&ipcbuf_cap.clone());
     if dc_ret.status != exception_t::EXCEPTION_NONE {
         println!("Failed to derive copy of IPC Buffer\n");
         return 0 as *mut tcb_t;
     }
-    cteInsert(
+    cte_insert(
         &root_cnode_cap.clone(),
-        ptr.add(seL4_CapInitThreadCNode),
+        unsafe { &mut *(ptr.add(seL4_CapInitThreadCNode)) },
         getCSpace(rootserver.tcb, tcbCTable),
     );
-    cteInsert(
+    cte_insert(
         &it_pd_cap.clone(),
-        ptr.add(seL4_CapInitThreadVspace),
+        unsafe { &mut *(ptr.add(seL4_CapInitThreadVspace)) },
         getCSpace(rootserver.tcb, tcbVTable),
     );
-    cteInsert(
+    cte_insert(
         &dc_ret.cap.clone(),
-        ptr.add(seL4_CapInitThreadIPCBuffer),
+        unsafe { &mut *(ptr.add(seL4_CapInitThreadIPCBuffer)) },
         getCSpace(rootserver.tcb, tcbBuffer),
     );
     (*tcb).tcbIPCBuffer = ipcbuf_vptr;
@@ -159,14 +161,15 @@ unsafe fn create_initial_thread(
 
 fn asid_init(root_cnode_cap: cap_t, it_pd_cap: cap_t) -> bool {
     let it_ap_cap = create_it_asid_pool(&root_cnode_cap);
-    if cap_get_capType(&it_ap_cap) == cap_null_cap {
+    if it_ap_cap.get_cap_type() == CapTag::CapNullCap {
         println!("ERROR: could not create ASID pool for initial thread");
         return false;
     }
-    let ap = cap_get_capPtr(&it_ap_cap);
+    
     unsafe {
+        let ap = it_ap_cap.get_cap_ptr();
         let ptr = (ap + 8 * IT_ASID) as *mut usize;
-        *ptr = cap_get_capPtr(&it_pd_cap);
+        *ptr = it_pd_cap.get_cap_ptr();
         riscvKSASIDTable[IT_ASID >> asidLowBits] = ap as *mut asid_pool_t;
     }
     true
@@ -175,8 +178,8 @@ fn asid_init(root_cnode_cap: cap_t, it_pd_cap: cap_t) -> bool {
 
 fn create_it_asid_pool(root_cnode_cap: &cap_t) -> cap_t {
     let ap_cap = unsafe { cap_asid_pool_cap_new(IT_ASID >> asidLowBits, rootserver.asid_pool) };
-    let ptr = cap_get_capPtr(&root_cnode_cap) as *mut cte_t;
     unsafe {
+        let ptr = root_cnode_cap.get_cap_ptr() as *mut cte_t;
         write_slot(ptr.add(seL4_CapInitThreadASIDPool), ap_cap.clone());
         write_slot(ptr.add(seL4_CapASIDControl), cap_asid_control_cap_new());
     }
@@ -341,7 +344,7 @@ fn create_domain_cap(root_cnode_cap: &cap_t) {
     }
     let cap = cap_domain_cap_new();
     unsafe {
-        let pos = cap_get_capPtr(root_cnode_cap) as *mut cte_t;
+        let pos = root_cnode_cap.get_cap_ptr() as *mut cte_t;
         write_slot(pos.add(seL4_CapDomain), cap);
     }
 }
@@ -353,8 +356,8 @@ fn init_irqs(root_cnode_cap: &cap_t) {
         }
     }
     setIRQState(IRQTimer, KERNEL_TIMER_IRQ);
-    let ptr = cap_get_capPtr(&root_cnode_cap) as *mut cte_t;
     unsafe {
+        let ptr = root_cnode_cap.get_cap_ptr() as *mut cte_t;
         write_slot(ptr.add(seL4_CapIRQControl), cap_irq_control_cap_new());
     }
 }
@@ -362,7 +365,7 @@ fn init_irqs(root_cnode_cap: &cap_t) {
 unsafe fn rust_create_it_address_space(root_cnode_cap: &cap_t, it_v_reg: v_region_t) -> cap_t {
     copyGlobalMappings(rootserver.vspace);
     let lvl1pt_cap = cap_page_table_cap_new(IT_ASID, rootserver.vspace, 1, rootserver.vspace);
-    let ptr = cap_get_capPtr(root_cnode_cap) as *mut cte_t;
+    let ptr = root_cnode_cap.get_cap_ptr() as *mut cte_t;
     let slot_pos_before = ndks_boot.slot_pos_cur;
     write_slot(ptr.add(seL4_CapInitThreadVspace), lvl1pt_cap.clone());
     let mut i = 0;
@@ -473,7 +476,7 @@ unsafe fn create_bi_frame_cap(root_cnode_cap: &cap_t, pd_cap: &cap_t, vptr: usiz
         false,
         false,
     );
-    let ptr = cap_get_capPtr(root_cnode_cap) as *mut cte_t;
+    let ptr = root_cnode_cap.get_cap_ptr() as *mut cte_t;
     write_slot(ptr.add(seL4_CapBootInfoFrame), cap);
 }
 
@@ -492,8 +495,13 @@ pub fn rust_create_mapped_it_frame_cap(
         frame_size = RISCVPageBits;
     }
     let cap = cap_frame_cap_new(asid, pptr, frame_size, VMReadWrite, 0, vptr);
-    map_it_frame_cap(pd_cap, &cap);
+    map_it_frame_cap(&pd_cap.to_struture_cap(), &cap.to_struture_cap());
     cap
+}
+
+
+fn rust_create_unmapped_it_frame_cap(pptr: pptr_t, _use_large: bool) -> cap_t {
+    cap_frame_cap_new(0, pptr, 0, 0, 0, 0)
 }
 
 
@@ -533,7 +541,7 @@ unsafe fn create_ipcbuf_frame_cap(root_cnode_cap: &cap_t, pd_cap: &cap_t, vptr: 
         false,
         false,
     );
-    let ptr = cap_get_capPtr(root_cnode_cap) as *mut cte_t;
+    let ptr = root_cnode_cap.get_cap_ptr() as *mut cte_t;
     write_slot(ptr.add(seL4_CapInitThreadIPCBuffer), cap.clone());
     return cap;
 }

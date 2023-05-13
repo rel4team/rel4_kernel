@@ -1,4 +1,4 @@
-use core::{arch::asm, intrinsics::unlikely, mem::forget};
+use core::{arch::asm, intrinsics::unlikely};
 use riscv::register::satp;
 
 use crate::{
@@ -29,7 +29,7 @@ use crate::{
             cap_frame_cap_get_capFMappedASID, cap_frame_cap_get_capFMappedAddress,
             cap_frame_cap_get_capFSize, cap_frame_cap_get_capFVMRights, cap_frame_cap_new,
             cap_frame_cap_set_capFMappedASID, cap_frame_cap_set_capFMappedAddress,
-            cap_null_cap_new, cap_page_table_cap_get_capPTBasePtr,
+            cap_page_table_cap_get_capPTBasePtr,
             cap_page_table_cap_get_capPTIsMapped, cap_page_table_cap_get_capPTMappedASID,
             cap_page_table_cap_get_capPTMappedAddress, cap_page_table_cap_new,
             cap_page_table_cap_ptr_set_capPTIsMapped, cap_page_table_cap_set_capPTIsMapped,
@@ -45,11 +45,11 @@ use crate::{
     riscv::read_stval,
     structures::{
         asid_pool_t, cap_t, cte_t, exception_t, findVSpaceForASID_ret, lookupPTSlot_ret_t, pte_t,
-        satp_t, seL4_CapRights_t, seL4_SlotRegion, tcb_t, v_region_t,
+        satp_t, seL4_CapRights_t, tcb_t,
     },
     syscall::getSyscallArg,
     utils::MAX_FREE_INDEX,
-    BIT, IS_ALIGNED, MASK, ROUND_DOWN, boot::{ndks_boot, provide_cap, clearMemory},
+    BIT, IS_ALIGNED, MASK, ROUND_DOWN, boot::clearMemory,
 };
 
 use super::{

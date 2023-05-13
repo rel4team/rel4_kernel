@@ -356,6 +356,12 @@ pub fn getCSpace(ptr: usize, i: usize) -> *mut cte_t {
     }
 }
 
+pub fn getCSpaceRef(ptr: usize, i: usize) -> &'static mut cte_t {
+    unsafe {
+        &mut *(getCSpace(ptr, i))
+    }
+}
+
 #[no_mangle]
 pub fn Arch_switchToThread(tcb: *const tcb_t) {
     setVMRoot(tcb as *mut tcb_t);

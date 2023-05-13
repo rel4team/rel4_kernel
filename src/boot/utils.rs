@@ -1,6 +1,7 @@
-use crate::{structures::{region_t, p_region_t, v_region_t, mdb_node_t, cte_t, cap_t}, ROUND_UP, BIT, ROUND_DOWN, object::{structure_gen::{mdb_node_set_mdbRevocable, mdb_node_set_mdbFirstBadged}, objecttype::cap_get_capPtr}, println, utils::MAX_FREE_INDEX, MASK, kernel::vspace::{paddr_to_pptr, pptr_to_paddr, RISCV_GET_LVL_PGSIZE_BITS}};
+use crate::{structures::{region_t, p_region_t, v_region_t}, ROUND_UP, BIT, ROUND_DOWN, println, kernel::vspace::{paddr_to_pptr, pptr_to_paddr, RISCV_GET_LVL_PGSIZE_BITS, pptr_t, vptr_t, map_it_pt_cap}, MASK};
 use crate::config::*;
-
+use crate::cspace::cap::*;
+use crate::cspace::{cte_t, mdb_node_t};
 use super::ndks_boot;
 
 #[inline]
@@ -56,9 +57,9 @@ pub fn write_slot(ptr: *mut cte_t, cap: cap_t) {
     unsafe {
         (*ptr).cap = cap;
         (*ptr).cteMDBNode = mdb_node_t::default();
-
-        mdb_node_set_mdbRevocable(&mut (*ptr).cteMDBNode, 1);
-        mdb_node_set_mdbFirstBadged(&mut (*ptr).cteMDBNode, 1);
+        let mdb = &mut (*ptr).cteMDBNode;
+        mdb.set_revocable(1);
+        mdb.set_first_badged(1);
     }
 }
 
@@ -72,7 +73,7 @@ pub fn provide_cap(root_cnode_cap: &cap_t, cap: cap_t) -> bool {
             );
             return false;
         }
-        let ptr = cap_get_capPtr(root_cnode_cap) as *mut cte_t;
+        let ptr = root_cnode_cap.get_cap_ptr() as *mut cte_t;
         write_slot(ptr.add(ndks_boot.slot_pos_cur), cap);
         ndks_boot.slot_pos_cur += 1;
         return true;
@@ -87,3 +88,15 @@ pub fn clearMemory(ptr: *mut u8, bits: usize) {
 }
 
 
+pub fn getCSpace(ptr: usize, i: usize) -> &'static mut cte_t {
+    unsafe {
+        let p = (ptr & !MASK!(seL4_TCBBits)) as *mut cte_t;
+        &mut *(p.add(i))
+    }
+}
+
+pub fn create_it_pt_cap(vspace_cap: &cap_t, pptr: pptr_t, vptr: vptr_t, asid: usize) -> cap_t {
+    let cap = cap_page_table_cap_new(asid, pptr, 1, vptr);
+    map_it_pt_cap(&vspace_cap.to_struture_cap(), &cap.to_struture_cap());
+    return cap;
+}

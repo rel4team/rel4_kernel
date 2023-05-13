@@ -24,11 +24,7 @@ pub static mut avail_p_regs_addr: usize = 0;
 pub static mut avail_p_regs_size: usize = 0;
 
 
-pub fn init_freemem(ui_reg: region_t,
-    dtb_p_reg: p_region_t,
-    it_v_reg: v_region_t,
-    extra_bi_size_bits: usize
-) -> bool {
+pub fn init_freemem(ui_reg: region_t, dtb_p_reg: p_region_t) -> bool {
     extern "C" {
         fn ki_end();
     }
@@ -61,8 +57,6 @@ pub fn init_freemem(ui_reg: region_t,
             avail_p_regs_addr,
             index,
             res_reg.clone(),
-            it_v_reg,
-            extra_bi_size_bits,
         )
     }
 }
@@ -73,8 +67,6 @@ fn rust_init_freemem(
     available: usize,
     n_reserved: usize,
     reserved: [region_t; NUM_RESERVED_REGIONS],
-    it_v_reg: v_region_t,
-    extra_bi_size_bits: usize,
 ) -> bool {
     if !check_available_memory(n_available, available)
         || !check_reserved_memory(n_reserved, reserved.clone())
