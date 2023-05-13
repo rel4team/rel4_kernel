@@ -59,7 +59,6 @@ pub fn write_slot(ptr: *mut cte_t, cap: cap_t) {
 
         mdb_node_set_mdbRevocable(&mut (*ptr).cteMDBNode, 1);
         mdb_node_set_mdbFirstBadged(&mut (*ptr).cteMDBNode, 1);
-        // forget(*ptr);
     }
 }
 

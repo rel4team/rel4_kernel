@@ -20,6 +20,6 @@ pub fn rust_try_init_kernel(ui_p_reg_start: usize,
     v_entry: usize,
     dtb_phys_addr: usize,
     dtb_size: usize) -> bool {
-    
+
     try_init_kernel(ui_p_reg_start, ui_p_reg_end, pv_offset, v_entry, dtb_phys_addr, dtb_size, ki_boot_end as usize)
 }
