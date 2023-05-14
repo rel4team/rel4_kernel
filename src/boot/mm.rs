@@ -18,20 +18,11 @@ static mut avail_reg: [region_t; MAX_NUM_FREEMEM_REG] =
     [region_t { start: 0, end: 0 }; MAX_NUM_FREEMEM_REG];
 
 #[link_section = ".boot.bss"]
-static mut avail_p_regs_addr: usize = 0;
+pub static mut avail_p_regs_addr: usize = 0;
 
 #[link_section = ".boot.bss"]
-static mut avail_p_regs_size: usize = 0;
+pub static mut avail_p_regs_size: usize = 0;
 
-
-#[no_mangle]
-pub fn pRegsToR(ptr: *const usize, size: usize) {
-    unsafe {
-        avail_p_regs_addr = ptr as usize;
-        avail_p_regs_size = size;
-        // println!("{:#x} {:#x}", avail_p_regs_addr, avail_p_regs_size);
-    }
-}
 
 pub fn init_freemem(ui_reg: region_t,
     dtb_p_reg: p_region_t,

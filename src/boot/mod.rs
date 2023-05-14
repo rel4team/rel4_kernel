@@ -3,25 +3,26 @@ mod mm;
 mod root_server;
 mod untyped;
 mod utils;
+mod interface;
 
-use core::mem::{forget, size_of};
+use core::mem::size_of;
 
 use riscv::register::stvec;
 use riscv::register::utvec::TrapMode;
 
 use crate::boot::mm::init_freemem;
-use crate::boot::root_server::{root_server_init, rootserver_mem};
+use crate::boot::root_server::root_server_init;
 use crate::boot::untyped::create_untypeds;
 use crate::boot::utils::paddr_to_pptr_reg;
 use crate::config::KERNEL_ELF_BASE;
-use crate::kernel::thread::{ksSchedulerAction, ksCurThread, ksIdleThread, create_idle_thread, getCSpace, ksIdleThreadTCB};
+use crate::kernel::thread::{ksSchedulerAction, ksCurThread, ksIdleThread, create_idle_thread};
 use crate::object::interrupt::set_sie_mask;
 use crate::sbi::{set_timer, get_time};
 use crate::{structures::*, BIT, println, ROUND_UP};
 use crate::kernel::vspace::{rust_map_kernel_window, activate_kernel_vspace, kpptr_to_paddr, paddr_to_pptr};
 use crate::config::*;
 
-pub use root_server::{rootserver, it_alloc_paging};
+pub use root_server::rootserver;
 pub use utils::{write_slot, provide_cap, clearMemory};
 
 
@@ -95,18 +96,68 @@ fn init_dtb(dtb_size: usize, dtb_phys_addr: usize, extra_bi_size:&mut usize) -> 
     Some(dtb_p_reg)
 }
 
-#[no_mangle]
-pub extern "C" fn rust_try_init_kernel(
+
+fn init_bootinfo(dtb_size: usize, dtb_phys_addr: usize, extra_bi_size: usize) {
+    let mut extra_bi_offset = 0;
+    let mut header: seL4_BootInfoHeader = seL4_BootInfoHeader { id: 0, len: 0 };
+    if dtb_size > 0 {
+        header.id = SEL4_BOOTINFO_HEADER_FDT;
+        header.len = size_of::<seL4_BootInfoHeader>() + dtb_size;
+        unsafe {
+            *((rootserver.extra_bi + extra_bi_offset) as *mut seL4_BootInfoHeader) = header.clone();
+        }
+        extra_bi_offset += size_of::<seL4_BootInfoHeader>();
+        let src = unsafe {
+            core::slice::from_raw_parts(paddr_to_pptr(dtb_phys_addr) as *const u8, dtb_size)
+        };
+        unsafe {
+            let dst = core::slice::from_raw_parts_mut(
+                (rootserver.extra_bi + extra_bi_offset) as *mut u8,
+                dtb_size,
+            );
+            dst.copy_from_slice(src);
+        }
+    }
+    if extra_bi_size > extra_bi_offset {
+        header.id = SEL4_BOOTINFO_HEADER_PADDING;
+        header.len = extra_bi_size - extra_bi_offset;
+        unsafe {
+            *((rootserver.extra_bi + extra_bi_offset) as *mut seL4_BootInfoHeader) = header.clone();
+        }
+    }
+}
+
+fn bi_finalise(dtb_size: usize, dtb_phys_addr: usize, extra_bi_size: usize,) {
+    unsafe {
+        (*ndks_boot.bi_frame).empty = seL4_SlotRegion {
+            start: ndks_boot.slot_pos_cur,
+            end: BIT!(CONFIG_ROOT_CNODE_SIZE_BITS),
+        };
+    }
+    init_bootinfo(dtb_size, dtb_phys_addr, extra_bi_size);
+}
+
+fn init_core_state(scheduler_action: *mut tcb_t) {
+    unsafe {
+        if scheduler_action as usize != 0 && scheduler_action as usize != 1 {
+            tcbDebugAppend(scheduler_action);
+        }
+        tcbDebugAppend(ksIdleThread);
+        ksSchedulerAction = scheduler_action as *mut tcb_t;
+        ksCurThread = ksIdleThread;
+    }
+}
+
+
+pub fn try_init_kernel(
     ui_p_reg_start: usize,
     ui_p_reg_end: usize,
     pv_offset: isize,
     v_entry: usize,
     dtb_phys_addr: usize,
     dtb_size: usize,
+    ki_boot_end: usize
 ) -> bool {
-    extern "C" {
-        fn ki_boot_end();
-    }
     let boot_mem_reuse_p_reg = p_region_t {
         start: kpptr_to_paddr(KERNEL_ELF_BASE),
         end: kpptr_to_paddr(ki_boot_end as usize),
@@ -118,7 +169,6 @@ pub extern "C" fn rust_try_init_kernel(
     });
 
     let mut extra_bi_size = 0;
-    let mut extra_bi_offset = 0;
     let ui_v_reg = v_region_t {
         start: (ui_p_reg_start as isize - pv_offset) as usize,
         end: (ui_p_reg_end as isize - pv_offset) as usize,
@@ -186,55 +236,4 @@ pub extern "C" fn rust_try_init_kernel(
     }
     
     true
-}
-
-fn init_bootinfo(dtb_size: usize, dtb_phys_addr: usize, extra_bi_size: usize) {
-    let mut extra_bi_offset = 0;
-    let mut header: seL4_BootInfoHeader = seL4_BootInfoHeader { id: 0, len: 0 };
-    if dtb_size > 0 {
-        header.id = SEL4_BOOTINFO_HEADER_FDT;
-        header.len = size_of::<seL4_BootInfoHeader>() + dtb_size;
-        unsafe {
-            *((rootserver.extra_bi + extra_bi_offset) as *mut seL4_BootInfoHeader) = header.clone();
-        }
-        extra_bi_offset += size_of::<seL4_BootInfoHeader>();
-        let src = unsafe {
-            core::slice::from_raw_parts(paddr_to_pptr(dtb_phys_addr) as *const u8, dtb_size)
-        };
-        unsafe {
-            let dst = core::slice::from_raw_parts_mut(
-                (rootserver.extra_bi + extra_bi_offset) as *mut u8,
-                dtb_size,
-            );
-            dst.copy_from_slice(src);
-        }
-    }
-    if extra_bi_size > extra_bi_offset {
-        header.id = SEL4_BOOTINFO_HEADER_PADDING;
-        header.len = extra_bi_size - extra_bi_offset;
-        unsafe {
-            *((rootserver.extra_bi + extra_bi_offset) as *mut seL4_BootInfoHeader) = header.clone();
-        }
-    }
-}
-
-fn bi_finalise(dtb_size: usize, dtb_phys_addr: usize, extra_bi_size: usize,) {
-    unsafe {
-        (*ndks_boot.bi_frame).empty = seL4_SlotRegion {
-            start: ndks_boot.slot_pos_cur,
-            end: BIT!(CONFIG_ROOT_CNODE_SIZE_BITS),
-        };
-    }
-    init_bootinfo(dtb_size, dtb_phys_addr, extra_bi_size);
-}
-
-fn init_core_state(scheduler_action: *mut tcb_t) {
-    unsafe {
-        if scheduler_action as usize != 0 && scheduler_action as usize != 1 {
-            tcbDebugAppend(scheduler_action);
-        }
-        tcbDebugAppend(ksIdleThread);
-        ksSchedulerAction = scheduler_action as *mut tcb_t;
-        ksCurThread = ksIdleThread;
-    }
 }

@@ -49,7 +49,7 @@ use crate::{
     },
     syscall::getSyscallArg,
     utils::MAX_FREE_INDEX,
-    BIT, IS_ALIGNED, MASK, ROUND_DOWN, boot::{rootserver, ndks_boot, provide_cap, clearMemory},
+    BIT, IS_ALIGNED, MASK, ROUND_DOWN, boot::{ndks_boot, provide_cap, clearMemory},
 };
 
 use super::{
@@ -348,35 +348,6 @@ pub fn map_it_frame_cap(_vspace_cap: &cap_t, _frame_cap: &cap_t) {
     }
 }
 
-// pub fn rust_create_it_address_space(root_cnode_cap: &cap_t, it_v_reg: v_region_t) -> cap_t {
-//     unsafe {
-//         copyGlobalMappings(rootserver.vspace);
-//         let lvl1pt_cap = cap_page_table_cap_new(IT_ASID, rootserver.vspace, 1, rootserver.vspace);
-//         let ptr = cap_get_capPtr(root_cnode_cap) as *mut cte_t;
-//         let slot_pos_before = ndks_boot.slot_pos_cur;
-//         write_slot(ptr.add(seL4_CapInitThreadVspace), lvl1pt_cap.clone());
-//         let mut i = 0;
-//         while i < CONFIG_PT_LEVELS - 1 {
-//             let mut pt_vptr = ROUND_DOWN!(it_v_reg.start, RISCV_GET_LVL_PGSIZE_BITS(i));
-//             while pt_vptr < it_v_reg.end {
-//                 if !provide_cap(
-//                     root_cnode_cap,
-//                     create_it_pt_cap(&lvl1pt_cap, it_alloc_paging(), pt_vptr, IT_ASID),
-//                 ) {
-//                     return cap_null_cap_new();
-//                 }
-//                 pt_vptr += RISCV_GET_LVL_PGSIZE(i);
-//             }
-//             i += 1;
-//         }
-//         let slot_pos_after = ndks_boot.slot_pos_cur;
-//         (*ndks_boot.bi_frame).userImagePaging = seL4_SlotRegion {
-//             start: slot_pos_before,
-//             end: slot_pos_after,
-//         };
-//         lvl1pt_cap
-//     }
-// }
 
 pub fn rust_create_unmapped_it_frame_cap(pptr: pptr_t, _use_large: bool) -> cap_t {
     cap_frame_cap_new(0, pptr, 0, 0, 0, 0)
@@ -752,7 +723,7 @@ pub fn updatePTE(pte: pte_t, base: *mut pte_t) -> exception_t {
     unsafe {
         *base = pte;
         sfence();
-        forget(*base);
+        // forget(*base);
         exception_t::EXCEPTION_NONE
     }
 }

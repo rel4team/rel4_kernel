@@ -1,5 +1,3 @@
-use core::mem::forget;
-
 use crate::{structures::{region_t, p_region_t, v_region_t, mdb_node_t, cte_t, cap_t}, ROUND_UP, BIT, ROUND_DOWN, object::{structure_gen::{mdb_node_set_mdbRevocable, mdb_node_set_mdbFirstBadged}, objecttype::cap_get_capPtr}, println, utils::MAX_FREE_INDEX, MASK, kernel::vspace::{paddr_to_pptr, pptr_to_paddr, RISCV_GET_LVL_PGSIZE_BITS}};
 use crate::config::*;
 
@@ -61,7 +59,7 @@ pub fn write_slot(ptr: *mut cte_t, cap: cap_t) {
 
         mdb_node_set_mdbRevocable(&mut (*ptr).cteMDBNode, 1);
         mdb_node_set_mdbFirstBadged(&mut (*ptr).cteMDBNode, 1);
-        forget(*ptr);
+        // forget(*ptr);
     }
 }
 

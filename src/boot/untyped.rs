@@ -69,7 +69,7 @@ pub fn create_untypeds(root_cnode_cap: &cap_t, boot_mem_reuse_reg: region_t) -> 
 }
 
 
-pub fn create_untypeds_for_region(
+fn create_untypeds_for_region(
     root_cnode_cap: &cap_t,
     device_memory: bool,
     mut reg: region_t,
@@ -104,7 +104,7 @@ pub fn create_untypeds_for_region(
     return true;
 }
 
-pub fn provide_untyped_cap(
+fn provide_untyped_cap(
     root_cnode_cap: &cap_t,
     device_memory: bool,
     pptr: usize,
