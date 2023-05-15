@@ -1,6 +1,6 @@
-use crate::{structures::exception_t, println, kernel::boot::current_syscall_error, config::{seL4_IllegalOperation, seL4_RevokeFirst}, cspace::cap::cap_null_cap_new};
+use crate::{structures::exception_t, println, kernel::boot::current_syscall_error, config::{seL4_IllegalOperation, seL4_RevokeFirst}, cspace::cap::{cap_null_cap_new, EndpointCap, NotificationCap}};
 
-use super::{cap::{cap_t, CapTag, same_region_as}, mdb::mdb_node_t};
+use super::{cap::{cap_t, CapTag, same_region_as, FrameCap, PageTableCap}, mdb::mdb_node_t};
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -59,7 +59,7 @@ impl cte_t {
         };
         match cap.get_cap_type() {
             CapTag::CapPageTableCap => {
-                if cap.page_table_cap.get_is_mapped() != 0 {
+                if cap.get_inner_ref::<PageTableCap>().get_is_mapped() != 0 {
                     ret.cap = cap.clone();
                     ret.status = exception_t::EXCEPTION_NONE;
                 } else {
@@ -73,8 +73,8 @@ impl cte_t {
             }
             CapTag::CapFrameCap => {
                 let mut newCap = cap.clone();
-                newCap.frame_cap.set_mapped_address(0);
-                newCap.frame_cap.set_mapped_asid(0);
+                newCap.get_inner_mut_ref::<FrameCap>().set_mapped_address(0);
+                newCap.get_inner_mut_ref::<FrameCap>().set_mapped_asid(0);
                 ret.cap = newCap;
             }
             CapTag::CapASIDControlCap | CapTag::CapASIDPoolCap => {
@@ -104,26 +104,28 @@ impl cte_t {
         if !(self.cteMDBNode.get_revocable() != 0) {
             return false;
         }
-        if !unsafe { same_region_as(&self.cap, &next.cap) } {
+        if !same_region_as(&self.cap, &next.cap) {
             return false;
         }
 
         match self.cap.get_cap_type() {
             CapTag::CapEndpointCap => {
                 assert_eq!(next.cap.get_cap_type(), CapTag::CapEndpointCap);
-                let badge = self.cap.endpoint_cap.get_badge();
+                let badge = self.cap.get_inner_ref::<EndpointCap>().get_badge();
                 if badge == 0 {
                     return true;
                 }
-                return badge == next.cap.endpoint_cap.get_badge() && !(next.cteMDBNode.get_first_badged() != 0);
+                return badge == next.cap.get_inner_ref::<EndpointCap>().get_badge() &&
+                    !(next.cteMDBNode.get_first_badged() != 0);
             }
             CapTag::CapNotificationCap => {
                 assert_eq!(next.cap.get_cap_type(), CapTag::CapNotificationCap);
-                let badge = self.cap.notification_cap.get_badge();
+                let badge = self.cap.get_inner_ref::<NotificationCap>().get_badge();
                 if badge == 0 {
                     return true;
                 }
-                return badge == next.cap.notification_cap.get_badge() && !(next.cteMDBNode.get_first_badged() != 0);
+                return badge == next.cap.get_inner_ref::<NotificationCap>().get_badge() &&
+                    !(next.cteMDBNode.get_first_badged() != 0);
             }
             _ => true
         }

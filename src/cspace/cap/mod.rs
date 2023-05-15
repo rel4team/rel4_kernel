@@ -14,13 +14,12 @@ mod zombie;
 mod frame;
 mod endpoint;
 
-use untyped::UntypedCap;
 use cnode::CNodeCap;
 
 use crate::{MASK, object::objecttype::{seL4_EndpointBits, seL4_NotificationBits, PT_SIZE_BITS, seL4_ReplyBits}, config::seL4_SlotBits, kernel::vspace::pageBitsForSize};
 
-use self::{null::NullCap, endpoint::EndpointCap, notification::NotificationCap, reply::ReplyCap, 
-    thread::ThreadCap, irq_control::IRQControlCap, irq_handler::IRQHandlerCap, zombie::ZombieCap, 
+pub use self::{null::NullCap, endpoint::EndpointCap, notification::NotificationCap, reply::ReplyCap, 
+    thread::ThreadCap, irq_control::IRQControlCap, irq_handler::IRQHandlerCap, zombie::ZombieCap, untyped::UntypedCap,
     domain::DomainCap, frame::FrameCap, page_table::PageTableCap, asid_control::ASIDControlCap, asid_pool::ASIDPoolCap};
 
 #[derive(Eq, PartialEq, Debug)]
@@ -64,22 +63,22 @@ impl Cap {
 
 #[derive(Copy, Clone)]
 pub union cap_t {
-    pub null_cap: NullCap,
-    pub untyped_cap: UntypedCap,
-    pub endpoint_cap: EndpointCap,
-    pub notification_cap: NotificationCap,
-    pub reply_cap: ReplyCap,
-    pub cnode_cap: CNodeCap,
-    pub thread_cap: ThreadCap,
-    pub irq_control_cap: IRQControlCap,
-    pub irq_handler_cap: IRQHandlerCap,
-    pub zombie_cap: ZombieCap,
-    pub domain_cap: DomainCap,
-    pub frame_cap: FrameCap,
-    pub page_table_cap: PageTableCap,
-    pub asid_control_cap: ASIDControlCap,
-    pub asid_pool_cap: ASIDPoolCap,
-    pub unknown_cap: Cap,
+    null_cap: NullCap,
+    untyped_cap: UntypedCap,
+    endpoint_cap: EndpointCap,
+    notification_cap: NotificationCap,
+    reply_cap: ReplyCap,
+    cnode_cap: CNodeCap,
+    thread_cap: ThreadCap,
+    irq_control_cap: IRQControlCap,
+    irq_handler_cap: IRQHandlerCap,
+    zombie_cap: ZombieCap,
+    domain_cap: DomainCap,
+    frame_cap: FrameCap,
+    page_table_cap: PageTableCap,
+    asid_control_cap: ASIDControlCap,
+    asid_pool_cap: ASIDPoolCap,
+    unknown_cap: Cap,
 }
 
 impl Default for cap_t {
@@ -89,6 +88,19 @@ impl Default for cap_t {
 }
 
 impl cap_t {
+
+    pub fn get_inner_mut_ref<T>(&mut self) -> &'static mut T {
+        unsafe {
+            &mut *(self as *mut Self as usize as *mut T)
+        }
+    }
+
+    pub fn get_inner_ref<T>(&self) -> &'static T {
+        unsafe {
+            & *(self as *const Self as usize as *const T)
+        }
+    }
+
     pub fn to_struture_cap(&self) -> crate::structures::cap_t {
         crate::structures::cap_t {
             words: unsafe { self.unknown_cap.words }
@@ -96,36 +108,34 @@ impl cap_t {
     }
 
     pub fn get_cap_type(&self) -> CapTag {
-        unsafe {
-            self.unknown_cap.get_cap_type()
-        }
+        self.get_inner_ref::<Cap>().get_cap_type()
     }
 
-    pub unsafe fn get_cap_ptr(&self) -> usize {
+    pub fn get_cap_ptr(&self) -> usize {
         match self.get_cap_type() {
-            CapTag::CapUntypedCap => self.untyped_cap.get_ptr(),
-            CapTag::CapEndpointCap => self.endpoint_cap.get_ptr(),
-            CapTag::CapNotificationCap => self.notification_cap.get_ptr(),
-            CapTag::CapCNodeCap => self.cnode_cap.get_ptr(),
-            CapTag::CapThreadCap => self.thread_cap.get_tcb_ptr(),
+            CapTag::CapUntypedCap => self.get_inner_ref::<UntypedCap>().get_ptr(),
+            CapTag::CapEndpointCap => self.get_inner_ref::<EndpointCap>().get_ptr(),
+            CapTag::CapNotificationCap => self.get_inner_ref::<NotificationCap>().get_ptr(),
+            CapTag::CapCNodeCap => self.get_inner_ref::<CNodeCap>().get_ptr(),
+            CapTag::CapThreadCap => self.get_inner_ref::<ThreadCap>().get_tcb_ptr(),
             CapTag::CapZombieCap => {
                 panic!("need to handle")
             },
-            CapTag::CapFrameCap => self.frame_cap.get_base_ptr(),
-            CapTag::CapPageTableCap => self.page_table_cap.get_base_ptr(),
-            CapTag::CapASIDPoolCap => self.asid_pool_cap.get_asid_pool(),
+            CapTag::CapFrameCap => self.get_inner_ref::<FrameCap>().get_base_ptr(),
+            CapTag::CapPageTableCap => self.get_inner_ref::<PageTableCap>().get_base_ptr(),
+            CapTag::CapASIDPoolCap => self.get_inner_ref::<ASIDPoolCap>().get_asid_pool(),
             _ => {
                 panic!("invaild cap type");
             }
         }
     }
 
-    pub unsafe fn get_cap_size_bits(&self) -> usize {
+    pub fn get_cap_size_bits(&self) -> usize {
         match self.get_cap_type() {
-            CapTag::CapUntypedCap => self.untyped_cap.get_block_size(),
+            CapTag::CapUntypedCap => self.get_inner_ref::<UntypedCap>().get_block_size(),
             CapTag::CapEndpointCap => seL4_EndpointBits,
             CapTag::CapNotificationCap => seL4_NotificationBits,
-            CapTag::CapCNodeCap => self.cnode_cap.get_radix() + seL4_SlotBits,
+            CapTag::CapCNodeCap => self.get_inner_ref::<CNodeCap>().get_radix() + seL4_SlotBits,
             CapTag::CapPageTableCap => PT_SIZE_BITS,
             CapTag::CapReplyCap => seL4_ReplyBits,
             _ => 0,
@@ -236,14 +246,14 @@ pub fn cap_irq_handler_cap_new(capIRQ: usize) -> cap_t {
     }
 }
 
-pub unsafe fn same_region_as(cap1: &cap_t, cap2: &cap_t) -> bool {
+pub fn same_region_as(cap1: &cap_t, cap2: &cap_t) -> bool {
     match cap1.get_cap_type() {
         CapTag::CapUntypedCap => {
             if cap2.get_cap_is_physical() {
-                let aBase = cap1.untyped_cap.get_ptr();
+                let aBase = cap1.get_inner_ref::<UntypedCap>().get_ptr();
                 let bBase = cap2.get_cap_ptr();
 
-                let aTop = aBase + MASK!(cap1.untyped_cap.get_block_size());
+                let aTop = aBase + MASK!(cap1.get_inner_ref::<UntypedCap>().get_block_size());
                 let bTop = bBase + MASK!(cap2.get_cap_size_bits());
                 return (aBase <= bBase) && (bTop <= aTop) && (bBase <= bTop);
             }
@@ -252,31 +262,31 @@ pub unsafe fn same_region_as(cap1: &cap_t, cap2: &cap_t) -> bool {
         }
         CapTag::CapFrameCap => {
             if cap2.get_cap_type() == CapTag::CapFrameCap {
-                let botA = cap1.frame_cap.get_base_ptr();
-                let botB = cap2.frame_cap.get_base_ptr();
-                let topA = botA + MASK!(pageBitsForSize(cap1.frame_cap.get_size()));
-                let topB = botB + MASK!(pageBitsForSize(cap2.frame_cap.get_size()));
+                let botA = cap1.get_inner_ref::<FrameCap>().get_base_ptr();
+                let botB = cap2.get_inner_ref::<FrameCap>().get_base_ptr();
+                let topA = botA + MASK!(pageBitsForSize(cap1.get_inner_ref::<FrameCap>().get_size()));
+                let topB = botB + MASK!(pageBitsForSize(cap2.get_inner_ref::<FrameCap>().get_size()));
                 return (botA <= botB) && (topA >= topB) && (botB <= topB);
             }
             false 
         }
         CapTag::CapEndpointCap => {
             if cap2.get_cap_type() == CapTag::CapEndpointCap {
-                return cap1.endpoint_cap.get_ptr() == cap2.endpoint_cap.get_ptr();
+                return cap1.get_inner_ref::<EndpointCap>().get_ptr() == cap2.get_inner_ref::<EndpointCap>().get_ptr();
             }
             false
         }
         CapTag::CapNotificationCap => {
             if cap2.get_cap_type() == CapTag::CapNotificationCap {
-                return cap1.notification_cap.get_ptr()
-                    == cap2.notification_cap.get_ptr();
+                return cap1.get_inner_ref::<NotificationCap>().get_ptr()
+                    == cap2.get_inner_ref::<NotificationCap>().get_ptr();
             }
             false
         }
         CapTag::CapPageTableCap => {
             if cap2.get_cap_type() == CapTag::CapPageTableCap {
-                return cap1.page_table_cap.get_base_ptr()
-                    == cap2.page_table_cap.get_base_ptr();
+                return cap1.get_inner_ref::<PageTableCap>().get_base_ptr()
+                    == cap2.get_inner_ref::<PageTableCap>().get_base_ptr();
             }
             false
         }
@@ -288,23 +298,23 @@ pub unsafe fn same_region_as(cap1: &cap_t, cap2: &cap_t) -> bool {
         }
         CapTag::CapASIDPoolCap => {
             if cap2.get_cap_type() == CapTag::CapASIDPoolCap {
-                return cap1.asid_pool_cap.get_asid_pool()
-                    == cap2.asid_pool_cap.get_asid_pool();
+                return cap1.get_inner_ref::<ASIDPoolCap>().get_asid_pool()
+                    == cap2.get_inner_ref::<ASIDPoolCap>().get_asid_pool();
             }
             false
         }
         CapTag::CapCNodeCap => {
             if cap2.get_cap_type() == CapTag::CapCNodeCap {
-                return (cap1.cnode_cap.get_ptr()
-                    == cap2.cnode_cap.get_ptr())
-                    && (cap1.cnode_cap.get_radix()
-                        == cap2.cnode_cap.get_radix());
+                return (cap1.get_inner_ref::<CNodeCap>().get_ptr()
+                    == cap2.get_inner_ref::<CNodeCap>().get_ptr())
+                    && (cap1.get_inner_ref::<CNodeCap>().get_radix()
+                        == cap2.get_inner_ref::<CNodeCap>().get_radix());
             }
             false
         }
         CapTag::CapThreadCap => {
             if cap2.get_cap_type() == CapTag::CapThreadCap {
-                return cap1.thread_cap.get_tcb_ptr() == cap2.thread_cap.get_tcb_ptr();
+                return cap1.get_inner_ref::<ThreadCap>().get_tcb_ptr() == cap2.get_inner_ref::<ThreadCap>().get_tcb_ptr();
             }
             false
         }
@@ -324,8 +334,8 @@ pub unsafe fn same_region_as(cap1: &cap_t, cap2: &cap_t) -> bool {
         }
         CapTag::CapIrqHandlerCap => {
             if cap2.get_cap_type() == CapTag::CapIrqHandlerCap {
-                return cap1.irq_handler_cap.get_irq()
-                    == cap2.irq_handler_cap.get_irq();
+                return cap1.get_inner_ref::<IRQHandlerCap>().get_irq()
+                    == cap2.get_inner_ref::<IRQHandlerCap>().get_irq();
             }
             false
         }
@@ -337,7 +347,7 @@ pub unsafe fn same_region_as(cap1: &cap_t, cap2: &cap_t) -> bool {
 
 
 
-pub unsafe fn is_cap_revocable(derived_cap: &cap_t, src_cap: &cap_t) -> bool {
+pub fn is_cap_revocable(derived_cap: &cap_t, src_cap: &cap_t) -> bool {
     if derived_cap.isArchCap() {
         return false;
     }
@@ -345,12 +355,12 @@ pub unsafe fn is_cap_revocable(derived_cap: &cap_t, src_cap: &cap_t) -> bool {
     match derived_cap.get_cap_type() {
         CapTag::CapEndpointCap => {
             assert_eq!(src_cap.get_cap_type(), CapTag::CapEndpointCap);
-            return derived_cap.endpoint_cap.get_badge() != src_cap.endpoint_cap.get_badge();
+            return derived_cap.get_inner_ref::<EndpointCap>().get_badge() != src_cap.get_inner_ref::<EndpointCap>().get_badge();
         }
 
         CapTag::CapNotificationCap => {
             assert_eq!(src_cap.get_cap_type(), CapTag::CapNotificationCap);
-            return derived_cap.notification_cap.get_badge() != src_cap.notification_cap.get_badge();
+            return derived_cap.get_inner_ref::<NotificationCap>().get_badge() != src_cap.get_inner_ref::<NotificationCap>().get_badge();
         }
 
         CapTag::CapIrqHandlerCap => {
