@@ -11,11 +11,11 @@ $ repo sync
 # In rel4_kernel dirctory
 $ cd rel4_kernel 
 $ mkdir ./build && cd build
-& ../build.sh
+$ ../build.sh
 ```
 
 ## How to run test?
 ```shell
 # In build dirctory
-$ cd ./simulate
+$ ./simulate
 ```
