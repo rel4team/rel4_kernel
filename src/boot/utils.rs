@@ -1,5 +1,14 @@
-use crate::{structures::{region_t, p_region_t, v_region_t, mdb_node_t, cte_t, cap_t}, ROUND_UP, BIT, ROUND_DOWN, object::{structure_gen::{mdb_node_set_mdbRevocable, mdb_node_set_mdbFirstBadged}, objecttype::cap_get_capPtr}, println, utils::MAX_FREE_INDEX, MASK, kernel::vspace::{paddr_to_pptr, pptr_to_paddr, RISCV_GET_LVL_PGSIZE_BITS}};
 use crate::config::*;
+use crate::{
+    kernel::vspace::{paddr_to_pptr, pptr_to_paddr, RISCV_GET_LVL_PGSIZE_BITS},
+    object::{
+        objecttype::cap_get_capPtr,
+        structure_gen::{mdb_node_set_mdbFirstBadged, mdb_node_set_mdbRevocable},
+    },
+    println,
+    structures::{cap_t, cte_t, mdb_node_t, p_region_t, region_t, v_region_t},
+    BIT, ROUND_DOWN, ROUND_UP,
+};
 
 use super::ndks_boot;
 
@@ -35,14 +44,12 @@ pub fn pptr_in_kernel_window(pptr: usize) -> bool {
     pptr >= PPTR_BASE && pptr < PPTR_TOP
 }
 
-
 #[inline]
 pub fn get_n_paging(v_reg: v_region_t, bits: usize) -> usize {
     let start = ROUND_DOWN!(v_reg.start, bits);
     let end = ROUND_UP!(v_reg.end, bits);
     (end - start) / BIT!(bits)
 }
-
 
 pub fn arch_get_n_paging(it_v_reg: v_region_t) -> usize {
     let mut n: usize = 0;
@@ -62,7 +69,6 @@ pub fn write_slot(ptr: *mut cte_t, cap: cap_t) {
         // forget(*ptr);
     }
 }
-
 
 pub fn provide_cap(root_cnode_cap: &cap_t, cap: cap_t) -> bool {
     unsafe {
@@ -86,5 +92,3 @@ pub fn clearMemory(ptr: *mut u8, bits: usize) {
         core::slice::from_raw_parts_mut(ptr, BIT!(bits)).fill(0);
     }
 }
-
-

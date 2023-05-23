@@ -1,34 +1,34 @@
 use crate::{
     config::{
         msgRegister, seL4_Fault_NullFault, seL4_MsgExtraCapBits, seL4_MsgLengthBits, tcbCTable,
-        tcbCaller, tcbReply, tcbVTable, wordBits, EPState_Recv, EPState_Send, NtfnState_Active,
-        SysCall, SysReplyRecv, ThreadStateBlockedOnReceive, ThreadStateBlockedOnReply,
-        ThreadStateRunning,
+        tcbCaller, tcbReply, tcbVTable, wordBits, EPState_Idle, EPState_Recv, EPState_Send,
+        NtfnState_Active, SysCall, SysReplyRecv, ThreadStateBlockedOnReceive,
+        ThreadStateBlockedOnReply, ThreadStateRunning,
     },
     object::{
         objecttype::{
             cap_capType_equals, cap_cnode_cap, cap_endpoint_cap, cap_page_table_cap, cap_reply_cap,
         },
         structure_gen::{
-            cap_cnode_cap_get_capCNodeGuard, cap_cnode_cap_get_capCNodePtr,
-            cap_cnode_cap_get_capCNodeRadix, cap_endpoint_cap_get_capCanGrant,
-            cap_endpoint_cap_get_capCanGrantReply, cap_endpoint_cap_get_capCanSend,
-            cap_endpoint_cap_get_capEPBadge, cap_endpoint_cap_get_capEPPtr, cap_null_cap_new,
-            cap_page_table_cap_get_capPTBasePtr, cap_page_table_cap_get_capPTIsMapped,
-            cap_page_table_cap_get_capPTMappedASID, cap_reply_cap_get_capTCBPtr,
-            endpoint_ptr_get_epQueue_head, endpoint_ptr_get_epQueue_tail, endpoint_ptr_get_state,
-            mdb_node_get_mdbPrev, mdb_node_new, notification_ptr_get_state,
-            seL4_Fault_get_seL4_FaultType, thread_state_get_blockingIPCCanGrant,
-            thread_state_set_blockingIPCCanGrant,
+            cap_cnode_cap_get_capCNodeGuard, cap_cnode_cap_get_capCNodeGuardSize,
+            cap_cnode_cap_get_capCNodePtr, cap_cnode_cap_get_capCNodeRadix,
+            cap_endpoint_cap_get_capCanGrant, cap_endpoint_cap_get_capCanGrantReply,
+            cap_endpoint_cap_get_capCanSend, cap_endpoint_cap_get_capEPBadge,
+            cap_endpoint_cap_get_capEPPtr, cap_null_cap_new, cap_page_table_cap_get_capPTBasePtr,
+            cap_page_table_cap_get_capPTIsMapped, cap_page_table_cap_get_capPTMappedASID,
+            cap_reply_cap_get_capTCBPtr, endpoint_ptr_get_epQueue_head,
+            endpoint_ptr_get_epQueue_tail, endpoint_ptr_get_state, mdb_node_get_mdbPrev,
+            mdb_node_new, notification_ptr_get_state, seL4_Fault_get_seL4_FaultType,
+            thread_state_get_blockingIPCCanGrant, thread_state_set_blockingIPCCanGrant,
         },
         tcb::isHighestPrio,
     },
+    println,
     structures::{
         cap_t, cte_t, endpoint_t, mdb_node_t, pte_t, seL4_MessageInfo_t, tcb_t, thread_state_t,
     },
     MASK,
 };
-use core::arch::asm;
 use core::intrinsics::{likely, unlikely};
 
 use super::{
@@ -40,7 +40,7 @@ use super::{
     },
     vspace::{pptr_to_paddr, setVSpaceRoot},
 };
-// #[inline]
+#[inline]
 #[no_mangle]
 pub fn lookup_fp(_cap: &cap_t, cptr: usize) -> cap_t {
     let mut cap = _cap.clone();
@@ -55,7 +55,7 @@ pub fn lookup_fp(_cap: &cap_t, cptr: usize) -> cap_t {
         return cap_null_cap_new();
     }
     loop {
-        guardBits = cap_cnode_cap_get_capCNodeGuard(&cap);
+        guardBits = cap_cnode_cap_get_capCNodeGuardSize(&cap);
         radixBits = cap_cnode_cap_get_capCNodeRadix(&cap);
         cptr2 = cptr << bits;
         capGuard = cap_cnode_cap_get_capCNodeGuard(&cap);
@@ -167,6 +167,9 @@ pub fn fastpath_copy_mrs(length: usize, src: *mut tcb_t, dest: *mut tcb_t) {
     for i in 0..length {
         reg = msgRegister[0] + i;
         setRegister(dest, reg, getRegister(src, reg));
+        if getRegister(src, reg) != getRegister(dest, reg) {
+            println!("wrong!!!!");
+        }
     }
 }
 
@@ -176,59 +179,164 @@ pub fn fastpath_reply_cap_check(cap: &cap_t) -> bool {
     cap_capType_equals(cap, cap_reply_cap)
 }
 
+core::arch::global_asm!(include_str!("restore_fp.S"));
+
 #[inline]
 #[no_mangle]
 pub fn fastpath_restore(badge: usize, msgInfo: usize, cur_thread: *mut tcb_t) {
     let cur_thread_regs = unsafe { (*cur_thread).tcbArch.registers.as_ptr() as usize };
-
-    unsafe {
-        asm!("mv a0,{}",in(reg)badge);
-        asm!("mv a1,{}",in(reg)msgInfo);
-        asm!("mv t0,{}",in(reg)cur_thread_regs);
-        asm!(
-            "ld  ra, (0*8)(t0)  ",
-            "ld  sp, (1*8)(t0)  ",
-            "ld  gp, (2*8)(t0)  ",
-            "ld  t2, (6*8)(t0)  ",
-            "ld  s0, (7*8)(t0)  ",
-            "ld  s1, (8*8)(t0)  ",
-            "ld  a2, (11*8)(t0) ",
-            "ld  a3, (12*8)(t0) ",
-            "ld  a4, (13*8)(t0) ",
-            "ld  a5, (14*8)(t0) ",
-            "ld  a6, (15*8)(t0) ",
-            "ld  a7, (16*8)(t0) ",
-            "ld  s2, (17*8)(t0) ",
-            "ld  s3, (18*8)(t0) ",
-            "ld  s4, (19*8)(t0) ",
-            "ld  s5, (20*8)(t0) ",
-            "ld  s6, (21*8)(t0) ",
-            "ld  s7, (22*8)(t0) ",
-            "ld  s8, (23*8)(t0) ",
-            "ld  s9, (24*8)(t0) ",
-            "ld  s10, (25*8)(t0)",
-            "ld  s11, (26*8)(t0)",
-            "ld  t3, (27*8)(t0) ",
-            "ld  t4, (28*8)(t0) ",
-            "ld  t5, (29*8)(t0) ",
-            "ld  t6, (30*8)(t0) ",
-            "ld  t1, (3*8)(t0)  ",
-            "add tp, t1, x0  ",
-            "ld  t1, (34*8)(t0)",
-            "csrw sepc, t1  ",
-            "csrw sscratch, t0",
-            "ld  t1, (32*8)(t0) ",
-            "csrw sstatus, t1",
-            "ld  t1, (5*8)(t0)",
-            "ld  t0, (4*8)(t0) ",
-            "sret"
-        );
+    extern "C" {
+        pub fn __restore_fp(badge: usize, msgInfo: usize, cur_thread_reg: usize);
     }
+    unsafe {
+        __restore_fp(badge, msgInfo, cur_thread_regs);
+    }
+    // println!("msgInfo:{}",msgInfo);
+    // unsafe {
+    //     asm!("mv a0,x12",in("x12") badge);
+    //     asm!("mv a1,x12",in("x12") msgInfo);
+    //     asm!("mv t0,x12",in("x12") cur_thread_regs);
+    //     asm!(
+    //         "ld  ra, (0*8)(t0)  ",
+    //         "ld  sp, (1*8)(t0)  ",
+    //         "ld  gp, (2*8)(t0)  ",
+    //         "ld  t2, (6*8)(t0)  ",
+    //         "ld  s0, (7*8)(t0)  ",
+    //         "ld  s1, (8*8)(t0)  ",
+    //         "ld  a2, (11*8)(t0) ",
+    //         "ld  a3, (12*8)(t0) ",
+    //         "ld  a4, (13*8)(t0) ",
+    //         "ld  a5, (14*8)(t0) ",
+    //         "ld  a6, (15*8)(t0) ",
+    //         "ld  a7, (16*8)(t0) ",
+    //         "ld  s2, (17*8)(t0) ",
+    //         "ld  s3, (18*8)(t0) ",
+    //         "ld  s4, (19*8)(t0) ",
+    //         "ld  s5, (20*8)(t0) ",
+    //         "ld  s6, (21*8)(t0) ",
+    //         "ld  s7, (22*8)(t0) ",
+    //         "ld  s8, (23*8)(t0) ",
+    //         "ld  s9, (24*8)(t0) ",
+    //         "ld  s10, (25*8)(t0)",
+    //         "ld  s11, (26*8)(t0)",
+    //         "ld  t3, (27*8)(t0) ",
+    //         "ld  t4, (28*8)(t0) ",
+    //         "ld  t5, (29*8)(t0) ",
+    //         "ld  t6, (30*8)(t0) ",
+    //         "ld  t1, (3*8)(t0)  ",
+    //         "add tp, t1, x0  ",
+    //         "ld  t1, (34*8)(t0)",
+    //         "csrw sepc, t1  ",
+    //         "csrw sscratch, t0",
+    //         "ld  t1, (32*8)(t0) ",
+    //         "csrw sstatus, t1",
+    //         "ld  t1, (5*8)(t0)",
+    //         "ld  t0, (4*8)(t0) ",
+    //         "sret"
+    //     );
+    // }
 }
+
+// #[no_mangle]
+// pub fn process5(
+//     badge: usize,
+//     msgInfo: usize,
+//     ep_ptr: *mut endpoint_t,
+//     cptr: usize,
+//     cap_pd: *mut pte_t,
+//     callerSlot: *mut cte_t,
+//     replySlot: *mut cte_t,
+//     replyCanGrant: usize,
+//     dest: *mut tcb_t,
+//     w: usize,
+//     length:usize,
+// ) {
+//     unsafe {
+//         // let mut info: seL4_MessageInfo_t = messageInfoFromWord_raw(msgInfo);
+//         // let length = seL4_MessageInfo_ptr_get_length((&info) as *const seL4_MessageInfo_t);
+//         // let ep_slot = unsafe { getCSpace(ksCurThread as usize, tcbCTable) };
+//         // let ep_cap = unsafe { lookup_fp(&(*ep_slot).cap, cptr) };
+//         // let dest = endpoint_ptr_get_epQueue_head(ep_ptr) as *mut tcb_t;
+
+//         // if unlikely(endpoint_ptr_get_state(ep_ptr) != EPState_Recv) {
+//         //     slowpath(SysCall as usize);
+//         // }
+//         // let newVTable = unsafe { &(*getCSpace(dest as usize, tcbVTable)).cap };
+
+//         // // let cap_pd = cap_page_table_cap_get_capPTBasePtr(newVTable) as *mut pte_t;
+
+//         // if unlikely(!isValidVTableRoot_fp(newVTable)) {
+//         //     slowpath(SysCall as usize);
+//         // }
+
+//         // let mut stored_hw_asid: pte_t = pte_t { words: [0] };
+//         // stored_hw_asid.words[0] = cap_page_table_cap_get_capPTMappedASID(newVTable);
+
+//         // let dom = 0;
+//         // unsafe {
+//         //     if unlikely(
+//         //         (*dest).tcbPriority < (*ksCurThread).tcbPriority
+//         //             && !isHighestPrio(dom, (*dest).tcbPriority),
+//         //     ) {
+//         //         slowpath(SysCall as usize);
+//         //     }
+//         // }
+//         // if unlikely(
+//         //     (cap_endpoint_cap_get_capCanGrant(&ep_cap) == 0)
+//         //         && (cap_endpoint_cap_get_capCanGrantReply(&ep_cap) == 0),
+//         // ) {
+//         //     slowpath(SysCall as usize);
+//         // }
+//         // unsafe {
+//         //     endpoint_ptr_set_epQueue_head_np(ep_ptr, (*dest).tcbEPNext);
+//         //     if unlikely((*dest).tcbEPNext != 0) {
+//         //         (*((*dest).tcbEPNext as *mut tcb_t)).tcbEPPrev = 0;
+//         //     } else {
+//         //         endpoint_ptr_mset_epQueue_tail_state(ep_ptr, 0, EPState_Idle);
+//         //     }
+//         // }
+
+//         // let badge = cap_endpoint_cap_get_capEPBadge(&ep_cap);
+//         // unsafe {
+//         //     thread_state_ptr_set_tsType_np(&mut (*ksCurThread).tcbState, ThreadStateBlockedOnReply);
+//         // }
+
+//         // let replySlot = unsafe { getCSpace(ksCurThread as usize, tcbReply) };
+
+//         // let callerSlot = getCSpace(dest as usize, tcbCaller);
+
+//         // let replyCanGrant = unsafe { thread_state_get_blockingIPCCanGrant(&(*dest).tcbState) };
+//         let mut stored_hw_asid: pte_t = pte_t { words: [w] };
+//         unsafe {
+//             // cap_reply_cap_ptr_new_np(
+//             //     &mut (*callerSlot).cap,
+//             //     replyCanGrant,
+//             //     0,
+//             //     ksCurThread as usize,
+//             // );
+//             // mdb_node_ptr_set_mdbPrev_np(&mut (*callerSlot).cteMDBNode, replySlot as usize);
+//             // mdb_node_ptr_mset_mdbNext_mdbRevocable_mdbFirstBadged(
+//             //     &mut (*replySlot).cteMDBNode,
+//             //     callerSlot as usize,
+//             //     1,
+//             //     1,
+//             // );
+//             fastpath_copy_mrs(length, ksCurThread, dest);
+//             thread_state_ptr_set_tsType_np(&mut (*dest).tcbState, ThreadStateRunning);
+//             switchToThread_fp(dest, cap_pd, stored_hw_asid);
+//         }
+//         let mut info: seL4_MessageInfo_t = messageInfoFromWord_raw(msgInfo);
+//         seL4_MessageInfo_ptr_set_capsUnwrapped((&mut info) as *mut seL4_MessageInfo_t, 0);
+//         let msgInfo1 = wordFromMessageInfo(info);
+//         // println!("badge :{:#x} msgInfo:{:#x} ksCurThread:{:#x},dest:{:#x},cap_pd:{:#x},stored_hw_asid:{:#x}",badge,msgInfo);
+//         fastpath_restore(badge, msgInfo1, ksCurThread);
+//     }
+// }
 
 #[inline]
 #[no_mangle]
 pub fn fastpath_call(cptr: usize, msgInfo: usize) {
+    // slowpath(SysCall as usize);
     let mut info: seL4_MessageInfo_t = messageInfoFromWord_raw(msgInfo);
     let length = seL4_MessageInfo_ptr_get_length((&info) as *const seL4_MessageInfo_t);
     let fault_type = unsafe { seL4_Fault_get_seL4_FaultType(&(*ksCurThread).tcbFault) };
@@ -238,17 +346,19 @@ pub fn fastpath_call(cptr: usize, msgInfo: usize) {
     }
     let ep_slot = unsafe { getCSpace(ksCurThread as usize, tcbCTable) };
     let ep_cap = unsafe { lookup_fp(&(*ep_slot).cap, cptr) };
-
     if unlikely(
         !cap_capType_equals(&ep_cap, cap_endpoint_cap)
             || (cap_endpoint_cap_get_capCanSend(&ep_cap) == 0),
     ) {
         slowpath(SysCall as usize);
     }
-
     let ep_ptr = cap_endpoint_cap_get_capEPPtr(&ep_cap) as *mut endpoint_t;
 
     let dest = endpoint_ptr_get_epQueue_head(ep_ptr) as *mut tcb_t;
+
+    if unlikely(endpoint_ptr_get_state(ep_ptr) != EPState_Recv) {
+        slowpath(SysCall as usize);
+    }
 
     let newVTable = unsafe { &(*getCSpace(dest as usize, tcbVTable)).cap };
 
@@ -270,7 +380,6 @@ pub fn fastpath_call(cptr: usize, msgInfo: usize) {
             slowpath(SysCall as usize);
         }
     }
-
     if unlikely(
         (cap_endpoint_cap_get_capCanGrant(&ep_cap) == 0)
             && (cap_endpoint_cap_get_capCanGrantReply(&ep_cap) == 0),
@@ -279,6 +388,11 @@ pub fn fastpath_call(cptr: usize, msgInfo: usize) {
     }
     unsafe {
         endpoint_ptr_set_epQueue_head_np(ep_ptr, (*dest).tcbEPNext);
+        if unlikely((*dest).tcbEPNext != 0) {
+            (*((*dest).tcbEPNext as *mut tcb_t)).tcbEPPrev = 0;
+        } else {
+            endpoint_ptr_mset_epQueue_tail_state(ep_ptr, 0, EPState_Idle);
+        }
     }
 
     let badge = cap_endpoint_cap_get_capEPBadge(&ep_cap);
@@ -298,7 +412,6 @@ pub fn fastpath_call(cptr: usize, msgInfo: usize) {
             0,
             ksCurThread as usize,
         );
-
         mdb_node_ptr_set_mdbPrev_np(&mut (*callerSlot).cteMDBNode, replySlot as usize);
         mdb_node_ptr_mset_mdbNext_mdbRevocable_mdbFirstBadged(
             &mut (*replySlot).cteMDBNode,
@@ -307,21 +420,22 @@ pub fn fastpath_call(cptr: usize, msgInfo: usize) {
             1,
         );
         fastpath_copy_mrs(length, ksCurThread, dest);
-
         thread_state_ptr_set_tsType_np(&mut (*dest).tcbState, ThreadStateRunning);
         switchToThread_fp(dest, cap_pd, stored_hw_asid);
         seL4_MessageInfo_ptr_set_capsUnwrapped((&mut info) as *mut seL4_MessageInfo_t, 0);
-        let msgInfo = wordFromMessageInfo(info);
-        fastpath_restore(badge, msgInfo, ksCurThread);
+        let msgInfo1 = wordFromMessageInfo(info);
+        // println!("badge :{:#x} msgInfo:{:#x} ksCurThread:{:#x},dest:{:#x},cap_pd:{:#x},stored_hw_asid:{:#x}",badge,msgInfo,ksCurThread as usize,dest as usize ,cap_pd as usize , stored_hw_asid.words[0]);
+        fastpath_restore(badge, msgInfo1, ksCurThread);
     }
 }
 
 #[inline]
 #[no_mangle]
 pub fn fastpath_reply_recv(cptr: usize, msgInfo: usize) {
+    // slowpath(SysReplyRecv as usize);
     let mut info = messageInfoFromWord_raw(msgInfo);
     let length = seL4_MessageInfo_ptr_get_length((&info) as *const seL4_MessageInfo_t);
-    let fault_type = unsafe { seL4_Fault_get_seL4_FaultType(&(*ksCurThread).tcbFault) };
+    let mut fault_type = unsafe { seL4_Fault_get_seL4_FaultType(&(*ksCurThread).tcbFault) };
 
     if fastpath_mi_check(msgInfo) || fault_type != seL4_Fault_NullFault {
         slowpath(SysReplyRecv as usize);
@@ -360,7 +474,7 @@ pub fn fastpath_reply_recv(cptr: usize, msgInfo: usize) {
 
     let caller = cap_reply_cap_get_capTCBPtr(callerCap) as *mut tcb_t;
 
-    let fault_type = unsafe { seL4_Fault_get_seL4_FaultType(&(*caller).tcbFault) };
+    fault_type = unsafe { seL4_Fault_get_seL4_FaultType(&(*caller).tcbFault) };
 
     if unlikely(fault_type != seL4_Fault_NullFault) {
         slowpath(SysReplyRecv as usize);
@@ -422,8 +536,9 @@ pub fn fastpath_reply_recv(cptr: usize, msgInfo: usize) {
         thread_state_ptr_set_tsType_np(&mut (*caller).tcbState, ThreadStateRunning);
         switchToThread_fp(caller, cap_pd, stored_hw_asid);
         seL4_MessageInfo_ptr_set_capsUnwrapped((&mut info) as *mut seL4_MessageInfo_t, 0);
-        let msgInfo = wordFromMessageInfo(info );
-
-        fastpath_restore(0, msgInfo, ksCurThread);
+        let msgInfo1 = wordFromMessageInfo(info);
+        // println!("out fastpath_reply_recv{}", msgInfo1);
+        fastpath_restore(0, msgInfo1, ksCurThread);
     }
 }
+ 
