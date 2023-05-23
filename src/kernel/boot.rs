@@ -1,5 +1,4 @@
 extern crate core;
-use riscv::register::{stvec, utvec::TrapMode};
 
 use crate::{
     config::{
