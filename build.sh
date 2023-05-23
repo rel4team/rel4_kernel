@@ -1,10 +1,10 @@
+
 #!/bin/bash
+cd ..
 make run
 
 if test -d ./build;then
     echo "build dictory exist!"
-    rm -rf ./build
-    mkdir ./build
 else
     mkdir ./build
 fi
