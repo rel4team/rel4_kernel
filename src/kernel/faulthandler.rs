@@ -42,7 +42,7 @@ pub fn sendFaultIPC(tptr: *mut tcb_t) -> exception_t {
     let handlerCap = &lu_ret.cap;
     if cap_get_capType(handlerCap) == cap_endpoint_cap
         && cap_endpoint_cap_get_capCanSend(handlerCap) != 0
-        && (cap_endpoint_cap_get_capCanGrantReply(handlerCap) != 0
+        && (cap_endpoint_cap_get_capCanGrant(handlerCap) != 0
             || cap_endpoint_cap_get_capCanGrantReply(handlerCap) != 0)
     {
         unsafe {
