@@ -20,7 +20,7 @@ pub struct deriveCap_ret {
 impl cte_t {
     pub fn derive_cap(&mut self, cap: &cap_t) -> deriveCap_ret {
         if cap.isArchCap() {
-            return unsafe { self.arch_derive_cap(cap) }
+            return self.arch_derive_cap(cap);
         }
         let mut ret = deriveCap_ret {
             status: exception_t::EXCEPTION_NONE,
@@ -52,7 +52,7 @@ impl cte_t {
         ret
     }
 
-    unsafe fn arch_derive_cap(&mut self, cap: &cap_t) -> deriveCap_ret {
+    fn arch_derive_cap(&mut self, cap: &cap_t) -> deriveCap_ret {
         let mut ret = deriveCap_ret {
             status: exception_t::EXCEPTION_NONE,
             cap: cap_t::default(),
@@ -100,7 +100,7 @@ impl cte_t {
         return exception_t::EXCEPTION_NONE;
     }
 
-    unsafe fn is_mdb_parent_of(&self, next: &Self) -> bool {
+    fn is_mdb_parent_of(&self, next: &Self) -> bool {
         if !(self.cteMDBNode.get_revocable() != 0) {
             return false;
         }
