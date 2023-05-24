@@ -11,13 +11,13 @@ use crate::{
     kernel::{
         boot::{active_irq, current_extra_caps, current_syscall_error},
         cspace::rust_lookupTargetSlot,
-        thread::{getExtraCPtr, ksCurThread, setThreadState, timerTick},
+        thread::{getExtraCPtr, setThreadState, timerTick},
     },
     println,
     riscv::{read_sip, resetTimer},
-    structures::{cap_t, cte_t, exception_t, notification_t},
+    structures::{cap_t, cte_t, exception_t},
     syscall::getSyscallArg,
-    BIT,
+    BIT, scheduler::ksCurThread, obj::notification::notification_t,
 };
 
 use super::{

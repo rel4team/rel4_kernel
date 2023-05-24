@@ -1,4 +1,4 @@
-use crate::{config::{n_msgRegisters, msgRegister}, kernel::thread::{getRegister, ksCurThread}};
+use crate::{config::{n_msgRegisters, msgRegister}, kernel::thread::{getRegister}, scheduler::ksCurThread};
 
 #[inline]
 #[no_mangle]

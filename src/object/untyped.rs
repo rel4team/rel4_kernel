@@ -8,13 +8,13 @@ use crate::{
     kernel::{
         boot::{current_extra_caps, current_lookup_fault, current_syscall_error},
         cspace::rust_lookupTargetSlot,
-        thread::{ksCurThread, setThreadState},
+        thread::setThreadState,
     },
     object::structure_gen::lookup_fault_missing_capability_new,
     println,
     structures::{cap_t, cte_t, exception_t},
     syscall::getSyscallArg,
-    BIT, MASK, ROUND_DOWN, boot::clearMemory,
+    BIT, MASK, ROUND_DOWN, boot::clearMemory, scheduler::ksCurThread,
 };
 
 use super::{

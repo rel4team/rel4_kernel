@@ -5,9 +5,7 @@ use crate::{
         RISCVInstructionAccessFault, RISCVInstructionPageFault, RISCVLoadAccessFault,
         RISCVLoadPageFault, RISCVStoreAccessFault, RISCVStorePageFault,
     },
-    kernel::thread::ksCurThread,
-    riscv::read_scause,
-    structures::tcb_t,
+    riscv::read_scause, scheduler::ksCurThread, obj::tcb::tcb_t,
 };
 
 use super::syscall::{

@@ -3,11 +3,13 @@ use super::utils::{arch_get_n_paging, write_slot, provide_cap, clearMemory, getC
 use super::{ndks_boot, utils::is_reg_empty};
 use crate::cspace::{cap::*, cte_insert};
 use crate::kernel::boot::ksDomSchedule;
-use crate::kernel::thread::{ksDomScheduleIdx, Arch_initContext, capRegister, setRegister, setNextPC, setThreadState, ksCurDomain, ksDomainTime};
+use crate::kernel::thread::{Arch_initContext, setRegister, setNextPC, setThreadState};
 use crate::kernel::vspace::{copyGlobalMappings, map_it_frame_cap, riscvKSASIDTable, RISCV_GET_LVL_PGSIZE_BITS, RISCV_GET_LVL_PGSIZE, pptr_to_paddr, pptr_t};
+use crate::obj::tcb::{tcb_t, capRegister};
 use crate::object::cnode::setupReplyMaster;
 use crate::object::interrupt::setIRQState;
-use crate::structures::{region_t, rootserver_mem_t, v_region_t, tcb_t, exception_t, asid_pool_t, seL4_SlotRegion, create_frames_of_region_ret_t, seL4_BootInfo, seL4_IPCBuffer};
+use crate::scheduler::{ksCurDomain, ksDomScheduleIdx, ksDomainTime};
+use crate::structures::{region_t, rootserver_mem_t, v_region_t, exception_t, asid_pool_t, seL4_SlotRegion, create_frames_of_region_ret_t, seL4_BootInfo, seL4_IPCBuffer};
 use crate::{BIT, ROUND_DOWN, println};
 use crate::config::*;
 use crate::cspace::cte_t;

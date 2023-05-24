@@ -11,7 +11,7 @@ use crate::{
     kernel::{
         boot::current_syscall_error,
         thread::{
-            decodeDomainInvocation, doReplyTransfer, getCSpace, ksCurDomain, ksCurThread,
+            decodeDomainInvocation, doReplyTransfer, getCSpace,
             setThreadState, suspend, Arch_initContext,
         },
         transfermsg::{
@@ -28,9 +28,9 @@ use crate::{
     println,
     structures::{
         asid_pool_t, cap_t, cte_t, deriveCap_ret, endpoint_t, exception_t, finaliseCap_ret,
-        notification_t, pte_t, seL4_CNode_CapData_t, seL4_CapRights_t, tcb_t,
+        pte_t, seL4_CNode_CapData_t, seL4_CapRights_t,
     },
-    MASK,
+    MASK, obj::{tcb::tcb_t, notification::notification_t}, scheduler::{ksCurDomain, ksCurThread},
 };
 
 use super::{

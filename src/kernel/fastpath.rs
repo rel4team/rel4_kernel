@@ -25,15 +25,15 @@ use crate::{
     },
     println,
     structures::{
-        cap_t, cte_t, endpoint_t, mdb_node_t, pte_t, seL4_MessageInfo_t, tcb_t, thread_state_t,
+        cap_t, cte_t, endpoint_t, mdb_node_t, pte_t, seL4_MessageInfo_t
     },
-    MASK,
+    MASK, obj::tcb::{thread_state_t, tcb_t}, scheduler::ksCurThread,
 };
 use core::intrinsics::{likely, unlikely};
 
 use super::{
     c_traps::slowpath,
-    thread::{getCSpace, getRegister, ksCurThread, setRegister},
+    thread::{getCSpace, getRegister, setRegister},
     transfermsg::{
         messageInfoFromWord_raw, seL4_MessageInfo_ptr_get_length,
         seL4_MessageInfo_ptr_set_capsUnwrapped, wordFromMessageInfo,

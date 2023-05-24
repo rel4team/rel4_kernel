@@ -14,9 +14,9 @@ use crate::{
     println,
     structures::{
         cap_t, cte_t, exception_t, lookupCapAndSlot_ret_t, lookupCap_ret_t, lookupSlot_raw_ret_t,
-        lookupSlot_ret_t, resolveAddressBits_ret_t, tcb_t,
+        lookupSlot_ret_t, resolveAddressBits_ret_t,
     },
-    MASK,
+    MASK, obj::tcb::tcb_t,
 };
 
 use super::{

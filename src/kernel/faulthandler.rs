@@ -10,7 +10,7 @@ use crate::{
             seL4_Fault_CapFault_new, seL4_Fault_get_seL4_FaultType,
         },
     },
-    structures::{endpoint_t, exception_t, seL4_Fault_t, tcb_t},
+    structures::{endpoint_t, exception_t, seL4_Fault_t}, obj::tcb::tcb_t,
 };
 
 use super::{

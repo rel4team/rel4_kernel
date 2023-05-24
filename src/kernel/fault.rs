@@ -21,7 +21,7 @@ use crate::{
         seL4_Fault_VMFault_get_FSR, seL4_Fault_VMFault_get_address,
         seL4_Fault_VMFault_get_instructionFault, seL4_Fault_get_seL4_FaultType,
     },
-    structures::{lookup_fault_t, seL4_MessageInfo_t, tcb_t},
+    structures::{lookup_fault_t, seL4_MessageInfo_t}, obj::tcb::tcb_t,
 };
 
 pub const fault_messages: [[usize; MAX_MSG_SIZE]; 2] = [

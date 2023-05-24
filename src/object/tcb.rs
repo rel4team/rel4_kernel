@@ -17,9 +17,8 @@ use crate::{
         boot::{current_extra_caps, current_syscall_error},
         cspace::lookupSlot,
         thread::{
-            getCSpace, getExtraCPtr, getReStartPC, getRegister, ksCurThread, ksReadyQueues,
-            ksReadyQueuesL1Bitmap, ksReadyQueuesL2Bitmap, rescheduleRequired, restart,
-            setMCPriority, setNextPC, setPriority, setRegister, setThreadState, suspend, TLS_BASE,
+            getCSpace, getExtraCPtr, getReStartPC, getRegister, rescheduleRequired, restart,
+            setMCPriority, setNextPC, setPriority, setRegister, setThreadState, suspend,
         },
         transfermsg::{
             seL4_MessageInfo_new, seL4_MessageInfo_ptr_get_extraCaps, wordFromMessageInfo,
@@ -36,11 +35,10 @@ use crate::{
     },
     println,
     structures::{
-        cap_t, cte_t, deriveCap_ret, exception_t, notification_t, seL4_MessageInfo_t, tcb_queue_t,
-        tcb_t,
+        cap_t, cte_t, deriveCap_ret, exception_t, seL4_MessageInfo_t,
     },
     syscall::getSyscallArg,
-    BIT, MASK,
+    BIT, MASK, obj::{tcb::{tcb_t, tcb_queue_t, TLS_BASE}, notification::notification_t}, scheduler::{ksCurThread, ksReadyQueuesL1Bitmap, ksReadyQueuesL2Bitmap, ksReadyQueues},
 };
 
 use super::{

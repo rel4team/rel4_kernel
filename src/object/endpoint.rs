@@ -8,7 +8,7 @@ use crate::{
     kernel::{
         boot::current_syscall_error,
         thread::{
-            doIPCTransfer, doNBRecvFailedTransfer, getCSpace, ksCurThread, possibleSwitchTo,
+            doIPCTransfer, doNBRecvFailedTransfer, getCSpace, possibleSwitchTo,
             rescheduleRequired, scheduleTCB, setMRs_syscall_error, setRegister, setThreadState,
         },
         transfermsg::{seL4_MessageInfo_new, wordFromMessageInfo},
@@ -24,7 +24,7 @@ use crate::{
         },
         tcb::{setupCallerCap, tcbEPDequeue},
     },
-    structures::{cap_t, cte_t, endpoint_t, exception_t, notification_t, tcb_queue_t, tcb_t},
+    structures::{cap_t, cte_t, endpoint_t, exception_t}, obj::{tcb::{tcb_queue_t, tcb_t}, notification::notification_t}, scheduler::ksCurThread,
 };
 
 use super::{

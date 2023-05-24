@@ -9,7 +9,7 @@ use crate::{
         boot::{current_extra_caps, current_lookup_fault, current_syscall_error},
         cspace::{rust_lookupPivotSlot, rust_lookupSourceSlot, rust_lookupTargetSlot},
         preemption::preemptionPoint,
-        thread::{getCSpace, ksCurThread, setThreadState},
+        thread::{getCSpace, setThreadState},
         transfermsg::rightsFromWord,
     },
     object::{
@@ -20,9 +20,9 @@ use crate::{
         },
     },
     println,
-    structures::{cap_t, cte_t, endpoint_t, exception_t, finaliseCap_ret, finaliseSlot_ret, tcb_t},
+    structures::{cap_t, cte_t, endpoint_t, exception_t, finaliseCap_ret, finaliseSlot_ret},
     syscall::getSyscallArg,
-    utils::MAX_FREE_INDEX,
+    utils::MAX_FREE_INDEX, scheduler::ksCurThread, obj::tcb::tcb_t,
 };
 
 use super::{

@@ -1,4 +1,4 @@
-use crate::{config::tcbReply, kernel::thread::getCSpace, structures::tcb_t};
+use crate::{config::tcbReply, kernel::thread::getCSpace, obj::tcb::tcb_t};
 
 use super::{
     objecttype::{cap_get_capType, cap_null_cap},

@@ -45,11 +45,11 @@ use crate::{
     riscv::read_stval,
     structures::{
         asid_pool_t, cap_t, cte_t, exception_t, findVSpaceForASID_ret, lookupPTSlot_ret_t, pte_t,
-        satp_t, seL4_CapRights_t, tcb_t,
+        satp_t, seL4_CapRights_t,
     },
     syscall::getSyscallArg,
     utils::MAX_FREE_INDEX,
-    BIT, IS_ALIGNED, MASK, ROUND_DOWN, boot::clearMemory,
+    BIT, IS_ALIGNED, MASK, ROUND_DOWN, boot::clearMemory, obj::tcb::tcb_t, scheduler::ksCurThread,
 
 };
 
@@ -58,7 +58,7 @@ use super::{
         current_extra_caps, current_fault, current_lookup_fault,
     },
     cspace::rust_lookupTargetSlot,
-    thread::{getCSpace, ksCurThread, setMR, setRegister, setThreadState},
+    thread::{getCSpace, setMR, setRegister, setThreadState},
     transfermsg::{
         rightsFromWord, seL4_CapRights_get_capAllowRead, seL4_CapRights_get_capAllowWrite,
         seL4_MessageInfo_new, vmAttributesFromWord, vm_attributes_get_riscvExecuteNever,

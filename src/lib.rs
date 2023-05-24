@@ -34,6 +34,8 @@ mod riscv;
 mod syscall;
 mod boot;
 mod cspace;
+mod scheduler;
+mod obj;
 
 
 struct Stdout;

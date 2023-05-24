@@ -9,7 +9,7 @@ use crate::{
         setThreadState,
     },
     object::tcb::tcbEPDequeue,
-    structures::{cap_t, exception_t, notification_t, tcb_queue_t, tcb_t},
+    structures::{cap_t, exception_t}, obj::{notification::notification_t, tcb::{tcb_t, tcb_queue_t}},
 };
 
 use super::{

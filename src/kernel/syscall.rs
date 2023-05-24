@@ -25,8 +25,8 @@ use crate::{
     },
     println,
     riscv::read_sip,
-    structures::{exception_t, notification_t, seL4_MessageInfo_t, tcb_t},
-    BIT,
+    structures::{exception_t, seL4_MessageInfo_t},
+    BIT, scheduler::ksCurThread, obj::{tcb::{tcb_t, capRegister}, notification::notification_t},
 };
 
 use super::{
@@ -34,7 +34,7 @@ use super::{
     cspace::{lookupCap, lookupCapAndSlot},
     faulthandler::handleFault,
     thread::{
-        activateThread, capRegister, doReplyTransfer, getCSpace, getRegister, ksCurThread,
+        activateThread, doReplyTransfer, getCSpace, getRegister,
         rescheduleRequired, schedule, setThreadState,
     },
     transfermsg::{

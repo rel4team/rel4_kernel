@@ -3,9 +3,10 @@ use crate::config::{
     seL4_Fault_CapFault, seL4_Fault_NullFault, seL4_Fault_UnknownSyscall, seL4_Fault_UserException,
     seL4_Fault_VMFault,
 };
+use crate::obj::notification::notification_t;
+use crate::obj::tcb::thread_state_t;
 use crate::structures::{
-    cap_t, cap_tag_t, endpoint_t, lookup_fault_t, mdb_node_t, notification_t, pte_t, seL4_Fault_t,
-    thread_state_t,
+    cap_t, cap_tag_t, endpoint_t, lookup_fault_t, mdb_node_t, pte_t, seL4_Fault_t,
 };
 
 //CSpace relevant
