@@ -10,8 +10,7 @@ $ repo sync
 
 # In rel4_kernel dirctory
 $ cd rel4_kernel 
-$ mkdir ./build && cd build
-$ ../build.sh
+$ make env && ./build.sh
 ```
 
 ## How to run test?
