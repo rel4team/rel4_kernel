@@ -1,7 +1,14 @@
-use crate::{structures::{region_t, p_region_t, v_region_t}, ROUND_UP, BIT, ROUND_DOWN, println, kernel::vspace::{paddr_to_pptr, pptr_to_paddr, RISCV_GET_LVL_PGSIZE_BITS, pptr_t, vptr_t, map_it_pt_cap}, MASK};
-use crate::config::*;
-use crate::cspace::cap::*;
+
 use crate::cspace::{cte_t, mdb_node_t};
+use crate::{config::*, MASK};
+use crate::cspace::cap::{cap_page_table_cap_new, cap_t};
+use crate::kernel::vspace::{pptr_t, vptr_t, map_it_pt_cap};
+use crate::{
+    kernel::vspace::{paddr_to_pptr, pptr_to_paddr, RISCV_GET_LVL_PGSIZE_BITS},
+    println,
+    structures::{p_region_t, region_t, v_region_t},
+    BIT, ROUND_DOWN, ROUND_UP,
+};
 use super::ndks_boot;
 
 #[inline]
@@ -36,14 +43,12 @@ pub fn pptr_in_kernel_window(pptr: usize) -> bool {
     pptr >= PPTR_BASE && pptr < PPTR_TOP
 }
 
-
 #[inline]
 pub fn get_n_paging(v_reg: v_region_t, bits: usize) -> usize {
     let start = ROUND_DOWN!(v_reg.start, bits);
     let end = ROUND_UP!(v_reg.end, bits);
     (end - start) / BIT!(bits)
 }
-
 
 pub fn arch_get_n_paging(it_v_reg: v_region_t) -> usize {
     let mut n: usize = 0;
@@ -62,7 +67,6 @@ pub fn write_slot(ptr: *mut cte_t, cap: cap_t) {
         mdb.set_first_badged(1);
     }
 }
-
 
 pub fn provide_cap(root_cnode_cap: &cap_t, cap: cap_t) -> bool {
     unsafe {

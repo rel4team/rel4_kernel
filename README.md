@@ -9,11 +9,13 @@ $ repo init -u https://github.com/rel4team/sel4test-manifest.git
 $ repo sync
 
 # In rel4_kernel dirctory
-$ cd rel4_kernel && ./build.sh
+$ cd rel4_kernel 
+$ mkdir ./build && cd build
+$ ../build.sh
 ```
 
 ## How to run test?
 ```shell
-# In rel4_kernel dirctory
-$ cd build && ./simulate
+# In build dirctory
+$ ./simulate
 ```
