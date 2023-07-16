@@ -16,7 +16,6 @@ use crate::{
     },
     object::{
         notification::completeSignal,
-        objecttype::{cap_endpoint_cap, cap_get_capType},
         structure_gen::{
             notification_ptr_get_state, thread_state_get_blockingIPCCanGrant,
             thread_state_get_blockingIPCCanGrantReply, thread_state_get_blockingIPCIsCall,
@@ -24,7 +23,7 @@ use crate::{
         },
         tcb::{setupCallerCap, tcbEPDequeue},
     },
-    structures::{cap_t, cte_t, endpoint_t, exception_t, notification_t, tcb_queue_t, tcb_t},
+    structures::{endpoint_t, exception_t, notification_t, tcb_queue_t, tcb_t}, cspace::{cap::cap_t, cte_t, interface::mdb_node_get_mdbNext},
 };
 
 use super::{
@@ -34,7 +33,7 @@ use super::{
         cap_endpoint_cap_get_capCanGrant, cap_endpoint_cap_get_capEPPtr,
         endpoint_ptr_get_epQueue_head, endpoint_ptr_get_epQueue_tail, endpoint_ptr_get_state,
         endpoint_ptr_set_epQueue_head, endpoint_ptr_set_epQueue_tail, endpoint_ptr_set_state,
-        mdb_node_get_mdbNext, seL4_Fault_NullFault_new, thread_state_get_blockingIPCBadge,
+        seL4_Fault_NullFault_new, thread_state_get_blockingIPCBadge,
         thread_state_get_tsType, thread_state_set_blockingIPCBadge,
         thread_state_set_blockingIPCCanGrant, thread_state_set_blockingIPCCanGrantReply,
         thread_state_set_blockingIPCIsCall, thread_state_set_blockingObject,
@@ -42,6 +41,8 @@ use super::{
     },
     tcb::{tcbEPAppend, tcbSchedEnqueue},
 };
+
+use crate::cspace::interface::*;
 
 #[inline]
 pub fn ep_ptr_set_queue(epptr: *const endpoint_t, queue: tcb_queue_t) {

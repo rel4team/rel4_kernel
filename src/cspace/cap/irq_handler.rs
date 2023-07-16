@@ -1,23 +1,19 @@
-use super::{Cap, CapTag};
+use super::{cap_t, CapTag};
 
-#[derive(Clone, Copy, Debug)]
-pub struct IRQHandlerCap {
-    cap: Cap,
-}
 
-impl IRQHandlerCap {
+impl cap_t {
 
     #[inline]
-    pub fn new(capIRQ: usize) -> Self {
-        let mut cap = Cap::default();
+    pub fn new_irq_handler_cap(capIRQ: usize) -> Self {
+        let mut cap = cap_t::default();
 
         cap.words[0] = 0 | (CapTag::CapIrqHandlerCap as usize & 0x1fusize) << 59;
         cap.words[1] = 0 | (capIRQ & 0xfffusize) << 0;
-        Self { cap }
+        cap
     }
 
     #[inline]
-    pub fn get_irq(&self) -> usize {
-        (self.cap.words[1] & 0xfffusize) >> 0
+    pub fn get_irq_handler(&self) -> usize {
+        (self.words[1] & 0xfffusize) >> 0
     }
 }

@@ -1,17 +1,13 @@
-use super::{Cap, CapTag};
+use super::{cap_t, CapTag};
 
-#[derive(Clone, Copy, Debug)]
-pub struct ASIDControlCap {
-    cap: Cap,
-}
 
-impl ASIDControlCap {
+impl cap_t {
 
     #[inline]
-    pub fn new() -> Self {
-        let mut cap = Cap::default();
+    pub fn new_asid_control_cap() -> Self {
+        let mut cap = cap_t::default();
         cap.words[0] = 0 | (CapTag::CapASIDControlCap as usize & 0x1fusize) << 59;
         cap.words[1] = 0;
-        Self { cap }
+        cap
     }
 }

@@ -12,23 +12,22 @@ use crate::{
     },
     object::structure_gen::lookup_fault_missing_capability_new,
     println,
-    structures::{cap_t, cte_t, exception_t},
+    structures::exception_t,
     syscall::getSyscallArg,
-    BIT, MASK, ROUND_DOWN, boot::clearMemory,
+    BIT, MASK, ROUND_DOWN, boot::clearMemory, cspace::{cap::cap_t, cte_t},
 };
 
 use super::{
     cap::{ensureEmptySlot, ensureNoChildren},
     objecttype::{
-        cap_cnode_cap, cap_get_capType, createNewObjects, getObjectSize, Arch_isFrameType,
+        createNewObjects, getObjectSize, Arch_isFrameType,
     },
     structure_gen::{
         cap_cnode_cap_get_capCNodePtr, cap_cnode_cap_get_capCNodeRadix,
-        cap_untyped_cap_get_capBlockSize, cap_untyped_cap_get_capFreeIndex,
-        cap_untyped_cap_get_capIsDevice, cap_untyped_cap_get_capPtr,
-        cap_untyped_cap_set_capFreeIndex,
     },
 };
+
+use crate::cspace::interface::*;
 
 pub fn alignUp(baseValue: usize, alignment: usize) -> usize {
     (baseValue + BIT!(alignment) - 1) & !MASK!(alignment)

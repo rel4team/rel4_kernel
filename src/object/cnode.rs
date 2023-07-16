@@ -1,11 +1,7 @@
-use crate::{config::tcbReply, kernel::thread::getCSpace, structures::tcb_t};
+use crate::{config::tcbReply, kernel::thread::getCSpace, structures::tcb_t, cspace::interface::cap_reply_cap_new};
 
-use super::{
-    objecttype::{cap_get_capType, cap_null_cap},
-    structure_gen::{
-        cap_reply_cap_new, mdb_node_new, mdb_node_set_mdbFirstBadged, mdb_node_set_mdbRevocable,
-    },
-};
+
+use crate::cspace::interface::*;
 
 #[no_mangle]
 pub fn setupReplyMaster(thread: *mut tcb_t) {

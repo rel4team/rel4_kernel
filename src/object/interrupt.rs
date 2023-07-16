@@ -15,20 +15,21 @@ use crate::{
     },
     println,
     riscv::{read_sip, resetTimer},
-    structures::{cap_t, cte_t, exception_t, notification_t},
+    structures::{exception_t, notification_t},
     syscall::getSyscallArg,
-    BIT,
+    BIT, cspace::{cap::cap_t, cte_t},
 };
 
 use super::{
     cap::{cteDeleteOne, cteInsert, ensureEmptySlot},
     notification::sendSignal,
-    objecttype::{cap_get_capType, cap_notification_cap},
     structure_gen::{
-        cap_irq_handler_cap_new, cap_notification_cap_get_capNtfnBadge,
+        cap_notification_cap_get_capNtfnBadge,
         cap_notification_cap_get_capNtfnCanSend, cap_notification_cap_get_capNtfnPtr,
     },
 };
+
+use crate::cspace::interface::*;
 
 #[no_mangle]
 pub static mut intStateIRQTable: [usize; 2] = [0; 2];

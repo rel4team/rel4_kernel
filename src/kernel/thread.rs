@@ -15,7 +15,7 @@ use crate::{
         cap::{cteDeleteOne, cteInsert},
         cnode::setupReplyMaster,
         endpoint::cancelIPC,
-        objecttype::{cap_endpoint_cap, cap_get_capType, cap_null_cap, cap_thread_cap, deriveCap},
+        objecttype::deriveCap,
         structure_gen::{
             cap_endpoint_cap_get_capEPBadge, cap_endpoint_cap_get_capEPPtr,
             cap_thread_cap_get_capTCBPtr, seL4_Fault_get_seL4_FaultType, thread_state_get_tsType,
@@ -28,11 +28,11 @@ use crate::{
     },
     println,
     structures::{
-        arch_tcb_t, cap_transfer_t, cte_t, endpoint_t, exception_t, seL4_MessageInfo_t,
+        arch_tcb_t, cap_transfer_t, endpoint_t, exception_t, seL4_MessageInfo_t,
         tcb_queue_t, tcb_t,
     },
     syscall::getSyscallArg,
-    BIT, MASK,
+    BIT, MASK, cspace::cte_t,
 };
 
 use core::{
@@ -55,6 +55,8 @@ use super::{
     },
     vspace::{lookupIPCBuffer, setVMRoot},
 };
+
+use crate::cspace::interface::*;
 
 #[no_mangle]
 pub static mut ksDomainTime: usize = 0;

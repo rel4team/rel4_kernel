@@ -15,35 +15,30 @@ use crate::{
     object::{
         objecttype::finaliseCap,
         structure_gen::{
-            cap_null_cap_new, cap_zombie_cap_get_capZombieType, cap_zombie_cap_set_capZombieNumber,
-            lookup_fault_missing_capability_new, mdb_node_get_mdbPrev, mdb_node_new,
+            cap_zombie_cap_get_capZombieType, cap_zombie_cap_set_capZombieNumber,
+            lookup_fault_missing_capability_new
         },
     },
     println,
-    structures::{cap_t, cte_t, endpoint_t, exception_t, finaliseCap_ret, finaliseSlot_ret, tcb_t},
+    structures::{endpoint_t, exception_t, finaliseCap_ret, finaliseSlot_ret, tcb_t},
     syscall::getSyscallArg,
-    utils::MAX_FREE_INDEX,
+    utils::MAX_FREE_INDEX, cspace::{cap::cap_t, cte_t},
 };
 
 use super::{
     endpoint::cancelBadgedSends,
     interrupt::intStateIRQNode,
-    objecttype::{
-        cap_cnode_cap, cap_endpoint_cap, cap_get_capType, cap_notification_cap, cap_null_cap,
-        cap_reply_cap, cap_thread_cap, cap_untyped_cap, cap_zombie_cap, deriveCap,
-        hasCancelSendRight, isCapRevocable, maskCapRights, postCapDeletion, sameObjectAs,
+    objecttype::{deriveCap, hasCancelSendRight, isCapRevocable, maskCapRights, postCapDeletion, sameObjectAs,
         sameRegionAs, updateCapData,
     },
     structure_gen::{
         cap_endpoint_cap_get_capEPBadge, cap_endpoint_cap_get_capEPPtr,
-        cap_notification_cap_get_capNtfnBadge, cap_reply_cap_get_capReplyMaster,
-        cap_untyped_cap_get_capBlockSize, cap_untyped_cap_get_capPtr,
-        cap_untyped_cap_ptr_set_capFreeIndex, cap_zombie_cap_get_capZombieNumber,
-        cap_zombie_cap_get_capZombiePtr, mdb_node_get_mdbFirstBadged, mdb_node_get_mdbNext,
-        mdb_node_get_mdbRevocable, mdb_node_ptr_set_mdbNext, mdb_node_ptr_set_mdbPrev,
-        mdb_node_set_mdbFirstBadged, mdb_node_set_mdbPrev, mdb_node_set_mdbRevocable,
+        cap_notification_cap_get_capNtfnBadge, cap_reply_cap_get_capReplyMaster, cap_zombie_cap_get_capZombieNumber,
+        cap_zombie_cap_get_capZombiePtr
     },
 };
+
+use crate::cspace::interface::*;
 
 #[no_mangle]
 pub fn ensureNoChildren(slot: *mut cte_t) -> exception_t {

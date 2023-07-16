@@ -1,11 +1,12 @@
 pub mod cap;
 mod cte;
 mod mdb;
+pub mod interface;
 
 pub use cte::cte_t;
 pub use mdb::mdb_node_t;
 
-use crate::{object::untyped::MAX_FREE_INDEX, cspace::cap::UntypedCap};
+use crate::object::untyped::MAX_FREE_INDEX;
 
 use self::cap::{cap_t, is_cap_revocable, CapTag};
 
@@ -41,11 +42,11 @@ fn setUntypedCapAsFull(srcCap: &cap_t, newCap: &cap_t, srcSlot: &mut cte_t) {
         && newCap.get_cap_type() == CapTag::CapUntypedCap
     {
         assert_eq!(srcSlot.cap.get_cap_type(), CapTag::CapUntypedCap);
-        if srcCap.get_inner_ref::<UntypedCap>().get_ptr() == newCap.get_inner_ref::<UntypedCap>().get_ptr()
-            && srcCap.get_inner_ref::<UntypedCap>().get_block_size() == newCap.get_inner_ref::<UntypedCap>().get_block_size()
+        if srcCap.get_untyped_ptr() == newCap.get_untyped_ptr()
+            && srcCap.get_untyped_block_size() == newCap.get_untyped_block_size()
         {
-            srcSlot.cap.get_inner_mut_ref::<UntypedCap>().set_free_index(
-                MAX_FREE_INDEX(srcCap.get_inner_ref::<UntypedCap>().get_block_size())
+            srcSlot.cap.set_untyped_free_index(
+                MAX_FREE_INDEX(srcCap.get_untyped_block_size())
             );
         }
     }

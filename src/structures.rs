@@ -4,7 +4,7 @@ use crate::{
         MAX_NUM_FREEMEM_REG, MAX_NUM_RESV_REG,
     },
     kernel::thread::n_contextRegisters,
-    BIT,
+    BIT, cspace::{cap::cap_t, mdb_node_t, cte_t},
 };
 
 #[repr(C)]
@@ -143,46 +143,6 @@ pub struct rootserver_mem_t {
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct thread_state_t {
     pub words: [usize; 3],
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct cap_t {
-    pub words: [usize; 2],
-}
-
-impl Default for cap_t {
-    fn default() -> Self {
-        cap_t { words: [0; 2] }
-    }
-}
-
-#[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct mdb_node_t {
-    pub words: [usize; 2],
-}
-
-impl Default for mdb_node_t {
-    fn default() -> Self {
-        mdb_node_t { words: [0; 2] }
-    }
-}
-
-#[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct cte_t {
-    pub cap: cap_t,
-    pub cteMDBNode: mdb_node_t,
-}
-
-impl Default for cte_t {
-    fn default() -> Self {
-        cte_t {
-            cap: cap_t::default(),
-            cteMDBNode: mdb_node_t::default(),
-        }
-    }
 }
 
 #[derive(PartialEq)]

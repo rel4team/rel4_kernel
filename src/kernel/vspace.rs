@@ -19,23 +19,18 @@ use crate::{
     kernel::boot::current_syscall_error,
     object::{
         cap::{cteInsert, ensureEmptySlot, ensureNoChildren, isFinalCapability},
-        objecttype::{
-            cap_asid_control_cap, cap_asid_pool_cap, cap_frame_cap, cap_get_capPtr,
-            cap_get_capType, cap_page_table_cap, cap_untyped_cap,
-        },
+        objecttype::cap_get_capPtr,
         structure_gen::{
             cap_asid_pool_cap_get_capASIDBase, cap_asid_pool_cap_get_capASIDPool,
-            cap_asid_pool_cap_new, cap_frame_cap_get_capFBasePtr, cap_frame_cap_get_capFIsDevice,
+            cap_frame_cap_get_capFBasePtr, cap_frame_cap_get_capFIsDevice,
             cap_frame_cap_get_capFMappedASID, cap_frame_cap_get_capFMappedAddress,
-            cap_frame_cap_get_capFSize, cap_frame_cap_get_capFVMRights, cap_frame_cap_new,
+            cap_frame_cap_get_capFSize, cap_frame_cap_get_capFVMRights,
             cap_frame_cap_set_capFMappedASID, cap_frame_cap_set_capFMappedAddress,
             cap_page_table_cap_get_capPTBasePtr,
             cap_page_table_cap_get_capPTIsMapped, cap_page_table_cap_get_capPTMappedASID,
-            cap_page_table_cap_get_capPTMappedAddress, cap_page_table_cap_new,
+            cap_page_table_cap_get_capPTMappedAddress,
             cap_page_table_cap_ptr_set_capPTIsMapped, cap_page_table_cap_set_capPTIsMapped,
             cap_page_table_cap_set_capPTMappedASID, cap_page_table_cap_set_capPTMappedAddress,
-            cap_untyped_cap_get_capBlockSize, cap_untyped_cap_get_capIsDevice,
-            cap_untyped_cap_get_capPtr, cap_untyped_cap_ptr_set_capFreeIndex,
             lookup_fault_invalid_root_new, lookup_fault_missing_capability_new,
             pte_ptr_get_execute, pte_ptr_get_ppn, pte_ptr_get_read, pte_ptr_get_valid,
             pte_ptr_get_write, seL4_Fault_VMFault_new,
@@ -44,12 +39,12 @@ use crate::{
     println,
     riscv::read_stval,
     structures::{
-        asid_pool_t, cap_t, cte_t, exception_t, findVSpaceForASID_ret, lookupPTSlot_ret_t, pte_t,
+        asid_pool_t, exception_t, findVSpaceForASID_ret, lookupPTSlot_ret_t, pte_t,
         satp_t, seL4_CapRights_t, tcb_t,
     },
     syscall::getSyscallArg,
     utils::MAX_FREE_INDEX,
-    BIT, IS_ALIGNED, MASK, ROUND_DOWN, boot::clearMemory,
+    BIT, IS_ALIGNED, MASK, ROUND_DOWN, boot::clearMemory, cspace::{cap::cap_t, cte_t},
 
 };
 
@@ -65,6 +60,8 @@ use super::{
         wordFromMessageInfo,
     },
 };
+
+use crate::cspace::interface::*;
 
 pub type pptr_t = usize;
 pub type paddr_t = usize;

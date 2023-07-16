@@ -28,33 +28,34 @@ use crate::{
     },
     object::{
         cap::cteInsert,
-        objecttype::{cap_get_capType, cap_null_cap, cap_reply_cap, updateCapData},
+        objecttype::updateCapData,
         structure_gen::{
             cap_reply_cap_get_capReplyCanGrant, cap_reply_cap_get_capReplyMaster,
-            cap_reply_cap_get_capTCBPtr, cap_reply_cap_new,
+            cap_reply_cap_get_capTCBPtr,
         },
     },
     println,
     structures::{
-        cap_t, cte_t, deriveCap_ret, exception_t, notification_t, seL4_MessageInfo_t, tcb_queue_t,
+        deriveCap_ret, exception_t, notification_t, seL4_MessageInfo_t, tcb_queue_t,
         tcb_t,
     },
     syscall::getSyscallArg,
-    BIT, MASK,
+    BIT, MASK, cspace::{cap::cap_t, cte_t},
 };
 
 use super::{
     cap::{cteDelete, cteDeleteOne, slotCapLongRunningDelete},
     // cap::cteDelete,
     notification::{bindNotification, unbindNotification},
-    objecttype::{cap_cnode_cap, cap_notification_cap, cap_thread_cap, deriveCap, sameObjectAs},
+    objecttype::{deriveCap, sameObjectAs},
     structure_gen::{
         cap_notification_cap_get_capNtfnCanReceive, cap_notification_cap_get_capNtfnPtr,
-        cap_null_cap_new, cap_thread_cap_get_capTCBPtr, cap_thread_cap_new,
-        notification_ptr_get_ntfnQueue_head, notification_ptr_get_ntfnQueue_tail,
+        cap_thread_cap_get_capTCBPtr, notification_ptr_get_ntfnQueue_head, notification_ptr_get_ntfnQueue_tail,
         thread_state_get_tcbQueued, thread_state_set_tcbQueued,
     },
 };
+
+use crate::cspace::interface::*;
 
 type prio_t = usize;
 

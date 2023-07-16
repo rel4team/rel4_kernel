@@ -1,10 +1,11 @@
-use super::{calculate_extra_bi_size_bits};
-use super::utils::{arch_get_n_paging, write_slot, provide_cap, clearMemory, getCSpace, create_it_pt_cap};
+use super::calculate_extra_bi_size_bits;
+use super::utils::{arch_get_n_paging, write_slot, provide_cap, clearMemory};
 use super::{ndks_boot, utils::is_reg_empty};
+use crate::cspace::interface::*;
 use crate::cspace::{cap::*, cte_insert};
 use crate::kernel::boot::ksDomSchedule;
-use crate::kernel::thread::{ksDomScheduleIdx, Arch_initContext, capRegister, setRegister, setNextPC, setThreadState, ksCurDomain, ksDomainTime};
-use crate::kernel::vspace::{copyGlobalMappings, map_it_frame_cap, riscvKSASIDTable, RISCV_GET_LVL_PGSIZE_BITS, RISCV_GET_LVL_PGSIZE, pptr_to_paddr, pptr_t};
+use crate::kernel::thread::{ksDomScheduleIdx, Arch_initContext, capRegister, setRegister, setNextPC, setThreadState, ksCurDomain, ksDomainTime, getCSpace, getCSpaceRef};
+use crate::kernel::vspace::{copyGlobalMappings, map_it_frame_cap, riscvKSASIDTable, RISCV_GET_LVL_PGSIZE_BITS, RISCV_GET_LVL_PGSIZE, pptr_to_paddr, pptr_t, create_it_pt_cap};
 use crate::object::cnode::setupReplyMaster;
 use crate::object::interrupt::setIRQState;
 use crate::structures::{region_t, rootserver_mem_t, v_region_t, tcb_t, exception_t, asid_pool_t, seL4_SlotRegion, create_frames_of_region_ret_t, seL4_BootInfo, seL4_IPCBuffer};
@@ -129,17 +130,17 @@ unsafe fn create_initial_thread(
     cte_insert(
         &root_cnode_cap.clone(),
         unsafe { &mut *(ptr.add(seL4_CapInitThreadCNode)) },
-        getCSpace(rootserver.tcb, tcbCTable),
+        getCSpaceRef(rootserver.tcb, tcbCTable),
     );
     cte_insert(
         &it_pd_cap.clone(),
         unsafe { &mut *(ptr.add(seL4_CapInitThreadVspace)) },
-        getCSpace(rootserver.tcb, tcbVTable),
+        getCSpaceRef(rootserver.tcb, tcbVTable),
     );
     cte_insert(
         &dc_ret.cap.clone(),
         unsafe { &mut *(ptr.add(seL4_CapInitThreadIPCBuffer)) },
-        getCSpace(rootserver.tcb, tcbBuffer),
+        getCSpaceRef(rootserver.tcb, tcbBuffer),
     );
     (*tcb).tcbIPCBuffer = ipcbuf_vptr;
 
@@ -495,7 +496,7 @@ pub fn rust_create_mapped_it_frame_cap(
         frame_size = RISCVPageBits;
     }
     let cap = cap_frame_cap_new(asid, pptr, frame_size, VMReadWrite, 0, vptr);
-    map_it_frame_cap(&pd_cap.to_struture_cap(), &cap.to_struture_cap());
+    map_it_frame_cap(pd_cap, &cap);
     cap
 }
 

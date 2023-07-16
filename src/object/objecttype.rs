@@ -27,10 +27,10 @@ use crate::{
     },
     println,
     structures::{
-        asid_pool_t, cap_t, cte_t, deriveCap_ret, endpoint_t, exception_t, finaliseCap_ret,
+        asid_pool_t, deriveCap_ret, endpoint_t, exception_t, finaliseCap_ret,
         notification_t, pte_t, seL4_CNode_CapData_t, seL4_CapRights_t, tcb_t,
     },
-    MASK,
+    MASK, cspace::{cap::cap_t, cte_t},
 };
 
 use super::{
@@ -45,66 +45,44 @@ use super::{
     },
     structure_gen::{
         cap_asid_pool_cap_get_capASIDBase, cap_asid_pool_cap_get_capASIDPool,
-        cap_cnode_cap_get_capCNodePtr, cap_cnode_cap_get_capCNodeRadix, cap_cnode_cap_new,
+        cap_cnode_cap_get_capCNodePtr, cap_cnode_cap_get_capCNodeRadix,
         cap_cnode_cap_set_capCNodeGuard, cap_cnode_cap_set_capCNodeGuardSize,
         cap_endpoint_cap_get_capCanGrant, cap_endpoint_cap_get_capCanGrantReply,
         cap_endpoint_cap_get_capCanReceive, cap_endpoint_cap_get_capCanSend,
-        cap_endpoint_cap_get_capEPBadge, cap_endpoint_cap_get_capEPPtr, cap_endpoint_cap_new,
+        cap_endpoint_cap_get_capEPBadge, cap_endpoint_cap_get_capEPPtr,
         cap_endpoint_cap_set_capCanGrant, cap_endpoint_cap_set_capCanGrantReply,
         cap_endpoint_cap_set_capCanReceive, cap_endpoint_cap_set_capCanSend,
         cap_endpoint_cap_set_capEPBadge, cap_frame_cap_get_capFBasePtr,
         cap_frame_cap_get_capFIsDevice, cap_frame_cap_get_capFMappedASID,
         cap_frame_cap_get_capFMappedAddress, cap_frame_cap_get_capFSize,
-        cap_frame_cap_get_capFVMRights, cap_frame_cap_new, cap_frame_cap_set_capFMappedASID,
+        cap_frame_cap_get_capFVMRights, cap_frame_cap_set_capFMappedASID,
         cap_frame_cap_set_capFMappedAddress, cap_frame_cap_set_capFVMRights,
         cap_irq_handler_cap_get_capIRQ, cap_notification_cap_get_capNtfnBadge,
         cap_notification_cap_get_capNtfnCanReceive, cap_notification_cap_get_capNtfnCanSend,
-        cap_notification_cap_get_capNtfnPtr, cap_notification_cap_new,
+        cap_notification_cap_get_capNtfnPtr,
         cap_notification_cap_set_capNtfnBadge, cap_notification_cap_set_capNtfnCanReceive,
-        cap_notification_cap_set_capNtfnCanSend, cap_null_cap_new,
+        cap_notification_cap_set_capNtfnCanSend,
         cap_page_table_cap_get_capPTBasePtr, cap_page_table_cap_get_capPTIsMapped,
-        cap_page_table_cap_get_capPTMappedASID, cap_page_table_cap_get_capPTMappedAddress,
-        cap_page_table_cap_new, cap_reply_cap_get_capReplyCanGrant,
+        cap_page_table_cap_get_capPTMappedASID, cap_page_table_cap_get_capPTMappedAddress, cap_reply_cap_get_capReplyCanGrant,
         cap_reply_cap_get_capReplyMaster, cap_reply_cap_get_capTCBPtr,
-        cap_reply_cap_set_capReplyCanGrant, cap_thread_cap_get_capTCBPtr, cap_thread_cap_new,
-        cap_untyped_cap_get_capBlockSize, cap_untyped_cap_get_capPtr, cap_untyped_cap_new,
+        cap_reply_cap_set_capReplyCanGrant, cap_thread_cap_get_capTCBPtr,
         cap_zombie_cap_get_capZombiePtr, ZombieType_ZombieTCB, Zombie_new,
     },
     tcb::decodeTCBInvocation,
     untyped::decodeUntypedInvocation,
 };
 
+use crate::cspace::interface::*;
+
 pub const seL4_EndpointBits: usize = 4;
 pub const seL4_NotificationBits: usize = 4;
 pub const seL4_ReplyBits: usize = 4;
 pub const PT_SIZE_BITS: usize = 12;
 
-//cap_tag_t
-pub const cap_null_cap: usize = 0;
-pub const cap_untyped_cap: usize = 2;
-pub const cap_endpoint_cap: usize = 4;
-pub const cap_notification_cap: usize = 6;
-pub const cap_reply_cap: usize = 8;
-pub const cap_cnode_cap: usize = 10;
-pub const cap_thread_cap: usize = 12;
-pub const cap_irq_control_cap: usize = 14;
-pub const cap_irq_handler_cap: usize = 16;
-pub const cap_zombie_cap: usize = 18;
-pub const cap_domain_cap: usize = 20;
-pub const cap_frame_cap: usize = 1;
-pub const cap_page_table_cap: usize = 3;
-pub const cap_asid_control_cap: usize = 11;
-pub const cap_asid_pool_cap: usize = 13;
-
 pub const seL4_RISCV_Giga_Page: usize = 5;
 pub const seL4_RISCV_4K_Page: usize = 6;
 pub const seL4_RISCV_Mega_Page: usize = 7;
 pub const seL4_RISCV_PageTableObject: usize = 8;
-
-#[inline]
-pub fn cap_get_capType(cap: &cap_t) -> usize {
-    (cap.words[0] >> 59) & 0x1fusize
-}
 
 #[inline]
 pub fn cap_capType_equals(cap: &cap_t, cap_type_tag: usize) -> bool {

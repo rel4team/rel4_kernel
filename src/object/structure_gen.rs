@@ -3,18 +3,19 @@ use crate::config::{
     seL4_Fault_CapFault, seL4_Fault_NullFault, seL4_Fault_UnknownSyscall, seL4_Fault_UserException,
     seL4_Fault_VMFault,
 };
+
+use crate::cspace::interface::*;
+use crate::cspace::cap::cap_t;
+use crate::cspace::mdb_node_t;
 use crate::structures::{
-    cap_t, cap_tag_t, endpoint_t, lookup_fault_t, mdb_node_t, notification_t, pte_t, seL4_Fault_t,
+    cap_tag_t, endpoint_t, lookup_fault_t, notification_t, pte_t, seL4_Fault_t,
     thread_state_t,
 };
 
 //CSpace relevant
-use core::default::Default;
 use core::intrinsics::{likely, unlikely};
 
 use crate::MASK;
-
-use super::objecttype::*;
 
 //zombie config
 pub const wordRadix: usize = 6;
@@ -23,135 +24,6 @@ pub const TCB_CNODE_RADIX: usize = 4;
 
 pub fn ZombieType_ZombieCNode(n: usize) -> usize {
     return n & MASK!(wordRadix);
-}
-
-//mdb relevant
-#[inline]
-pub fn mdb_node_new(
-    mdbNext: usize,
-    mdbRevocable: usize,
-    mdbFirstBadged: usize,
-    mdbPrev: usize,
-) -> mdb_node_t {
-    let mut mdb_node = mdb_node_t::default();
-
-    mdb_node.words[0] = 0 | mdbPrev << 0;
-
-    mdb_node.words[1] = 0
-        | (mdbNext & 0x7ffffffffcusize) >> 0
-        | (mdbRevocable & 0x1usize) << 1
-        | (mdbFirstBadged & 0x1usize) << 0;
-    mdb_node
-}
-
-#[inline]
-pub fn mdb_node_get_mdbNext(mdb_node: &mdb_node_t) -> usize {
-    let mut ret: usize;
-    ret = (mdb_node.words[1] & 0x7ffffffffcusize) << 0;
-    if (ret & (1usize << (38))) != 0 {
-        ret |= 0xffffff8000000000;
-    }
-    ret
-}
-
-#[inline]
-pub fn mdb_node_ptr_set_mdbNext(mdb_node: &mut mdb_node_t, v64: usize) {
-    assert!(
-        (((!0x7ffffffffcusize << 0) | 0xffffff8000000000) & v64)
-            == if true && (v64 & (1usize << (38))) != 0 {
-                0xffffff8000000000
-            } else {
-                0
-            }
-    );
-    (mdb_node).words[1] = !0x7ffffffffcusize;
-    (mdb_node).words[1] |= (v64 >> 0) & 0x7ffffffffc;
-}
-
-#[inline]
-pub fn mdb_node_get_mdbRevocable(mdb_node: &mdb_node_t) -> usize {
-    let mut ret: usize;
-    ret = (mdb_node.words[1] & 0x2usize) >> 1;
-    if unlikely(!!(false && (ret & (1usize << (38))) != 0)) {
-        ret |= 0x0;
-    }
-    ret
-}
-
-#[inline]
-pub fn mdb_node_get_mdbFirstBadged(mdb_node: &mdb_node_t) -> usize {
-    let mut ret: usize;
-    ret = (mdb_node.words[1] & 0x1usize) >> 0;
-    if unlikely(!!(false && (ret & (1usize << (38))) != 0)) {
-        ret |= 0x0;
-    }
-    ret
-}
-
-#[inline]
-pub fn mdb_node_set_mdbRevocable(mdb_node: &mut mdb_node_t, v64: usize) {
-    assert!(
-        (((!0x2usize >> 1) | 0x0) & v64)
-            == (if false && (v64 & (1usize << (38))) != 0 {
-                0x0
-            } else {
-                0
-            })
-    );
-    mdb_node.words[1] &= !0x2usize;
-    mdb_node.words[1] |= (v64 << 1) & 0x2;
-}
-
-#[inline]
-pub fn mdb_node_set_mdbFirstBadged(mdb_node: &mut mdb_node_t, v64: usize) {
-    assert!(
-        (((!0x1usize >> 0) | 0x0) & v64)
-            == (if false && (v64 & (1usize << (38))) != 0 {
-                0x0
-            } else {
-                0
-            })
-    );
-    mdb_node.words[1] &= !0x1usize;
-    mdb_node.words[1] |= (v64 << 0) & 0x1usize;
-}
-
-#[inline]
-pub fn mdb_node_get_mdbPrev(mdb_node: &mdb_node_t) -> usize {
-    let mut ret: usize;
-    ret = (mdb_node.words[0] & 0xffffffffffffffffusize) >> 0;
-    if unlikely(!!(false && (ret & (1usize << (38))) != 0)) {
-        ret |= 0x0;
-    }
-    ret
-}
-
-#[inline]
-pub fn mdb_node_set_mdbPrev(mdb_node: &mut mdb_node_t, v64: usize) {
-    assert!(
-        (((!0xffffffffffffffffusize >> 0) | 0x0) & v64)
-            == (if false && (v64 & (1usize << (38))) != 0 {
-                0x0
-            } else {
-                0
-            })
-    );
-    mdb_node.words[0] &= !0xffffffffffffffffusize;
-    mdb_node.words[0] |= (v64 << 0) & 0xffffffffffffffffusize;
-}
-
-#[inline]
-pub fn mdb_node_ptr_set_mdbPrev(mdb_node: &mut mdb_node_t, v64: usize) {
-    assert!(
-        (((!0xffffffffffffffffusize >> 0) | 0x0) & v64)
-            == (if false && (v64 & (1usize << (38))) != 0 {
-                0x0
-            } else {
-                0
-            })
-    );
-    (mdb_node).words[0] &= !0xffffffffffffffffusize;
-    (mdb_node).words[0] |= (v64 << 0) & 0xffffffffffffffffusize;
 }
 
 //cap relevant
@@ -163,199 +35,6 @@ pub fn cap_get_max_free_index(cap: &cap_t) -> usize {
     (1usize << ans) - sel4_MinUntypedbits
 }
 
-#[inline]
-pub fn cap_get_capType(cap: &cap_t) -> usize {
-    (cap.words[0] >> 59) & 0x1fusize
-}
-
-
-#[inline]
-pub fn cap_null_cap_new() -> cap_t {
-    let mut cap = cap_t::default();
-    assert!(
-        (cap_tag_t::cap_null_cap as usize & !0x1fusize)
-            == (if true && (cap_tag_t::cap_null_cap as usize & (1usize << 38)) != 0 {
-                0x0
-            } else {
-                0
-            })
-    );
-
-    cap.words[0] = 0 | (cap_tag_t::cap_null_cap as usize & 0x1fusize) << 59;
-    cap.words[1] = 0;
-
-    cap
-}
-
-#[inline]
-pub fn cap_untyped_cap_new(
-    capFreeIndex: usize,
-    capIsDevice: usize,
-    capBlockSize: usize,
-    capPtr: usize,
-) -> cap_t {
-    let mut cap = cap_t::default();
-
-    cap.words[0] = 0
-        | (cap_tag_t::cap_untyped_cap as usize & 0x1fusize) << 59
-        | (capPtr & 0x7fffffffffusize) >> 0;
-    cap.words[1] = 0
-        | (capFreeIndex & 0x7fffffffffusize) << 25
-        | (capIsDevice & 0x1usize) << 6
-        | (capBlockSize & 0x3fusize) << 0;
-    cap
-}
-
-#[inline]
-pub fn cap_untyped_cap_get_capIsDevice(cap: &cap_t) -> usize {
-    let mut ret: usize;
-    assert!(((cap.words[0] >> 59) & 0x1f) == cap_tag_t::cap_untyped_cap as usize);
-    ret = (cap.words[1] & 0x40usize) >> 6;
-    if unlikely(!!(false && (ret & (1usize << (38))) != 0)) {
-        ret |= 0x0;
-    }
-    ret
-}
-
-#[inline]
-pub fn cap_untyped_cap_get_capBlockSize(cap: &cap_t) -> usize {
-    let mut ret: usize;
-    assert!(((cap.words[0] >> 59) & 0x1f) == cap_tag_t::cap_untyped_cap as usize);
-    ret = (cap.words[1] & 0x3fusize) >> 0;
-    if unlikely(!!(false && (ret & (1usize << (38))) != 0)) {
-        ret |= 0x0;
-    }
-    ret
-}
-#[inline]
-pub fn cap_untyped_cap_get_capFreeIndex(cap: &cap_t) -> usize {
-    let mut ret: usize;
-    assert!(((cap.words[0] >> 59) & 0x1f) == cap_tag_t::cap_untyped_cap as usize);
-
-    ret = (cap.words[1] & 0xfffffffffe000000usize) >> 25;
-    if unlikely(!!(false && ((ret & (1usize << (38))) != 0))) {
-        ret |= 0x0;
-    }
-    ret
-}
-
-#[inline]
-pub fn cap_untyped_cap_set_capFreeIndex(cap: &mut cap_t, v64: usize) {
-    assert!(((cap.words[0] >> 59) & 0x1f) == cap_tag_t::cap_untyped_cap as usize);
-    assert!(
-        (((!0xfffffffffe000000usize >> 25) | 0x0) & v64)
-            == (if false && (v64 & (1usize << (38))) != 0 {
-                0x0
-            } else {
-                0
-            })
-    );
-
-    cap.words[1] &= !0xfffffffffe000000usize;
-    cap.words[1] |= (v64 << 25) & 0xfffffffffe000000usize;
-}
-
-#[inline]
-pub fn cap_untyped_cap_ptr_set_capFreeIndex(cap: &mut cap_t, v64: usize) {
-    assert!(((cap.words[0] >> 59) & 0x1f) == cap_tag_t::cap_untyped_cap as usize);
-    /* fail if user has passed bits that we will override */
-    assert!(
-        (((!0xfffffffffe000000usize >> 25) | 0x0) & v64)
-            == (if false && (v64 & (1usize << (38))) != 0 {
-                0x0
-            } else {
-                0
-            })
-    );
-
-    cap.words[1] &= !0xfffffffffe000000usize;
-    cap.words[1] |= (v64 << 25) & 0xfffffffffe000000usize;
-}
-
-#[inline]
-pub fn cap_untyped_cap_get_capPtr(cap: &cap_t) -> usize {
-    let mut ret;
-    assert!(((cap.words[0] >> 59) & 0x1f) == cap_tag_t::cap_untyped_cap as usize);
-
-    ret = (cap.words[0] & 0x7fffffffffusize) << 0;
-    /* Possibly sign extend */
-    if ((1 << 38) & ret) != 0 {
-        ret |= 0xffffff8000000000;
-    }
-    ret
-}
-
-#[inline]
-pub fn cap_endpoint_cap_new(
-    capEPBadge: usize,
-    capCanGrantReply: usize,
-    capCanGrant: usize,
-    capCanSend: usize,
-    capCanReceive: usize,
-    capEPPtr: usize,
-) -> cap_t {
-    let mut cap = cap_t::default();
-
-    /* fail if user has passed bits that we will override */
-    assert!(
-        (capCanGrantReply & !0x1usize)
-            == (if true && (capCanGrantReply & (1usize << 38)) != 0 {
-                0x0
-            } else {
-                0
-            })
-    );
-    assert!(
-        (capCanGrant & !0x1usize)
-            == (if true && (capCanGrant & (1usize << 38)) != 0 {
-                0x0
-            } else {
-                0
-            })
-    );
-    assert!(
-        (capCanSend & !0x1usize)
-            == (if true && (capCanSend & (1usize << 38)) != 0 {
-                0x0
-            } else {
-                0
-            })
-    );
-    assert!(
-        (capCanReceive & !0x1usize)
-            == (if true && (capCanReceive & (1usize << 38)) != 0 {
-                0x0
-            } else {
-                0
-            })
-    );
-    assert!(
-        (capEPPtr & !0x7fffffffffusize)
-            == (if true && (capEPPtr & (1usize << 38)) != 0 {
-                0xffffff8000000000
-            } else {
-                0
-            })
-    );
-    assert!(
-        (cap_tag_t::cap_endpoint_cap as usize & !0x1fusize)
-            == (if true && (cap_tag_t::cap_endpoint_cap as usize & (1usize << 38)) != 0 {
-                0x0
-            } else {
-                0
-            })
-    );
-
-    cap.words[0] = 0
-        | (capCanGrantReply & 0x1usize) << 58
-        | (capCanGrant & 0x1usize) << 57
-        | (capCanSend & 0x1usize) << 55
-        | (capCanReceive & 0x1usize) << 56
-        | (capEPPtr & 0x7fffffffffusize) >> 0
-        | (cap_tag_t::cap_endpoint_cap as usize & 0x1fusize) << 59;
-    cap.words[1] = 0 | capEPBadge << 0;
-    cap
-}
 
 #[inline]
 pub fn cap_endpoint_cap_get_capEPBadge(cap: &cap_t) -> usize {
@@ -609,34 +288,6 @@ pub fn isArchCap(cap: &cap_t) -> bool {
     cap_get_capType(cap) % 2 != 0
 }
 
-//zombie cap relevant
-#[inline]
-pub fn cap_zombie_cap_new(capZombieID: usize, capZombieType: usize) -> cap_t {
-    let mut cap = cap_t::default();
-    /* fail if user has passed bits that we will override */
-    assert!(
-        (cap_tag_t::cap_zombie_cap as usize & !0x1fusize)
-            == (if true && (cap_tag_t::cap_zombie_cap as usize & (1usize << 38)) != 0 {
-                0x0
-            } else {
-                0
-            })
-    );
-    assert!(
-        (capZombieType & !0x7fusize)
-            == (if true && (capZombieType & (1usize << 38)) != 0 {
-                0x0
-            } else {
-                0
-            })
-    );
-
-    cap.words[0] = 0
-        | (cap_tag_t::cap_zombie_cap as usize & 0x1fusize) << 59
-        | (capZombieType & 0x7fusize) << 0;
-    cap.words[1] = 0 | capZombieID << 0;
-    cap
-}
 
 #[inline]
 pub fn cap_zombie_cap_get_capZombieID(cap: &cap_t) -> usize {
@@ -710,23 +361,6 @@ pub fn cap_zombie_cap_set_capZombieNumber(cap: &mut cap_t, n: usize) {
     cap_zombie_cap_set_capZombieID(cap, ptr | (n & MASK!(radix + 1)));
 }
 
-#[inline]
-pub fn cap_page_table_cap_new(
-    capPTMappedASID: usize,
-    capPTBasePtr: usize,
-    capPTIsMapped: usize,
-    capPTMappedAddress: usize,
-) -> cap_t {
-    let mut cap = cap_t::default();
-
-    cap.words[0] = 0
-        | (cap_page_table_cap & 0x1fusize) << 59
-        | (capPTIsMapped & 0x1usize) << 39
-        | (capPTMappedAddress & 0x7fffffffffusize) >> 0;
-    cap.words[1] =
-        0 | (capPTMappedASID & 0xffffusize) << 48 | (capPTBasePtr & 0x7f_ffff_ffffusize) << 9;
-    cap
-}
 
 #[inline]
 pub fn cap_page_table_cap_get_capPTMappedASID(cap: &cap_t) -> usize {
@@ -779,27 +413,6 @@ pub fn cap_page_table_cap_get_capPTMappedAddress(cap: &cap_t) -> usize {
 pub fn cap_page_table_cap_set_capPTMappedAddress(cap: &mut cap_t, v64: usize) {
     cap.words[0] &= !0x7fffffffffusize;
     cap.words[0] |= (v64 >> 0) & 0x7fffffffffusize;
-}
-
-#[inline]
-pub fn cap_frame_cap_new(
-    capFMappedASID: usize,
-    capFBasePtr: usize,
-    capFSize: usize,
-    capFVMRights: usize,
-    capFIsDevice: usize,
-    capFMappedAddress: usize,
-) -> cap_t {
-    let mut cap = cap_t::default();
-    cap.words[0] = 0
-        | (cap_frame_cap & 0x1fusize) << 59
-        | (capFSize & 0x3usize) << 57
-        | (capFVMRights & 0x3usize) << 55
-        | (capFIsDevice & 0x1usize) << 54
-        | (capFMappedAddress & 0x7fffffffffusize) >> 0;
-    cap.words[1] =
-        0 | (capFMappedASID & 0xffffusize) << 48 | (capFBasePtr & 0x7fffffffffusize) << 9;
-    cap
 }
 
 #[inline]
@@ -898,25 +511,6 @@ pub fn pte_ptr_get_valid(pte_ptr: *const pte_t) -> usize {
         let ret = ((*pte_ptr).words[0] & 0x1usize) >> 0;
         ret
     }
-}
-
-#[inline]
-pub fn cap_asid_control_cap_new() -> cap_t {
-    let mut cap = cap_t::default();
-    cap.words[0] = 0 | (cap_asid_control_cap & 0x1fusize) << 59;
-    cap.words[1] = 0;
-    cap
-}
-
-#[inline]
-pub fn cap_asid_pool_cap_new(capASIDBase: usize, capASIDPool: usize) -> cap_t {
-    let mut cap = cap_t::default();
-    cap.words[0] = 0
-        | (cap_asid_pool_cap & 0x1fusize) << 59
-        | (capASIDBase & 0xffffusize) << 43
-        | (capASIDPool & 0x7ffffffffcusize) >> 2;
-    cap.words[1] = 0;
-    cap
 }
 
 #[inline]
@@ -1034,13 +628,6 @@ pub fn thread_state_set_tsType(thread_state_ptr: &mut thread_state_t, v64: usize
     (thread_state_ptr).words[0] |= v64 & 0xfusize;
 }
 
-#[inline]
-pub fn cap_domain_cap_new() -> cap_t {
-    let mut cap = cap_t::default();
-    cap.words[0] = 0 | (cap_domain_cap & 0x1fusize) << 59;
-    cap.words[1] = 0;
-    cap
-}
 
 #[inline]
 pub fn endpoint_ptr_set_epQueue_head(ptr: *mut endpoint_t, v64: usize) {
@@ -1094,21 +681,6 @@ pub fn endpoint_ptr_get_state(ptr: *const endpoint_t) -> usize {
 }
 
 #[inline]
-pub fn cap_reply_cap_new(
-    capReplyCanGrant: usize,
-    capReplyMaster: usize,
-    capTCBPtr: usize,
-) -> cap_t {
-    let mut cap = cap_t::default();
-    cap.words[0] = 0
-        | (capReplyCanGrant & 0x1usize) << 1
-        | (capReplyMaster & 0x1usize) << 0
-        | (cap_reply_cap & 0x1fusize) << 59;
-    cap.words[1] = 0 | capTCBPtr << 0;
-    cap
-}
-
-#[inline]
 pub fn cap_reply_cap_get_capTCBPtr(cap: &cap_t) -> usize {
     let ret = (cap).words[1] & 0xffffffffffffffffusize;
     ret
@@ -1130,17 +702,6 @@ pub fn cap_reply_cap_set_capReplyCanGrant(cap: &mut cap_t, v64: usize) {
 pub fn cap_reply_cap_get_capReplyMaster(cap: &cap_t) -> usize {
     let ret = ((cap).words[0] & 0x1usize) >> 0;
     ret
-}
-
-#[inline]
-pub fn cap_thread_cap_new(capTCBPtr: usize) -> cap_t {
-    let cap = cap_t {
-        words: [
-            0 | (cap_thread_cap & 0x1fusize) << 59 | (capTCBPtr & 0x7fffffffffusize) >> 0,
-            0,
-        ],
-    };
-    cap
 }
 
 #[inline]
@@ -1247,21 +808,6 @@ pub fn notification_ptr_set_state(ptr: *mut notification_t, v64: usize) {
     }
 }
 
-pub fn cap_notification_cap_new(
-    capNtfnBadge: usize,
-    capNtfnCanReceive: usize,
-    capNtfnCanSend: usize,
-    capNtfnPtr: usize,
-) -> cap_t {
-    let mut cap = cap_t::default();
-    cap.words[0] = 0
-        | (cap_notification_cap & 0x1fusize) << 59
-        | (capNtfnCanReceive & 0x1usize) << 58
-        | (capNtfnCanSend & 0x1usize) << 57
-        | (capNtfnPtr & 0x7fffffffffusize) >> 0;
-    cap.words[1] = 0 | capNtfnBadge << 0;
-    cap
-}
 
 #[inline]
 pub fn cap_notification_cap_get_capNtfnBadge(cap: &cap_t) -> usize {
@@ -1312,75 +858,6 @@ pub fn cap_notification_cap_get_capNtfnPtr(cap: &cap_t) -> usize {
 pub fn cap_notification_cap_set_capNtfnPtr(cap: &mut cap_t, v64: usize) {
     (cap).words[0] &= !0x7fffffffffusize;
     (cap).words[0] |= v64 & 0x7fffffffffusize;
-}
-
-#[inline]
-pub fn cap_cnode_cap_new(
-    capCNodeRadix: usize,
-    capCNodeGuardSize: usize,
-    capCNodeGuard: usize,
-    capCNodePtr: usize,
-) -> cap_t {
-    let mut cap = cap_t::default();
-    /* fail if user has passed bits that we will override */
-    assert!(
-        (capCNodeRadix & !0x3fusize)
-            == (if true && (capCNodeRadix & (1usize << 38)) != 0 {
-                0x0
-            } else {
-                0
-            })
-    );
-    assert!(
-        (capCNodeGuardSize & !0x3fusize)
-            == (if true && (capCNodeGuardSize & (1usize << 38)) != 0 {
-                0x0
-            } else {
-                0
-            })
-    );
-    assert!(
-        (capCNodePtr & !0x7ffffffffeusize)
-            == (if true && (capCNodePtr & (1usize << 38)) != 0 {
-                0xffffff8000000000
-            } else {
-                0
-            })
-    );
-    assert!(
-        (cap_tag_t::cap_cnode_cap as usize & !0x1fusize)
-            == (if true && (cap_tag_t::cap_cnode_cap as usize & (1usize << 38)) != 0 {
-                0x0
-            } else {
-                0
-            })
-    );
-
-    cap.words[0] = 0
-        | (capCNodeRadix & 0x3fusize) << 47
-        | (capCNodeGuardSize & 0x3fusize) << 53
-        | (capCNodePtr & 0x7ffffffffeusize) >> 1
-        | (cap_tag_t::cap_cnode_cap as usize & 0x1fusize) << 59;
-    cap.words[1] = 0 | capCNodeGuard << 0;
-    cap
-}
-
-#[inline]
-pub fn cap_irq_control_cap_new() -> cap_t {
-    let mut cap = cap_t::default();
-
-    cap.words[0] = 0 | (cap_irq_control_cap & 0x1fusize) << 59;
-    cap.words[1] = 0;
-    cap
-}
-
-#[inline]
-pub fn cap_irq_handler_cap_new(capIRQ: usize) -> cap_t {
-    let mut cap = cap_t::default();
-
-    cap.words[0] = 0 | (cap_irq_handler_cap & 0x1fusize) << 59;
-    cap.words[1] = 0 | (capIRQ & 0xfffusize) << 0;
-    cap
 }
 
 #[inline]

@@ -2,7 +2,6 @@ use crate::{
     config::{seL4_Fault_CapFault, ThreadStateInactive},
     object::{
         endpoint::sendIPC,
-        objecttype::{cap_endpoint_cap, cap_get_capType},
         structure_gen::{
             cap_endpoint_cap_get_capCanGrant, cap_endpoint_cap_get_capCanGrantReply,
             cap_endpoint_cap_get_capCanSend, cap_endpoint_cap_get_capEPBadge,
@@ -18,6 +17,8 @@ use super::{
     cspace::lookupCap,
     thread::setThreadState,
 };
+
+use crate::cspace::interface::*;
 
 #[no_mangle]
 pub fn handleFault(tptr: *mut tcb_t) {

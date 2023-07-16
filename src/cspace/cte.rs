@@ -1,9 +1,9 @@
-use crate::{structures::exception_t, println, kernel::boot::current_syscall_error, config::{seL4_IllegalOperation, seL4_RevokeFirst}, cspace::cap::{cap_null_cap_new, EndpointCap, NotificationCap}};
+use crate::{structures::exception_t, println, kernel::boot::current_syscall_error, config::{seL4_IllegalOperation, seL4_RevokeFirst}};
 
-use super::{cap::{cap_t, CapTag, same_region_as, FrameCap, PageTableCap}, mdb::mdb_node_t};
+use super::{cap::{cap_t, CapTag, same_region_as}, mdb::mdb_node_t};
 
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub struct cte_t {
     pub cap: cap_t,
     pub cteMDBNode: mdb_node_t,
@@ -29,21 +29,21 @@ impl cte_t {
 
         match cap.get_cap_type() {
             CapTag::CapZombieCap => {
-                ret.cap = cap_null_cap_new();
+                ret.cap = cap_t::new_null_cap();
             }
             CapTag::CapUntypedCap => {
                 ret.status = self.ensure_no_children();
                 if ret.status != exception_t::EXCEPTION_NONE {
-                    ret.cap = cap_null_cap_new();
+                    ret.cap = cap_t::new_null_cap();
                 } else {
                     ret.cap = cap.clone();
                 }
             }
             CapTag::CapReplyCap => {
-                ret.cap = cap_null_cap_new();
+                ret.cap = cap_t::new_null_cap();
             }
             CapTag::CapIrqControlCap => {
-                ret.cap = cap_null_cap_new();
+                ret.cap = cap_t::new_null_cap();
             }
             _ => {
                 ret.cap = cap.clone();
@@ -59,22 +59,22 @@ impl cte_t {
         };
         match cap.get_cap_type() {
             CapTag::CapPageTableCap => {
-                if cap.get_inner_ref::<PageTableCap>().get_is_mapped() != 0 {
+                if cap.get_pt_is_mapped() != 0 {
                     ret.cap = cap.clone();
                     ret.status = exception_t::EXCEPTION_NONE;
                 } else {
                     println!(" error:this page table cap is not mapped");
                     unsafe {
                         current_syscall_error._type = seL4_IllegalOperation;
-                        ret.cap = cap_null_cap_new();
+                        ret.cap = cap_t::new_null_cap();
                         ret.status = exception_t::EXCEPTION_SYSCALL_ERROR;
                     }
                 }
             }
             CapTag::CapFrameCap => {
                 let mut newCap = cap.clone();
-                newCap.get_inner_mut_ref::<FrameCap>().set_mapped_address(0);
-                newCap.get_inner_mut_ref::<FrameCap>().set_mapped_asid(0);
+                newCap.set_frame_mapped_address(0);
+                newCap.set_frame_mapped_asid(0);
                 ret.cap = newCap;
             }
             CapTag::CapASIDControlCap | CapTag::CapASIDPoolCap => {
@@ -111,20 +111,20 @@ impl cte_t {
         match self.cap.get_cap_type() {
             CapTag::CapEndpointCap => {
                 assert_eq!(next.cap.get_cap_type(), CapTag::CapEndpointCap);
-                let badge = self.cap.get_inner_ref::<EndpointCap>().get_badge();
+                let badge = self.cap.get_ep_badge();
                 if badge == 0 {
                     return true;
                 }
-                return badge == next.cap.get_inner_ref::<EndpointCap>().get_badge() &&
+                return badge == next.cap.get_ep_badge() &&
                     !(next.cteMDBNode.get_first_badged() != 0);
             }
             CapTag::CapNotificationCap => {
                 assert_eq!(next.cap.get_cap_type(), CapTag::CapNotificationCap);
-                let badge = self.cap.get_inner_ref::<NotificationCap>().get_badge();
+                let badge = self.cap.get_nf_badge();
                 if badge == 0 {
                     return true;
                 }
-                return badge == next.cap.get_inner_ref::<NotificationCap>().get_badge() &&
+                return badge == next.cap.get_nf_badge() &&
                     !(next.cteMDBNode.get_first_badged() != 0);
             }
             _ => true
