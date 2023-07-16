@@ -23,10 +23,6 @@ use crate::{
 use super::{
     cap::{cteDeleteOne, cteInsert, ensureEmptySlot},
     notification::sendSignal,
-    structure_gen::{
-        cap_notification_cap_get_capNtfnBadge,
-        cap_notification_cap_get_capNtfnCanSend, cap_notification_cap_get_capNtfnPtr,
-    },
 };
 
 use crate::cspace::interface::*;

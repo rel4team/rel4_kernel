@@ -29,10 +29,6 @@ use crate::{
     object::{
         cap::cteInsert,
         objecttype::updateCapData,
-        structure_gen::{
-            cap_reply_cap_get_capReplyCanGrant, cap_reply_cap_get_capReplyMaster,
-            cap_reply_cap_get_capTCBPtr,
-        },
     },
     println,
     structures::{
@@ -48,9 +44,7 @@ use super::{
     // cap::cteDelete,
     notification::{bindNotification, unbindNotification},
     objecttype::{deriveCap, sameObjectAs},
-    structure_gen::{
-        cap_notification_cap_get_capNtfnCanReceive, cap_notification_cap_get_capNtfnPtr,
-        cap_thread_cap_get_capTCBPtr, notification_ptr_get_ntfnQueue_head, notification_ptr_get_ntfnQueue_tail,
+    structure_gen::{notification_ptr_get_ntfnQueue_head, notification_ptr_get_ntfnQueue_tail,
         thread_state_get_tcbQueued, thread_state_set_tcbQueued,
     },
 };

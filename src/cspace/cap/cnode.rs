@@ -116,6 +116,40 @@ impl cap_t {
         }
         ret
     }
-
     
+}
+
+#[inline]
+pub fn cap_cnode_cap_new(capCNodeRadix: usize, capCNodeGuardSize: usize, capCNodeGuard: usize, capCNodePtr: usize) -> cap_t {
+    cap_t::new_cnode_cap(capCNodeRadix, capCNodeGuardSize, capCNodeGuard, capCNodePtr)
+}
+
+#[inline]
+pub fn cap_cnode_cap_get_capCNodeGuard(cap: &cap_t) -> usize {
+    cap.get_cnode_guard()
+}
+
+#[inline]
+pub fn cap_cnode_cap_set_capCNodeGuard(cap: &mut cap_t, v64: usize) {
+    cap.set_cnode_guard(v64)
+}
+
+#[inline]
+pub fn cap_cnode_cap_get_capCNodeGuardSize(cap: &cap_t) -> usize {
+    cap.get_cnode_guard_size()
+}
+
+#[inline]
+pub fn cap_cnode_cap_set_capCNodeGuardSize(cap: &mut cap_t, v64: usize) {
+    cap.set_cnode_guard_size(v64)
+}
+
+#[inline]
+pub fn cap_cnode_cap_get_capCNodeRadix(cap: &cap_t) -> usize {
+    cap.get_cnode_radix()
+}
+
+#[inline]
+pub fn cap_cnode_cap_get_capCNodePtr(cap: &cap_t) -> usize {
+    cap.get_cnode_ptr()
 }

@@ -22,9 +22,6 @@ use super::{
     objecttype::{
         createNewObjects, getObjectSize, Arch_isFrameType,
     },
-    structure_gen::{
-        cap_cnode_cap_get_capCNodePtr, cap_cnode_cap_get_capCNodeRadix,
-    },
 };
 
 use crate::cspace::interface::*;

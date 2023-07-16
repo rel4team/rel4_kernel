@@ -30,7 +30,6 @@ use super::{
     cap::cteDeleteOne,
     notification::cancelSignal,
     structure_gen::{
-        cap_endpoint_cap_get_capCanGrant, cap_endpoint_cap_get_capEPPtr,
         endpoint_ptr_get_epQueue_head, endpoint_ptr_get_epQueue_tail, endpoint_ptr_get_state,
         endpoint_ptr_set_epQueue_head, endpoint_ptr_set_epQueue_tail, endpoint_ptr_set_state,
         seL4_Fault_NullFault_new, thread_state_get_blockingIPCBadge,

@@ -1,18 +1,18 @@
-mod untyped;
-mod cnode;
-mod asid_control;
-mod asid_pool;
-mod domain;
-mod irq_control;
-mod irq_handler;
-mod notification;
-mod null;
-mod page_table;
-mod reply;
-mod thread;
-mod zombie;
-mod frame;
-mod endpoint;
+pub mod untyped;
+pub mod cnode;
+pub mod asid_control;
+pub mod asid_pool;
+pub mod domain;
+pub mod irq_control;
+pub mod irq_handler;
+pub mod notification;
+pub mod null;
+pub mod page_table;
+pub mod reply;
+pub mod thread;
+pub mod zombie;
+pub mod frame;
+pub mod endpoint;
 
 
 use crate::{MASK, object::objecttype::{seL4_EndpointBits, seL4_NotificationBits, PT_SIZE_BITS, seL4_ReplyBits}, config::seL4_SlotBits, kernel::vspace::pageBitsForSize};

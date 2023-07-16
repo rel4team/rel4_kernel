@@ -8,13 +8,7 @@ use crate::{
     object::{
         objecttype::cap_capType_equals,
         structure_gen::{
-            cap_cnode_cap_get_capCNodeGuard, cap_cnode_cap_get_capCNodeGuardSize,
-            cap_cnode_cap_get_capCNodePtr, cap_cnode_cap_get_capCNodeRadix,
-            cap_endpoint_cap_get_capCanGrant, cap_endpoint_cap_get_capCanGrantReply,
-            cap_endpoint_cap_get_capCanSend, cap_endpoint_cap_get_capEPBadge,
-            cap_endpoint_cap_get_capEPPtr, cap_page_table_cap_get_capPTBasePtr,
-            cap_page_table_cap_get_capPTIsMapped, cap_page_table_cap_get_capPTMappedASID,
-            cap_reply_cap_get_capTCBPtr, endpoint_ptr_get_epQueue_head,
+            endpoint_ptr_get_epQueue_head,
             endpoint_ptr_get_epQueue_tail, endpoint_ptr_get_state, notification_ptr_get_state, 
             seL4_Fault_get_seL4_FaultType, thread_state_get_blockingIPCCanGrant, thread_state_set_blockingIPCCanGrant,
         },

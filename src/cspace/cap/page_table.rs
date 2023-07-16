@@ -63,3 +63,47 @@ impl cap_t {
         self.words[0] |= (v64 >> 0) & 0x7fffffffffusize;
     }
 }
+
+#[inline]
+pub fn cap_page_table_cap_new(capPTMappedASID: usize, capPTBasePtr: usize, capPTIsMapped: usize, capPTMappedAddress: usize) -> cap_t {
+    cap_t::new_page_table_cap(capPTMappedASID, capPTBasePtr, capPTIsMapped, capPTMappedAddress)
+}
+
+#[inline]
+pub fn cap_page_table_cap_get_capPTMappedASID(cap: &cap_t) -> usize {
+    cap.get_pt_mapped_asid()
+}
+
+#[inline]
+pub fn cap_page_table_cap_set_capPTMappedASID(cap: &mut cap_t, v64: usize) {
+    cap.set_pt_mapped_asid(v64)
+}
+
+#[inline]
+pub fn cap_page_table_cap_get_capPTBasePtr(cap: &cap_t) -> usize {
+    cap.get_pt_base_ptr()
+}
+
+#[inline]
+pub fn cap_page_table_cap_get_capPTIsMapped(cap: &cap_t) -> usize {
+    cap.get_pt_is_mapped()
+}
+
+#[inline]
+pub fn cap_page_table_cap_set_capPTIsMapped(cap: &mut cap_t, v64: usize) {
+    cap.set_pt_is_mapped(v64)
+}
+
+#[inline]
+pub fn cap_page_table_cap_ptr_set_capPTIsMapped(cap: &mut cap_t, v64: usize) {
+    cap.set_pt_is_mapped(v64)
+}
+#[inline]
+pub fn cap_page_table_cap_get_capPTMappedAddress(cap: &cap_t) -> usize {
+    cap.get_pt_mapped_address()
+}
+
+#[inline]
+pub fn cap_page_table_cap_set_capPTMappedAddress(cap: &mut cap_t, v64: usize) {
+    cap.set_pt_mapped_address(v64)
+}

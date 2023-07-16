@@ -16,11 +16,7 @@ use crate::{
         cnode::setupReplyMaster,
         endpoint::cancelIPC,
         objecttype::deriveCap,
-        structure_gen::{
-            cap_endpoint_cap_get_capEPBadge, cap_endpoint_cap_get_capEPPtr,
-            cap_thread_cap_get_capTCBPtr, seL4_Fault_get_seL4_FaultType, thread_state_get_tsType,
-            thread_state_set_tsType,
-        },
+        structure_gen::{seL4_Fault_get_seL4_FaultType, thread_state_get_tsType, thread_state_set_tsType,},
         tcb::{
             copyMRs, getHighestPrio, isHighestPrio, lookupExtraCaps, ready_queues_index,
             tcbSchedAppend, tcbSchedDequeue, tcbSchedEnqueue,

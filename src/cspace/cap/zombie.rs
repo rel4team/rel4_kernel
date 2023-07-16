@@ -48,3 +48,23 @@ impl cap_t {
         (self.words[0] & 0x7fusize) >> 0
     }
 }
+
+#[inline]
+pub fn cap_zombie_cap_new(capZombieID: usize, capZombieType: usize) -> cap_t {
+    cap_t::new_zombie_cap(capZombieID, capZombieType)
+}
+
+#[inline]
+pub fn cap_zombie_cap_get_capZombieID(cap: &cap_t) -> usize {
+    cap.get_zombie_id()
+}
+
+#[inline]
+pub fn cap_zombie_cap_set_capZombieID(cap: &mut cap_t, v64: usize) {
+    cap.set_zombie_id(v64)
+}
+
+#[inline]
+pub fn cap_zombie_cap_get_capZombieType(cap: &cap_t) -> usize {
+    cap.get_zombie_type()
+}

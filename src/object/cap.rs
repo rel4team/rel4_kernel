@@ -14,8 +14,7 @@ use crate::{
     },
     object::{
         objecttype::finaliseCap,
-        structure_gen::{
-            cap_zombie_cap_get_capZombieType, cap_zombie_cap_set_capZombieNumber,
+        structure_gen::{cap_zombie_cap_set_capZombieNumber,
             lookup_fault_missing_capability_new
         },
     },
@@ -31,11 +30,7 @@ use super::{
     objecttype::{deriveCap, hasCancelSendRight, isCapRevocable, maskCapRights, postCapDeletion, sameObjectAs,
         sameRegionAs, updateCapData,
     },
-    structure_gen::{
-        cap_endpoint_cap_get_capEPBadge, cap_endpoint_cap_get_capEPPtr,
-        cap_notification_cap_get_capNtfnBadge, cap_reply_cap_get_capReplyMaster, cap_zombie_cap_get_capZombieNumber,
-        cap_zombie_cap_get_capZombiePtr
-    },
+    structure_gen::{cap_zombie_cap_get_capZombieNumber,cap_zombie_cap_get_capZombiePtr},
 };
 
 use crate::cspace::interface::*;

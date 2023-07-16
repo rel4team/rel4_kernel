@@ -3,8 +3,6 @@ use core::intrinsics::{likely, unlikely};
 use crate::{
     config::{seL4_FailedLookup, seL4_RangeError, tcbCTable, wordBits, wordRadix},
     object::structure_gen::{
-        cap_cnode_cap_get_capCNodeGuard, cap_cnode_cap_get_capCNodeGuardSize,
-        cap_cnode_cap_get_capCNodePtr, cap_cnode_cap_get_capCNodeRadix,
         lookup_fault_depth_mismatch_new, lookup_fault_guard_mismatch_new,
         lookup_fault_invalid_root_new,
     },

@@ -14,8 +14,7 @@ use crate::{
 
 use super::{
     endpoint::cancelIPC,
-    structure_gen::{
-        cap_notification_cap_get_capNtfnPtr, notification_ptr_get_ntfnBoundTCB,
+    structure_gen::{ notification_ptr_get_ntfnBoundTCB,
         notification_ptr_get_ntfnMsgIdentifier, notification_ptr_get_ntfnQueue_head,
         notification_ptr_get_ntfnQueue_tail, notification_ptr_get_state,
         notification_ptr_set_ntfnBoundTCB, notification_ptr_set_ntfnMsgIdentifier,
@@ -25,6 +24,8 @@ use super::{
     },
     tcb::{tcbEPAppend, tcbSchedEnqueue},
 };
+
+use crate::cspace::interface::*;
 
 #[no_mangle]
 pub fn completeSignal(ptr: *mut notification_t, tcb: *mut tcb_t) {

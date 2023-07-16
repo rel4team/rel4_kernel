@@ -3,9 +3,7 @@ use crate::{
     object::{
         endpoint::sendIPC,
         structure_gen::{
-            cap_endpoint_cap_get_capCanGrant, cap_endpoint_cap_get_capCanGrantReply,
-            cap_endpoint_cap_get_capCanSend, cap_endpoint_cap_get_capEPBadge,
-            cap_endpoint_cap_get_capEPPtr, lookup_fault_missing_capability_new,
+            lookup_fault_missing_capability_new,
             seL4_Fault_CapFault_new, seL4_Fault_get_seL4_FaultType,
         },
     },

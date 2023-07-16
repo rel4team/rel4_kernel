@@ -1,5 +1,67 @@
 use super::{cap::{cap_t, CapTag}, mdb_node_t};
 
+pub use super::cap::null::cap_null_cap_new;
+pub use super::cap::untyped::{
+    cap_untyped_cap_get_capBlockSize, cap_untyped_cap_get_capFreeIndex, cap_untyped_cap_get_capIsDevice,
+    cap_untyped_cap_get_capPtr, cap_untyped_cap_new, cap_untyped_cap_ptr_set_capFreeIndex, cap_untyped_cap_set_capFreeIndex,
+};
+
+pub use super::cap::endpoint::{
+    cap_endpoint_cap_get_capCanGrant, cap_endpoint_cap_get_capCanGrantReply, cap_endpoint_cap_get_capCanReceive,
+    cap_endpoint_cap_get_capCanSend, cap_endpoint_cap_get_capEPBadge, cap_endpoint_cap_get_capEPPtr, cap_endpoint_cap_new,
+    cap_endpoint_cap_set_capCanGrant, cap_endpoint_cap_set_capCanGrantReply, cap_endpoint_cap_set_capCanReceive,
+    cap_endpoint_cap_set_capCanSend, cap_endpoint_cap_set_capEPBadge
+};
+
+pub use super::cap::zombie::{
+    cap_zombie_cap_get_capZombieID, cap_zombie_cap_get_capZombieType, cap_zombie_cap_new, cap_zombie_cap_set_capZombieID
+};
+
+pub use super::cap::page_table::{
+    cap_page_table_cap_get_capPTBasePtr, cap_page_table_cap_get_capPTIsMapped, cap_page_table_cap_get_capPTMappedASID,
+    cap_page_table_cap_get_capPTMappedAddress, cap_page_table_cap_new, cap_page_table_cap_ptr_set_capPTIsMapped,
+    cap_page_table_cap_set_capPTIsMapped, cap_page_table_cap_set_capPTMappedASID, cap_page_table_cap_set_capPTMappedAddress,
+};
+
+pub use super::cap::frame::{
+    cap_frame_cap_get_capFBasePtr, cap_frame_cap_get_capFIsDevice, cap_frame_cap_get_capFMappedASID, cap_frame_cap_get_capFMappedAddress,
+    cap_frame_cap_get_capFSize, cap_frame_cap_get_capFVMRights, cap_frame_cap_new, cap_frame_cap_set_capFMappedASID,
+    cap_frame_cap_set_capFMappedAddress, cap_frame_cap_set_capFVMRights,
+};
+
+pub use super::cap::asid_control::cap_asid_control_cap_new;
+
+pub use super::cap::asid_pool::{
+    cap_asid_pool_cap_get_capASIDBase, cap_asid_pool_cap_get_capASIDPool, cap_asid_pool_cap_new
+};
+
+pub use super::cap::domain::cap_domain_cap_new;
+
+pub use super::cap::reply::{
+    cap_reply_cap_get_capReplyCanGrant, cap_reply_cap_get_capReplyMaster, cap_reply_cap_get_capTCBPtr, cap_reply_cap_new,
+    cap_reply_cap_set_capReplyCanGrant,
+};
+
+pub use super::cap::thread::{
+    cap_thread_cap_get_capTCBPtr, cap_thread_cap_new
+};
+
+pub use super::cap::notification::{
+    cap_notification_cap_get_capNtfnBadge, cap_notification_cap_get_capNtfnCanReceive, cap_notification_cap_get_capNtfnCanSend,
+    cap_notification_cap_get_capNtfnPtr, cap_notification_cap_new, cap_notification_cap_set_capNtfnBadge,
+    cap_notification_cap_set_capNtfnCanReceive, cap_notification_cap_set_capNtfnCanSend, cap_notification_cap_set_capNtfnPtr,
+};
+
+pub use super::cap::cnode::{
+    cap_cnode_cap_get_capCNodeGuard, cap_cnode_cap_get_capCNodeGuardSize, cap_cnode_cap_get_capCNodePtr,
+    cap_cnode_cap_get_capCNodeRadix, cap_cnode_cap_new, cap_cnode_cap_set_capCNodeGuard, cap_cnode_cap_set_capCNodeGuardSize
+};
+
+pub use super::cap::irq_control::cap_irq_control_cap_new;
+
+pub use super::cap::irq_handler::{
+    cap_irq_handler_cap_get_capIRQ, cap_irq_handler_cap_new
+};
 
 //cap_tag_t
 pub const cap_null_cap: usize = CapTag::CapNullCap as usize;
@@ -17,113 +79,6 @@ pub const cap_frame_cap: usize = CapTag::CapFrameCap as usize;
 pub const cap_page_table_cap: usize = CapTag::CapPageTableCap as usize;
 pub const cap_asid_control_cap: usize = CapTag::CapASIDControlCap as usize;
 pub const cap_asid_pool_cap: usize = CapTag::CapASIDPoolCap as usize;
-
-#[inline]
-pub fn cap_null_cap_new() -> cap_t {
-    cap_t::new_null_cap()
-}
-
-#[inline]
-pub fn cap_untyped_cap_new(capFreeIndex: usize, capIsDevice: usize, capBlockSize: usize, capPtr: usize) -> cap_t {
-    cap_t::new_untyped_cap(capFreeIndex, capIsDevice, capBlockSize, capPtr)
-}
-
-#[inline]
-pub fn cap_untyped_cap_get_capIsDevice(cap: &cap_t) -> usize {
-    cap.get_untyped_is_device()
-}
-
-#[inline]
-pub fn cap_untyped_cap_get_capBlockSize(cap: &cap_t) -> usize {
-    cap.get_untyped_block_size()
-}
-#[inline]
-pub fn cap_untyped_cap_get_capFreeIndex(cap: &cap_t) -> usize {
-    cap.get_untyped_free_index()
-}
-
-#[inline]
-pub fn cap_untyped_cap_set_capFreeIndex(cap: &mut cap_t, v64: usize) {
-   cap.set_untyped_free_index(v64)
-}
-
-#[inline]
-pub fn cap_untyped_cap_ptr_set_capFreeIndex(cap: &mut cap_t, v64: usize) {
-    cap.set_untyped_free_index(v64)
-}
-
-#[inline]
-pub fn cap_untyped_cap_get_capPtr(cap: &cap_t) -> usize {
-    cap.get_untyped_ptr()
-}
-
-#[inline]
-pub fn cap_endpoint_cap_new(capEPBadge: usize, capCanGrantReply: usize, capCanGrant: usize, capCanSend: usize, capCanReceive: usize, capEPPtr: usize) -> cap_t {
-    cap_t::new_endpoint_cap(capEPBadge, capCanGrantReply, capCanGrant, capCanSend, capCanReceive, capEPPtr)
-}
-
-
-
-#[inline]
-pub fn cap_zombie_cap_new(capZombieID: usize, capZombieType: usize) -> cap_t {
-    cap_t::new_zombie_cap(capZombieID, capZombieType)
-}
-
-#[inline]
-pub fn cap_page_table_cap_new(capPTMappedASID: usize, capPTBasePtr: usize, capPTIsMapped: usize, capPTMappedAddress: usize) -> cap_t {
-    cap_t::new_page_table_cap(capPTMappedASID, capPTBasePtr, capPTIsMapped, capPTMappedAddress)
-}
-
-#[inline]
-pub fn cap_frame_cap_new(capFMappedASID: usize, capFBasePtr: usize, capFSize: usize, capFVMRights: usize, capFIsDevice: usize, capFMappedAddress: usize) -> cap_t {
-    cap_t::new_frame_cap(capFMappedASID, capFBasePtr, capFSize, capFVMRights, capFIsDevice, capFMappedAddress)
-}
-
-#[inline]
-pub fn cap_asid_control_cap_new() -> cap_t {
-    cap_t::new_asid_control_cap()
-}
-
-#[inline]
-pub fn cap_asid_pool_cap_new(capASIDBase: usize, capASIDPool: usize) -> cap_t {
-    cap_t::new_asid_pool_cap(capASIDBase, capASIDPool)
-}
-
-#[inline]
-pub fn cap_domain_cap_new() -> cap_t {
-    cap_t::new_domain_cap()
-}
-
-#[inline]
-pub fn cap_reply_cap_new(capReplyCanGrant: usize, capReplyMaster: usize, capTCBPtr: usize) -> cap_t {
-    cap_t::new_reply_cap(capReplyCanGrant, capReplyMaster, capTCBPtr)
-}
-
-#[inline]
-pub fn cap_thread_cap_new(capTCBPtr: usize) -> cap_t {
-    cap_t::new_thread_cap(capTCBPtr)
-}
-
-#[inline]
-pub fn cap_notification_cap_new(capNtfnBadge: usize, capNtfnCanReceive: usize, capNtfnCanSend: usize, capNtfnPtr: usize) -> cap_t {
-    cap_t::new_notification_cap(capNtfnBadge, capNtfnCanReceive, capNtfnCanSend, capNtfnPtr)
-}
-
-#[inline]
-pub fn cap_cnode_cap_new(capCNodeRadix: usize, capCNodeGuardSize: usize, capCNodeGuard: usize, capCNodePtr: usize) -> cap_t {
-    cap_t::new_cnode_cap(capCNodeRadix, capCNodeGuardSize, capCNodeGuard, capCNodePtr)
-}
-
-#[inline]
-pub fn cap_irq_control_cap_new() -> cap_t {
-    cap_t::new_irq_control_cap()
-}
-
-#[inline]
-pub fn cap_irq_handler_cap_new(capIRQ: usize) -> cap_t {
-    cap_t::new_irq_handler_cap(capIRQ)
-}
-
 
 
 #[inline]
@@ -178,5 +133,10 @@ pub fn mdb_node_ptr_set_mdbPrev(mdb_node: &mut mdb_node_t, v64: usize) {
 
 #[inline]
 pub fn cap_get_capType(cap: &cap_t) -> usize {
-    (cap.words[0] >> 59) & 0x1fusize
+    cap.get_cap_type() as usize
+}
+
+#[inline]
+pub fn isArchCap(cap: &cap_t) -> bool {
+    cap.isArchCap()
 }
