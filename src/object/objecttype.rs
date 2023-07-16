@@ -22,19 +22,19 @@ use crate::{
         },
         vspace::{
             decodeRISCVMMUInvocation, deleteASID, deleteASIDPool, findVSpaceForASID, maskVMRights,
-            pageBitsForSize, unmapPage, unmapPageTable,
+            unmapPage, unmapPageTable,
         },
     },
     println,
     structures::{
-        asid_pool_t, deriveCap_ret, endpoint_t, exception_t, finaliseCap_ret,
+        asid_pool_t, endpoint_t, exception_t, finaliseCap_ret,
         notification_t, pte_t, seL4_CNode_CapData_t, seL4_CapRights_t, tcb_t,
     },
     MASK, cspace::{cap::cap_t, cte_t},
 };
 
 use super::{
-    cap::{decodeCNodeInvocation, ensureNoChildren, insertNewCap},
+    cap::{decodeCNodeInvocation},
     endpoint::{cancelAllIPC, performInvocation_Endpoint},
     interrupt::{
         decodeIRQControlInvocation, decodeIRQHandlerInvocation, deletingIRQHandler, setIRQState,
@@ -42,9 +42,6 @@ use super::{
     notification::{
         cancelAllSignals, performInvocation_Notification, unbindMaybeNotification,
         unbindNotification,
-    },
-    structure_gen::{
-        cap_zombie_cap_get_capZombiePtr, ZombieType_ZombieTCB, Zombie_new,
     },
     tcb::decodeTCBInvocation,
     untyped::decodeUntypedInvocation,
@@ -62,259 +59,6 @@ pub const seL4_RISCV_4K_Page: usize = 6;
 pub const seL4_RISCV_Mega_Page: usize = 7;
 pub const seL4_RISCV_PageTableObject: usize = 8;
 
-#[inline]
-pub fn cap_capType_equals(cap: &cap_t, cap_type_tag: usize) -> bool {
-    ((cap.words[0] >> 59) & 0x1fusize) == cap_type_tag
-}
-
-pub fn cap_get_capPtr(cap: &cap_t) -> usize {
-    match cap_get_capType(cap) {
-        cap_untyped_cap => return cap_untyped_cap_get_capPtr(cap),
-        cap_endpoint_cap => return cap_endpoint_cap_get_capEPPtr(cap),
-        cap_notification_cap => return cap_notification_cap_get_capNtfnPtr(cap),
-        cap_cnode_cap => return cap_cnode_cap_get_capCNodePtr(cap),
-        cap_page_table_cap => return cap_page_table_cap_get_capPTBasePtr(cap),
-        cap_frame_cap => return cap_frame_cap_get_capFBasePtr(cap),
-        cap_asid_pool_cap => return cap_asid_pool_cap_get_capASIDPool(cap),
-        cap_thread_cap => cap_thread_cap_get_capTCBPtr(cap),
-        cap_zombie_cap => cap_zombie_cap_get_capZombiePtr(cap),
-        _ => return 0,
-    }
-}
-
-pub fn Arch_deriveCap(_slot: *mut cte_t, cap: &cap_t) -> deriveCap_ret {
-    let mut ret = deriveCap_ret {
-        status: exception_t::EXCEPTION_NONE,
-        cap: cap_t::default(),
-    };
-    match cap_get_capType(cap) {
-        cap_page_table_cap => {
-            if cap_page_table_cap_get_capPTIsMapped(cap) != 0 {
-                ret.cap = cap.clone();
-                ret.status = exception_t::EXCEPTION_NONE;
-            } else {
-                println!(" error:this page table cap is not mapped");
-                unsafe {
-                    current_syscall_error._type = seL4_IllegalOperation;
-                    ret.cap = cap_null_cap_new();
-                    ret.status = exception_t::EXCEPTION_SYSCALL_ERROR;
-                }
-            }
-        }
-        cap_frame_cap => {
-            let mut newCap = cap.clone();
-            cap_frame_cap_set_capFMappedAddress(&mut newCap, 0);
-            cap_frame_cap_set_capFMappedASID(&mut newCap, 0);
-            ret.cap = newCap;
-        }
-        cap_asid_control_cap | cap_asid_pool_cap => {
-            ret.cap = cap.clone();
-        }
-        _ => {
-            panic!(" Invalid arch cap type :{}", cap_get_capType(cap));
-        }
-    }
-    ret
-}
-
-#[inline]
-pub fn isArchCap(_cap: &cap_t) -> bool {
-    cap_get_capType(_cap) % 2 != 0
-}
-
-#[no_mangle]
-pub fn deriveCap(slot: *mut cte_t, cap: &cap_t) -> deriveCap_ret {
-    if isArchCap(&cap) {
-        return Arch_deriveCap(slot, cap);
-    }
-    let mut ret = deriveCap_ret {
-        status: exception_t::EXCEPTION_NONE,
-        cap: cap_t::default(),
-    };
-    match cap_get_capType(cap) {
-        cap_zombie_cap => {
-            ret.cap = cap_null_cap_new();
-        }
-        cap_untyped_cap => {
-            ret.status = ensureNoChildren(slot);
-            if ret.status != exception_t::EXCEPTION_NONE {
-                ret.cap = cap_null_cap_new();
-            } else {
-                ret.cap = cap.clone();
-            }
-        }
-        cap_reply_cap => {
-            ret.cap = cap_null_cap_new();
-        }
-        cap_irq_control_cap => {
-            ret.cap = cap_null_cap_new();
-        }
-        _ => {
-            ret.cap = cap.clone();
-        }
-    }
-    ret
-}
-
-fn cap_get_capIsPhysical(cap: &cap_t) -> bool {
-    match cap_get_capType(cap) {
-        cap_untyped_cap => return true,
-        cap_endpoint_cap => return true,
-        cap_notification_cap => return true,
-        cap_cnode_cap => return true,
-        cap_frame_cap | cap_asid_pool_cap | cap_page_table_cap | cap_zombie_cap
-        | cap_thread_cap => return true,
-        cap_irq_control_cap | cap_irq_handler_cap | cap_domain_cap | cap_asid_control_cap => false,
-        _ => return false,
-    }
-}
-
-pub fn cap_get_capSizeBits(cap: &cap_t) -> usize {
-    match cap_get_capType(cap) {
-        cap_untyped_cap => return cap_untyped_cap_get_capBlockSize(cap),
-        cap_endpoint_cap => return seL4_EndpointBits,
-        cap_notification_cap => return seL4_NotificationBits,
-        cap_cnode_cap => return cap_cnode_cap_get_capCNodeRadix(cap) + seL4_SlotBits,
-        cap_page_table_cap => return PT_SIZE_BITS,
-        cap_null_cap => return 0,
-        cap_reply_cap => seL4_ReplyBits,
-        _ => return 0,
-    }
-}
-
-pub fn sameRegionAs(cap1: &cap_t, cap2: &cap_t) -> bool {
-    match cap_get_capType(cap1) {
-        cap_untyped_cap => {
-            if cap_get_capIsPhysical(cap2) {
-                let aBase = cap_untyped_cap_get_capPtr(cap1);
-                let bBase = cap_get_capPtr(cap2);
-
-                let aTop = aBase + MASK!(cap_untyped_cap_get_capBlockSize(cap1));
-                let bTop = bBase + MASK!(cap_get_capSizeBits(cap2));
-                return (aBase <= bBase) && (bTop <= aTop) && (bBase <= bTop);
-            }
-
-            return false;
-        }
-        cap_frame_cap => {
-            let botA = cap_frame_cap_get_capFBasePtr(cap1);
-            let botB = cap_frame_cap_get_capFBasePtr(cap2);
-            let topA = botA + MASK!(pageBitsForSize(cap_frame_cap_get_capFSize(cap1)));
-            let topB = botB + MASK!(pageBitsForSize(cap_frame_cap_get_capFSize(cap2)));
-            (botA <= botB) && (topA >= topB) && (botB <= topB)
-        }
-        cap_endpoint_cap => {
-            if cap_get_capType(cap2) == cap_endpoint_cap {
-                return cap_endpoint_cap_get_capEPPtr(cap1) == cap_endpoint_cap_get_capEPPtr(cap2);
-            }
-            false
-        }
-        cap_notification_cap => {
-            if cap_get_capType(cap2) == cap_notification_cap {
-                return cap_notification_cap_get_capNtfnPtr(cap1)
-                    == cap_notification_cap_get_capNtfnPtr(cap2);
-            }
-            false
-        }
-        cap_page_table_cap => {
-            if cap_get_capType(cap2) == cap_page_table_cap {
-                return cap_page_table_cap_get_capPTBasePtr(cap1)
-                    == cap_page_table_cap_get_capPTBasePtr(cap2);
-            }
-            false
-        }
-        cap_asid_control_cap => {
-            if cap_get_capType(cap2) == cap_asid_control_cap {
-                return true;
-            }
-            false
-        }
-        cap_asid_pool_cap => {
-            if cap_get_capType(cap2) == cap_asid_pool_cap {
-                return cap_asid_pool_cap_get_capASIDPool(cap1)
-                    == cap_asid_pool_cap_get_capASIDPool(cap2);
-            }
-            false
-        }
-        cap_cnode_cap => {
-            if cap_get_capType(cap2) == cap_cnode_cap {
-                return (cap_cnode_cap_get_capCNodePtr(cap1)
-                    == cap_cnode_cap_get_capCNodePtr(cap2))
-                    && (cap_cnode_cap_get_capCNodeRadix(cap1)
-                        == cap_cnode_cap_get_capCNodeRadix(cap2));
-            }
-            false
-        }
-        cap_thread_cap => {
-            if cap_get_capType(cap2) == cap_thread_cap {
-                return cap_thread_cap_get_capTCBPtr(cap1) == cap_thread_cap_get_capTCBPtr(cap2);
-            }
-            false
-        }
-        cap_domain_cap => {
-            if cap_get_capType(cap2) == cap_domain_cap {
-                return true;
-            }
-            false
-        }
-        cap_irq_control_cap => {
-            if cap_get_capType(cap2) == cap_irq_control_cap
-                || cap_get_capType(cap2) == cap_irq_handler_cap
-            {
-                return true;
-            }
-            false
-        }
-        cap_irq_handler_cap => {
-            if cap_get_capType(cap2) == cap_irq_handler_cap {
-                return cap_irq_handler_cap_get_capIRQ(cap1)
-                    == cap_irq_handler_cap_get_capIRQ(cap2);
-            }
-            false
-        }
-        _ => {
-            return false;
-        }
-    }
-}
-
-pub fn isCapRevocable(_derivedCap: &cap_t, _srcCap: &cap_t) -> bool {
-    if isArchCap(_derivedCap) {
-        return false;
-    }
-    match cap_get_capType(_derivedCap) {
-        cap_endpoint_cap => {
-            return cap_endpoint_cap_get_capEPBadge(_derivedCap)
-                != cap_endpoint_cap_get_capEPBadge(_srcCap)
-        }
-        cap_untyped_cap => return true,
-        _ => return false,
-    }
-}
-
-pub fn Arch_sameObjectAs(cap_a: &cap_t, cap_b: &cap_t) -> bool {
-    if (cap_get_capType(cap_a) == cap_frame_cap) && (cap_get_capType(cap_b) == cap_frame_cap) {
-        return (cap_frame_cap_get_capFBasePtr(cap_a) == cap_frame_cap_get_capFBasePtr(cap_b))
-            && (cap_frame_cap_get_capFSize(cap_a) == cap_frame_cap_get_capFSize(cap_b))
-            && ((cap_frame_cap_get_capFIsDevice(cap_a) == 0)
-                == (cap_frame_cap_get_capFIsDevice(cap_b) == 0));
-    }
-    return sameRegionAs(cap_a, cap_b);
-}
-pub fn sameObjectAs(cap_a: &cap_t, cap_b: &cap_t) -> bool {
-    if cap_get_capType(cap_a) == cap_untyped_cap {
-        return false;
-    }
-    if cap_get_capType(cap_a) == cap_irq_control_cap
-        && cap_get_capType(cap_b) == cap_irq_handler_cap
-    {
-        return false;
-    }
-    if isArchCap(cap_a) && isArchCap(cap_b) {
-        return Arch_sameObjectAs(cap_a, cap_b);
-    }
-    return sameRegionAs(cap_a, cap_b);
-}
 
 #[no_mangle]
 pub fn Arch_finaliseCap(cap: &cap_t, _final: bool) -> finaliseCap_ret {

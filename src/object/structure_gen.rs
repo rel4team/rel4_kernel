@@ -19,12 +19,6 @@ use crate::MASK;
 
 //zombie config
 pub const wordRadix: usize = 6;
-pub const ZombieType_ZombieTCB: usize = 1usize << wordRadix;
-pub const TCB_CNODE_RADIX: usize = 4;
-
-pub fn ZombieType_ZombieCNode(n: usize) -> usize {
-    return n & MASK!(wordRadix);
-}
 
 //cap relevant
 
@@ -33,44 +27,6 @@ pub fn cap_get_max_free_index(cap: &cap_t) -> usize {
     let ans = cap_untyped_cap_get_capBlockSize(cap);
     let sel4_MinUntypedbits: usize = 4;
     (1usize << ans) - sel4_MinUntypedbits
-}
-
-
-#[inline]
-pub fn Zombie_new(number: usize, _type: usize, ptr: usize) -> cap_t {
-    let mask: usize;
-    if _type == ZombieType_ZombieTCB {
-        mask = MASK!(TCB_CNODE_RADIX + 1);
-    } else {
-        mask = MASK!(_type + 1);
-    }
-    return cap_zombie_cap_new((ptr & !mask) | (number & mask), _type);
-}
-
-#[inline]
-pub fn cap_zombie_cap_get_capZombieBits(_cap: &cap_t) -> usize {
-    let _type = cap_zombie_cap_get_capZombieType(_cap);
-    if _type == ZombieType_ZombieTCB {
-        return TCB_CNODE_RADIX;
-    }
-    return ZombieType_ZombieCNode(_type);
-}
-
-#[inline]
-pub fn cap_zombie_cap_get_capZombieNumber(_cap: &cap_t) -> usize {
-    let radix = cap_zombie_cap_get_capZombieBits(_cap);
-    return cap_zombie_cap_get_capZombieID(_cap) & MASK!(radix + 1);
-}
-#[inline]
-pub fn cap_zombie_cap_get_capZombiePtr(cap: &cap_t) -> usize {
-    let radix = cap_zombie_cap_get_capZombieBits(cap);
-    return cap_zombie_cap_get_capZombieID(cap) & !MASK!(radix + 1);
-}
-#[inline]
-pub fn cap_zombie_cap_set_capZombieNumber(cap: &mut cap_t, n: usize) {
-    let radix = cap_zombie_cap_get_capZombieBits(cap);
-    let ptr = cap_zombie_cap_get_capZombieID(cap) & !MASK!(radix + 1);
-    cap_zombie_cap_set_capZombieID(cap, ptr | (n & MASK!(radix + 1)));
 }
 
 

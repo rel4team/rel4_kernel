@@ -12,10 +12,9 @@ use crate::{
         NUM_READY_QUEUES, SSTATUS_SPIE, SSTATUS_SPP, TCB_OFFSET,
     },
     object::{
-        cap::{cteDeleteOne, cteInsert},
+        cap::{cteDeleteOne},
         cnode::setupReplyMaster,
         endpoint::cancelIPC,
-        objecttype::deriveCap,
         structure_gen::{seL4_Fault_get_seL4_FaultType, thread_state_get_tsType, thread_state_set_tsType,},
         tcb::{
             copyMRs, getHighestPrio, isHighestPrio, lookupExtraCaps, ready_queues_index,

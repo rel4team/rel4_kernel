@@ -46,14 +46,11 @@ impl cap_t {
 
     #[inline]
     pub fn set_untyped_free_index(&mut self, v64: usize) {
-        assert!(
-            (((!0xfffffffffe000000usize >> 25) | 0x0) & v64)
-                == (if false && (v64 & (1usize << (38))) != 0 {
-                    0x0
-                } else {
-                    0
-                })
-        );
+        assert_eq!((((!0xfffffffffe000000usize >> 25) | 0x0) & v64), (if false && (v64 & (1usize << (38))) != 0 {
+            0x0
+        } else {
+            0
+        }));
     
         self.words[1] &= !0xfffffffffe000000usize;
         self.words[1] |= (v64 << 25) & 0xfffffffffe000000usize;

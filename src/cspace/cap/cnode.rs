@@ -8,38 +8,26 @@ impl cap_t {
     #[inline]
     pub fn new_cnode_cap( capCNodeRadix: usize, capCNodeGuardSize: usize, capCNodeGuard: usize, capCNodePtr: usize) -> Self {
         let mut cap = cap_t::default();
-        assert!(
-            (capCNodeRadix & !0x3fusize)
-                == (if true && (capCNodeRadix & (1usize << 38)) != 0 {
-                    0x0
-                } else {
-                    0
-                })
-        );
-        assert!(
-            (capCNodeGuardSize & !0x3fusize)
-                == (if true && (capCNodeGuardSize & (1usize << 38)) != 0 {
-                    0x0
-                } else {
-                    0
-                })
-        );
-        assert!(
-            (capCNodePtr & !0x7ffffffffeusize)
-                == (if true && (capCNodePtr & (1usize << 38)) != 0 {
-                    0xffffff8000000000
-                } else {
-                    0
-                })
-        );
-        assert!(
-            (CapTag::CapCNodeCap as usize & !0x1fusize)
-                == (if true && (CapTag::CapCNodeCap as usize & (1usize << 38)) != 0 {
-                    0x0
-                } else {
-                    0
-                })
-        );
+        assert_eq!((capCNodeRadix & !0x3fusize), (if true && (capCNodeRadix & (1usize << 38)) != 0 {
+            0x0
+        } else {
+            0
+        }));
+        assert_eq!((capCNodeGuardSize & !0x3fusize), (if true && (capCNodeGuardSize & (1usize << 38)) != 0 {
+            0x0
+        } else {
+            0
+        }));
+        assert_eq!((capCNodePtr & !0x7ffffffffeusize), (if true && (capCNodePtr & (1usize << 38)) != 0 {
+            0xffffff8000000000
+        } else {
+            0
+        }));
+        assert_eq!((CapTag::CapCNodeCap as usize & !0x1fusize), (if true && (CapTag::CapCNodeCap as usize & (1usize << 38)) != 0 {
+            0x0
+        } else {
+            0
+        }));
         cap.words[0] = 0
         | (capCNodeRadix & 0x3fusize) << 47
         | (capCNodeGuardSize & 0x3fusize) << 53
@@ -61,14 +49,11 @@ impl cap_t {
 
     #[inline]
     pub fn set_cnode_guard(&mut self, v64: usize) {
-        assert!(
-            (((!0xffffffffffffffffusize >> 0) | 0x0) & v64)
-                == (if false && (v64 & (1usize << (38))) != 0 {
-                    0x0
-                } else {
-                    0
-                })
-        );
+        assert_eq!((((!0xffffffffffffffffusize >> 0) | 0x0) & v64), (if false && (v64 & (1usize << (38))) != 0 {
+            0x0
+        } else {
+            0
+        }));
         self.words[1] &= !0xffffffffffffffffusize;
         self.words[1] |= (v64 << 0) & 0xffffffffffffffffusize;
     }
@@ -85,14 +70,11 @@ impl cap_t {
 
     #[inline]
     pub fn set_cnode_guard_size(&mut self, v64: usize) {
-        assert!(
-            (((!0x7e0000000000000usize >> 53) | 0x0) & v64)
-                == (if false && (v64 & (1usize << (38))) != 0 {
-                    0x0
-                } else {
-                    0
-                })
-        );
+        assert_eq!((((!0x7e0000000000000usize >> 53) | 0x0) & v64), (if false && (v64 & (1usize << (38))) != 0 {
+            0x0
+        } else {
+            0
+        }));
         self.words[0] &= !0x7e0000000000000usize;
         self.words[0] |= (v64 << 53) & 0x7e0000000000000usize;
     }

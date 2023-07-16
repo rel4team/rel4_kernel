@@ -14,153 +14,23 @@ use crate::{
     },
     object::{
         objecttype::finaliseCap,
-        structure_gen::{cap_zombie_cap_set_capZombieNumber,
-            lookup_fault_missing_capability_new
-        },
+        structure_gen::lookup_fault_missing_capability_new,
     },
     println,
     structures::{endpoint_t, exception_t, finaliseCap_ret, finaliseSlot_ret, tcb_t},
     syscall::getSyscallArg,
-    utils::MAX_FREE_INDEX, cspace::{cap::cap_t, cte_t},
+    cspace::{cap::cap_t, cte_t},
 };
 
 use super::{
     endpoint::cancelBadgedSends,
     interrupt::intStateIRQNode,
-    objecttype::{deriveCap, hasCancelSendRight, isCapRevocable, maskCapRights, postCapDeletion, sameObjectAs,
-        sameRegionAs, updateCapData,
+    objecttype::{hasCancelSendRight, maskCapRights, postCapDeletion,
+        updateCapData,
     },
-    structure_gen::{cap_zombie_cap_get_capZombieNumber,cap_zombie_cap_get_capZombiePtr},
 };
 
 use crate::cspace::interface::*;
-
-#[no_mangle]
-pub fn ensureNoChildren(slot: *mut cte_t) -> exception_t {
-    unsafe {
-        if mdb_node_get_mdbNext(&(*slot).cteMDBNode) != 0 {
-            let next = mdb_node_get_mdbNext(&(*slot).cteMDBNode) as *mut cte_t;
-            if isMDBParentOf(slot, next) {
-                current_syscall_error._type = seL4_RevokeFirst;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
-        }
-        return exception_t::EXCEPTION_NONE;
-    }
-}
-
-#[no_mangle]
-fn isMDBParentOf(cte1: *mut cte_t, cte2: *mut cte_t) -> bool {
-    unsafe {
-        if !(mdb_node_get_mdbRevocable(&(*cte1).cteMDBNode) != 0) {
-            return false;
-        }
-        if !sameRegionAs(&(*cte1).cap, &(*cte2).cap) {
-            return false;
-        }
-        match cap_get_capType(&(*cte1).cap) {
-            cap_endpoint_cap => {
-                let badge: usize;
-                badge = cap_endpoint_cap_get_capEPBadge(&(*cte1).cap);
-                if badge == 0 {
-                    return true;
-                }
-                return badge == cap_endpoint_cap_get_capEPBadge(&(*cte2).cap)
-                    && !(mdb_node_get_mdbFirstBadged(&(*cte2).cteMDBNode) != 0);
-            }
-            cap_notification_cap => {
-                let badge = cap_notification_cap_get_capNtfnBadge(&(*cte1).cap);
-                if badge == 0 {
-                    return true;
-                }
-                return (badge == cap_notification_cap_get_capNtfnBadge(&(*cte2).cap))
-                    && (mdb_node_get_mdbFirstBadged(&(*cte2).cteMDBNode) != 0);
-            }
-            _ => return true,
-        }
-    }
-}
-
-fn setUntypedCapAsFull(_srcCap: &cap_t, _newCap: &cap_t, srcSlot: *mut cte_t) {
-    unsafe {
-        if cap_get_capType(_srcCap) == cap_untyped_cap
-            && cap_get_capType(_newCap) == cap_untyped_cap
-        {
-            if (cap_untyped_cap_get_capPtr(_srcCap) == cap_untyped_cap_get_capPtr(_newCap))
-                && (cap_untyped_cap_get_capBlockSize(_srcCap)
-                    == cap_untyped_cap_get_capBlockSize(_newCap))
-            {
-                cap_untyped_cap_ptr_set_capFreeIndex(
-                    &mut (*srcSlot).cap,
-                    MAX_FREE_INDEX(cap_untyped_cap_get_capBlockSize(_srcCap)),
-                );
-            }
-        }
-    }
-}
-
-#[no_mangle]
-pub fn cteInsert(newCap: &cap_t, srcSlot: *mut cte_t, destSlot: *mut cte_t) {
-    unsafe {
-        let srcMDB = &mut (*srcSlot).cteMDBNode;
-        let srcCap = &(*srcSlot).cap;
-        let mut newMDB = srcMDB.clone();
-        let newCapIsRevocable: bool = isCapRevocable(newCap, srcCap);
-        mdb_node_set_mdbPrev(&mut newMDB, srcSlot as usize);
-        mdb_node_set_mdbRevocable(&mut newMDB, newCapIsRevocable as usize);
-        mdb_node_set_mdbFirstBadged(&mut newMDB, newCapIsRevocable as usize);
-
-        /* Haskell error: "cteInsert to non-empty destination" */
-        assert!(cap_get_capType(&(*destSlot).cap) == cap_null_cap);
-        /* Haskell error: "cteInsert: mdb entry must be empty" */
-        assert!(
-            mdb_node_get_mdbNext(&(*destSlot).cteMDBNode) == 0
-                && mdb_node_get_mdbPrev(&(*destSlot).cteMDBNode) == 0,
-        );
-
-        setUntypedCapAsFull(srcCap, newCap, srcSlot);
-        (*destSlot).cap = newCap.clone();
-        (*destSlot).cteMDBNode = newMDB;
-        mdb_node_ptr_set_mdbNext(&mut (*srcSlot).cteMDBNode, destSlot as usize);
-        if mdb_node_get_mdbNext(&newMDB) != 0 {
-            let cte_ptr = mdb_node_get_mdbNext(&newMDB) as *mut cte_t;
-            mdb_node_ptr_set_mdbPrev(&mut (*cte_ptr).cteMDBNode, destSlot as usize);
-        }
-    }
-}
-
-#[no_mangle]
-pub fn cteMove(_newCap: &cap_t, srcSlot: *mut cte_t, destSlot: *mut cte_t) {
-    unsafe {
-        /* Haskell error: "cteInsert to non-empty destination" */
-        assert!(cap_get_capType(&(*destSlot).cap) == cap_null_cap);
-        /* Haskell error: "cteInsert: mdb entry must be empty" */
-        assert!(
-            mdb_node_get_mdbNext(&(*destSlot).cteMDBNode) as usize == 0
-                && mdb_node_get_mdbPrev(&(*destSlot).cteMDBNode) as usize == 0
-        );
-        let mut mdb = (*srcSlot).cteMDBNode;
-        (*destSlot).cap = _newCap.clone();
-        (*srcSlot).cap = cap_null_cap_new();
-        (*destSlot).cteMDBNode = mdb;
-        (*srcSlot).cteMDBNode = mdb_node_new(0, 0, 0, 0);
-
-        let prev_ptr = mdb_node_get_mdbPrev(&mut mdb);
-        if prev_ptr != 0 {
-            mdb_node_ptr_set_mdbNext(
-                &mut (*(prev_ptr as *mut cte_t)).cteMDBNode,
-                destSlot as usize,
-            );
-        }
-        let next_ptr = mdb_node_get_mdbNext(&mut mdb);
-        if next_ptr != 0 {
-            mdb_node_ptr_set_mdbPrev(
-                &mut (*(next_ptr as *mut cte_t)).cteMDBNode,
-                destSlot as usize,
-            );
-        }
-    }
-}
 
 #[no_mangle]
 pub fn capSwapForDelete(slot1: *mut cte_t, slot2: *mut cte_t) {
@@ -171,56 +41,6 @@ pub fn capSwapForDelete(slot1: *mut cte_t, slot2: *mut cte_t) {
         let cap1 = &(*slot1).cap;
         let cap2 = &(*slot2).cap;
         cteSwap(cap1, slot1, cap2, slot2);
-    }
-}
-
-#[no_mangle]
-pub fn cteSwap(cap1: &cap_t, slot1: *mut cte_t, cap2: &cap_t, slot2: *mut cte_t) {
-    unsafe {
-        let mdb1 = (*slot1).cteMDBNode;
-        let mdb2 = (*slot2).cteMDBNode;
-        {
-            let prev_ptr = mdb_node_get_mdbPrev(&mdb1);
-            if prev_ptr != 0 {
-                mdb_node_ptr_set_mdbNext(
-                    &mut (*(prev_ptr as *mut cte_t)).cteMDBNode,
-                    slot2 as usize,
-                );
-            }
-            let next_ptr = mdb_node_get_mdbNext(&mdb1);
-            if next_ptr != 0 {
-                mdb_node_ptr_set_mdbPrev(
-                    &mut (*(next_ptr as *mut cte_t)).cteMDBNode,
-                    slot2 as usize,
-                );
-            }
-        }
-        let val1 = cap1.words[0];
-        let val2 = cap1.words[1];
-        (*slot1).cap = cap2.clone();
-        //FIXME::result not right due to compiler
-
-        (*slot2).cap = cap_t {
-            words: [val1, val2],
-        };
-        (*slot1).cteMDBNode = mdb2;
-        (*slot2).cteMDBNode = mdb1;
-        {
-            let prev_ptr = mdb_node_get_mdbPrev(&mdb2);
-            if prev_ptr != 0 {
-                mdb_node_ptr_set_mdbNext(
-                    &mut (*(prev_ptr as *mut cte_t)).cteMDBNode,
-                    slot1 as usize,
-                );
-            }
-            let next_ptr = mdb_node_get_mdbNext(&mdb2);
-            if next_ptr != 0 {
-                mdb_node_ptr_set_mdbPrev(
-                    &mut (*(next_ptr as *mut cte_t)).cteMDBNode,
-                    slot1 as usize,
-                );
-            }
-        }
     }
 }
 
@@ -266,48 +86,6 @@ pub fn emptySlot(slot: *mut cte_t, _cleanupInfo: &cap_t) {
     }
 }
 
-#[no_mangle]
-pub fn isFinalCapability(cte: *mut cte_t) -> bool {
-    unsafe {
-        let mdb = &(*cte).cteMDBNode;
-        let prevIsSameObject: bool;
-        if mdb_node_get_mdbPrev(mdb) == 0 {
-            prevIsSameObject = false;
-        } else {
-            let prev = mdb_node_get_mdbPrev(mdb) as *mut cte_t;
-            prevIsSameObject = sameObjectAs(&(*prev).cap, &(*cte).cap);
-        }
-        if prevIsSameObject {
-            false
-        } else {
-            if mdb_node_get_mdbNext(mdb) == 0 {
-                true
-            } else {
-                let next = mdb_node_get_mdbNext(&mdb) as *mut cte_t;
-                return !sameObjectAs(&(*cte).cap, &(*next).cap);
-            }
-        }
-    }
-}
-
-#[inline]
-#[no_mangle]
-fn capRemovable(cap: &cap_t, slot: *mut cte_t) -> bool {
-    match cap_get_capType(cap) {
-        cap_null_cap => {
-            return true;
-        }
-        cap_zombie_cap => {
-            let n = cap_zombie_cap_get_capZombieNumber(cap);
-            let ptr = cap_zombie_cap_get_capZombiePtr(cap);
-            let z_slot = ptr as *mut cte_t;
-            return n == 0 || (n == 1 && slot == z_slot);
-        }
-        _ => {
-            panic!("Invalid cap type , finaliseCap should only return Zombie or NullCap");
-        }
-    }
-}
 
 #[inline]
 #[no_mangle]
@@ -470,36 +248,6 @@ pub fn ensureEmptySlot(slot: *mut cte_t) -> exception_t {
     exception_t::EXCEPTION_NONE
 }
 
-#[no_mangle]
-pub fn insertNewCap(parent: *mut cte_t, _slot: *mut cte_t, cap: &cap_t) {
-    unsafe {
-        let next = mdb_node_get_mdbNext(&(*parent).cteMDBNode);
-        let mut slot = _slot as *mut cte_t;
-        (*slot).cap = cap.clone();
-        (*slot).cteMDBNode = mdb_node_new(next as usize, 1usize, 1usize, parent as usize);
-        if next != 0 {
-            let next_ptr = next as *mut cte_t;
-            mdb_node_ptr_set_mdbPrev(&mut (*next_ptr).cteMDBNode, _slot as usize);
-        }
-        mdb_node_ptr_set_mdbNext(&mut (*parent).cteMDBNode, _slot as usize);
-    }
-}
-
-#[no_mangle]
-pub fn slotCapLongRunningDelete(slot: *mut cte_t) -> bool {
-    unsafe {
-        if cap_get_capType(&(*slot).cap) == cap_null_cap {
-            return false;
-        } else if !isFinalCapability(slot) {
-            return false;
-        }
-
-        match cap_get_capType(&(*slot).cap) {
-            cap_thread_cap | cap_zombie_cap | cap_cnode_cap => true,
-            _ => false,
-        }
-    }
-}
 
 #[no_mangle]
 pub fn invokeCNodeSaveCaller(destSlot: *mut cte_t) -> exception_t {

@@ -8,46 +8,31 @@ impl cap_t {
         let mut cap = cap_t::default();
 
         /* fail if user has passed bits that we will override */
-        assert!(
-            (capCanGrantReply & !0x1usize)
-                == (if true && (capCanGrantReply & (1usize << 38)) != 0 {
-                    0x0
-                } else {
-                    0
-                })
-        );
-        assert!(
-            (capCanGrant & !0x1usize)
-                == (if true && (capCanGrant & (1usize << 38)) != 0 {
-                    0x0
-                } else {
-                    0
-                })
-        );
-        assert!(
-            (capCanSend & !0x1usize)
-                == (if true && (capCanSend & (1usize << 38)) != 0 {
-                    0x0
-                } else {
-                    0
-                })
-        );
-        assert!(
-            (capCanReceive & !0x1usize)
-                == (if true && (capCanReceive & (1usize << 38)) != 0 {
-                    0x0
-                } else {
-                    0
-                })
-        );
-        assert!(
-            (capEPPtr & !0x7fffffffffusize)
-                == (if true && (capEPPtr & (1usize << 38)) != 0 {
-                    0xffffff8000000000
-                } else {
-                    0
-                })
-        );
+        assert_eq!((capCanGrantReply & !0x1usize), (if true && (capCanGrantReply & (1usize << 38)) != 0 {
+            0x0
+        } else {
+            0
+        }));
+        assert_eq!((capCanGrant & !0x1usize), (if true && (capCanGrant & (1usize << 38)) != 0 {
+            0x0
+        } else {
+            0
+        }));
+        assert_eq!((capCanSend & !0x1usize), (if true && (capCanSend & (1usize << 38)) != 0 {
+            0x0
+        } else {
+            0
+        }));
+        assert_eq!((capCanReceive & !0x1usize), (if true && (capCanReceive & (1usize << 38)) != 0 {
+            0x0
+        } else {
+            0
+        }));
+        assert_eq!((capEPPtr & !0x7fffffffffusize), (if true && (capEPPtr & (1usize << 38)) != 0 {
+            0xffffff8000000000
+        } else {
+            0
+        }));
 
         cap.words[0] = 0
         | (capCanGrantReply & 0x1usize) << 58
@@ -72,14 +57,11 @@ impl cap_t {
 
     #[inline]
     pub fn set_ep_badge(&mut self, v64: usize) {
-        assert!(
-            (((!0xffffffffffffffffusize >> 0) | 0x0) & v64)
-                == (if false && (v64 & (1usize << (38))) != 0 {
-                    0x0
-                } else {
-                    0
-                })
-        );
+        assert_eq!((((!0xffffffffffffffffusize >> 0) | 0x0) & v64), (if false && (v64 & (1usize << (38))) != 0 {
+            0x0
+        } else {
+            0
+        }));
     
         self.words[1] &= !0xffffffffffffffffusize;
         self.words[1] |= (v64 << 0) & 0xffffffffffffffffusize;
@@ -97,14 +79,11 @@ impl cap_t {
 
     #[inline]
     pub fn set_ep_can_grant_reply(&mut self, v64: usize) {
-        assert!(
-            (((!0x400000000000000usize >> 58) | 0x0) & v64)
-                == (if false && (v64 & (1usize << (38))) != 0 {
-                    0x0
-                } else {
-                    0
-                })
-        );
+        assert_eq!((((!0x400000000000000usize >> 58) | 0x0) & v64), (if false && (v64 & (1usize << (38))) != 0 {
+            0x0
+        } else {
+            0
+        }));
         self.words[0] &= !0x400000000000000usize;
         self.words[0] |= (v64 << 58) & 0x400000000000000usize;
     }
@@ -121,14 +100,11 @@ impl cap_t {
 
     #[inline]
     pub fn set_ep_can_grant(&mut self, v64: usize) {
-        assert!(
-            (((!0x200000000000000usize >> 57) | 0x0) & v64)
-                == (if false && (v64 & (1usize << (38))) != 0 {
-                    0x0
-                } else {
-                    0
-                })
-        );
+        assert_eq!((((!0x200000000000000usize >> 57) | 0x0) & v64), (if false && (v64 & (1usize << (38))) != 0 {
+            0x0
+        } else {
+            0
+        }));
     
         self.words[0] &= !0x200000000000000usize;
         self.words[0] |= (v64 << 57) & 0x200000000000000usize;
@@ -146,14 +122,11 @@ impl cap_t {
 
     #[inline]
     pub fn set_ep_can_receive(&mut self, v64: usize) {
-        assert!(
-            (((!0x100000000000000usize >> 56) | 0x0) & v64)
-                == (if false && (v64 & (1usize << (38))) != 0 {
-                    0x0
-                } else {
-                    0
-                })
-        );
+        assert_eq!((((!0x100000000000000usize >> 56) | 0x0) & v64), (if false && (v64 & (1usize << (38))) != 0 {
+            0x0
+        } else {
+            0
+        }));
     
         self.words[0] &= !0x100000000000000usize;
         self.words[0] |= (v64 << 56) & 0x100000000000000usize;
@@ -171,14 +144,11 @@ impl cap_t {
 
     #[inline]
     pub fn set_ep_can_send(&mut self, v64: usize) {
-        assert!(
-            (((!0x80000000000000usize >> 55) | 0x0) & v64)
-                == (if false && (v64 & (1usize << (38))) != 0 {
-                    0x0
-                } else {
-                    0
-                })
-        );
+        assert_eq!((((!0x80000000000000usize >> 55) | 0x0) & v64), (if false && (v64 & (1usize << (38))) != 0 {
+            0x0
+        } else {
+            0
+        }));
     
         self.words[0] &= !0x80000000000000usize;
         self.words[0] |= (v64 << 55) & 0x80000000000000usize;

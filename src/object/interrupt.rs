@@ -21,7 +21,7 @@ use crate::{
 };
 
 use super::{
-    cap::{cteDeleteOne, cteInsert, ensureEmptySlot},
+    cap::{cteDeleteOne, ensureEmptySlot},
     notification::sendSignal,
 };
 

@@ -18,8 +18,7 @@ use crate::{
     },
     kernel::boot::current_syscall_error,
     object::{
-        cap::{cteInsert, ensureEmptySlot, ensureNoChildren, isFinalCapability},
-        objecttype::cap_get_capPtr,
+        cap::ensureEmptySlot,
         structure_gen::{
             lookup_fault_invalid_root_new, lookup_fault_missing_capability_new,
             pte_ptr_get_execute, pte_ptr_get_ppn, pte_ptr_get_read, pte_ptr_get_valid,

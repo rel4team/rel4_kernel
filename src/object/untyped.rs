@@ -18,7 +18,7 @@ use crate::{
 };
 
 use super::{
-    cap::{ensureEmptySlot, ensureNoChildren},
+    cap::{ensureEmptySlot},
     objecttype::{
         createNewObjects, getObjectSize, Arch_isFrameType,
     },
@@ -30,9 +30,6 @@ pub fn alignUp(baseValue: usize, alignment: usize) -> usize {
     (baseValue + BIT!(alignment) - 1) & !MASK!(alignment)
 }
 
-pub fn MAX_FREE_INDEX(sizeBits: usize) -> usize {
-    BIT!(sizeBits) - seL4_MinUntypedBits
-}
 pub fn FREE_INDEX_TO_OFFSET(freeIndex: usize) -> usize {
     freeIndex << seL4_MinUntypedBits
 }

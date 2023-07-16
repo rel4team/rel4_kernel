@@ -63,14 +63,12 @@ impl cap_t {
             CapTag::CapNotificationCap => self.get_nf_ptr(),
             CapTag::CapCNodeCap => self.get_cnode_ptr(),
             CapTag::CapThreadCap => self.get_tcb_ptr(),
-            CapTag::CapZombieCap => {
-                panic!("need to handle")
-            },
+            CapTag::CapZombieCap => self.get_zombie_ptr(),
             CapTag::CapFrameCap => self.get_frame_base_ptr(),
             CapTag::CapPageTableCap => self.get_pt_base_ptr(),
             CapTag::CapASIDPoolCap => self.get_asid_pool(),
             _ => {
-                panic!("invaild cap type");
+                0
             }
         }
     }
@@ -125,33 +123,16 @@ pub fn same_region_as(cap1: &cap_t, cap2: &cap_t) -> bool {
             }
             false 
         }
-        CapTag::CapEndpointCap => {
-            if cap2.get_cap_type() == CapTag::CapEndpointCap {
-                return cap1.get_ep_ptr() == cap2.get_ep_ptr();
+        CapTag::CapEndpointCap | CapTag::CapNotificationCap | CapTag::CapPageTableCap | CapTag::CapASIDPoolCap 
+            | CapTag::CapThreadCap => {
+            if cap2.get_cap_type() == cap1.get_cap_type() {
+                return cap1.get_cap_ptr() == cap2.get_cap_ptr();
             }
             false
         }
-        CapTag::CapNotificationCap => {
-            if cap2.get_cap_type() == CapTag::CapNotificationCap {
-                return cap1.get_nf_ptr() == cap2.get_nf_ptr();
-            }
-            false
-        }
-        CapTag::CapPageTableCap => {
-            if cap2.get_cap_type() == CapTag::CapPageTableCap {
-                return cap1.get_pt_base_ptr() == cap2.get_pt_base_ptr();
-            }
-            false
-        }
-        CapTag::CapASIDControlCap => {
-            if cap2.get_cap_type() == CapTag::CapASIDControlCap {
+        CapTag::CapASIDControlCap | CapTag::CapDomainCap => {
+            if cap2.get_cap_type() == cap1.get_cap_type() {
                 return true;
-            }
-            false
-        }
-        CapTag::CapASIDPoolCap => {
-            if cap2.get_cap_type() == CapTag::CapASIDPoolCap {
-                return cap1.get_asid_pool() == cap2.get_asid_pool();
             }
             false
         }
@@ -159,18 +140,6 @@ pub fn same_region_as(cap1: &cap_t, cap2: &cap_t) -> bool {
             if cap2.get_cap_type() == CapTag::CapCNodeCap {
                 return (cap1.get_cnode_ptr() == cap2.get_cnode_ptr())
                     && (cap1.get_cnode_radix() == cap2.get_cnode_radix());
-            }
-            false
-        }
-        CapTag::CapThreadCap => {
-            if cap2.get_cap_type() == CapTag::CapThreadCap {
-                return cap1.get_tcb_ptr() == cap2.get_tcb_ptr();
-            }
-            false
-        }
-        CapTag::CapDomainCap => {
-            if cap2.get_cap_type() == CapTag::CapDomainCap {
-                return true;
             }
             false
         }
@@ -194,7 +163,27 @@ pub fn same_region_as(cap1: &cap_t, cap2: &cap_t) -> bool {
     }
 }
 
+pub fn same_object_as(cap1: &cap_t, cap2: &cap_t) -> bool {
+    if cap1.get_cap_type() == CapTag::CapUntypedCap {
+        return false;
+    }
+    if cap1.get_cap_type() == CapTag::CapIrqControlCap && cap2.get_cap_type() == CapTag::CapIrqHandlerCap {
+        return false;
+    }
+    if cap1.isArchCap() && cap2.isArchCap() {
+        return arch_same_object_as(cap1, cap2);
+    }
+    same_region_as(cap1, cap2)
+}
 
+fn arch_same_object_as(cap1: &cap_t, cap2: &cap_t) -> bool {
+    if cap1.get_cap_type() == CapTag::CapFrameCap && cap2.get_cap_type() == CapTag::CapFrameCap {
+        return cap1.get_frame_base_ptr() == cap2.get_frame_base_ptr()
+            && cap1.get_frame_size() == cap2.get_frame_size()
+            && (cap1.get_frame_is_device() == 0) == (cap2.get_frame_is_device() == 0)
+    }
+    same_region_as(cap1, cap2)
+}
 
 pub fn is_cap_revocable(derived_cap: &cap_t, src_cap: &cap_t) -> bool {
     if derived_cap.isArchCap() {

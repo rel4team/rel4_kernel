@@ -1,6 +1,6 @@
-use crate::{structures::exception_t, println, kernel::boot::current_syscall_error, config::{seL4_IllegalOperation, seL4_RevokeFirst}};
+use crate::{structures::exception_t, println, kernel::boot::current_syscall_error, config::{seL4_IllegalOperation, seL4_RevokeFirst}, utils::convert_to_type_ref};
 
-use super::{cap::{cap_t, CapTag, same_region_as}, mdb::mdb_node_t};
+use super::{cap::{cap_t, CapTag, same_region_as, same_object_as}, mdb::mdb_node_t};
 
 #[repr(C)]
 #[derive(Clone, Copy, Default)]
@@ -87,7 +87,7 @@ impl cte_t {
         ret
     }
 
-    fn ensure_no_children(&self) -> exception_t {
+    pub fn ensure_no_children(&self) -> exception_t {
         if self.cteMDBNode.get_next() != 0 {
             unsafe {
                 let next = & *(self.cteMDBNode.get_next() as *mut cte_t);
@@ -99,8 +99,9 @@ impl cte_t {
         }
         return exception_t::EXCEPTION_NONE;
     }
+    
 
-    fn is_mdb_parent_of(&self, next: &Self) -> bool {
+    pub fn is_mdb_parent_of(&self, next: &Self) -> bool {
         if !(self.cteMDBNode.get_revocable() != 0) {
             return false;
         }
@@ -128,6 +129,37 @@ impl cte_t {
                     !(next.cteMDBNode.get_first_badged() != 0);
             }
             _ => true
+        }
+    }
+
+    pub fn is_final_cap(&self) -> bool {
+        let mdb = &self.cteMDBNode;
+        let prev_is_same_obj = if mdb.get_prev() == 0 {
+            false
+        } else {
+            let prev = convert_to_type_ref::<cte_t>(mdb.get_prev());
+            same_object_as(&prev.cap, &self.cap)
+        };
+
+        if prev_is_same_obj {
+            false
+        } else {
+            if mdb.get_next() == 0 {
+                true
+            } else {
+                let next = convert_to_type_ref::<cte_t>(mdb.get_next());
+                return !same_object_as(&self.cap, &next.cap);
+            }
+        }
+    }
+
+    pub fn is_long_running_delete(&self) -> bool {
+        if self.cap.get_cap_type() == CapTag::CapNullCap || !self.is_final_cap() {
+            return false;
+        }
+        match self.cap.get_cap_type() {
+            CapTag::CapThreadCap | CapTag::CapZombieCap | CapTag::CapCNodeCap => true,
+            _ => false,
         }
     }
 }

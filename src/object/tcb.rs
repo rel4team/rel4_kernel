@@ -26,24 +26,19 @@ use crate::{
         },
         vspace::{checkValidIPCBuffer, isValidVTableRoot, lookupIPCBuffer},
     },
-    object::{
-        cap::cteInsert,
-        objecttype::updateCapData,
-    },
+    object::objecttype::updateCapData,
     println,
     structures::{
-        deriveCap_ret, exception_t, notification_t, seL4_MessageInfo_t, tcb_queue_t,
-        tcb_t,
+        exception_t, notification_t, seL4_MessageInfo_t, tcb_queue_t, tcb_t,
     },
     syscall::getSyscallArg,
     BIT, MASK, cspace::{cap::cap_t, cte_t},
 };
 
 use super::{
-    cap::{cteDelete, cteDeleteOne, slotCapLongRunningDelete},
+    cap::{cteDelete, cteDeleteOne},
     // cap::cteDelete,
     notification::{bindNotification, unbindNotification},
-    objecttype::{deriveCap, sameObjectAs},
     structure_gen::{notification_ptr_get_ntfnQueue_head, notification_ptr_get_ntfnQueue_tail,
         thread_state_get_tcbQueued, thread_state_set_tcbQueued,
     },

@@ -1,5 +1,8 @@
-use super::{cap::{cap_t, CapTag}, mdb_node_t};
+use crate::cspace::cte_t;
+use crate::structures::exception_t;
+use super::{cap::{cap_t, CapTag, is_cap_revocable, same_object_as}, mdb_node_t, cte_insert, cte_move, cte_swap, cap_removable, insert_new_cap};
 
+pub use super::cte::deriveCap_ret;
 pub use super::cap::null::cap_null_cap_new;
 pub use super::cap::untyped::{
     cap_untyped_cap_get_capBlockSize, cap_untyped_cap_get_capFreeIndex, cap_untyped_cap_get_capIsDevice,
@@ -14,7 +17,9 @@ pub use super::cap::endpoint::{
 };
 
 pub use super::cap::zombie::{
-    cap_zombie_cap_get_capZombieID, cap_zombie_cap_get_capZombieType, cap_zombie_cap_new, cap_zombie_cap_set_capZombieID
+    cap_zombie_cap_get_capZombieID, cap_zombie_cap_get_capZombieType, cap_zombie_cap_new, cap_zombie_cap_set_capZombieID,
+    cap_zombie_cap_get_capZombieBits, cap_zombie_cap_get_capZombieNumber, cap_zombie_cap_get_capZombiePtr, Zombie_new,
+    cap_zombie_cap_set_capZombieNumber, ZombieType_ZombieTCB
 };
 
 pub use super::cap::page_table::{
@@ -136,7 +141,98 @@ pub fn cap_get_capType(cap: &cap_t) -> usize {
     cap.get_cap_type() as usize
 }
 
+pub fn cap_get_capPtr(cap: &cap_t) -> usize {
+    cap.get_cap_ptr()
+}
+
 #[inline]
 pub fn isArchCap(cap: &cap_t) -> bool {
     cap.isArchCap()
+}
+
+
+#[no_mangle]
+pub fn ensureNoChildren(slot: *mut cte_t) -> exception_t {
+    unsafe {
+        (& *slot).ensure_no_children()
+    }
+}
+
+#[no_mangle]
+pub fn isMDBParentOf(cte1: *mut cte_t, cte2: *mut cte_t) -> bool {
+    unsafe {
+        (& *cte1).is_mdb_parent_of(& *cte2)
+    }
+}
+
+#[no_mangle]
+pub fn isFinalCapability(cte: *mut cte_t) -> bool {
+    unsafe {
+        (& *cte).is_final_cap()
+    }
+}
+
+
+#[no_mangle]
+pub fn slotCapLongRunningDelete(slot: *mut cte_t) -> bool {
+    unsafe {
+        (& *slot).is_long_running_delete()
+    }
+}
+
+pub fn isCapRevocable(_derivedCap: &cap_t, _srcCap: &cap_t) -> bool {
+    is_cap_revocable(_derivedCap, _srcCap)
+}
+
+
+#[no_mangle]
+pub fn cteInsert(newCap: &cap_t, srcSlot: *mut cte_t, destSlot: *mut cte_t) {
+    unsafe {
+        cte_insert(newCap, &mut *srcSlot, &mut *destSlot)
+    }
+}
+
+#[no_mangle]
+pub fn deriveCap(slot: *mut cte_t, cap: &cap_t) -> deriveCap_ret {
+    unsafe {
+        (&mut *slot).derive_cap(cap)
+    }
+}
+
+#[no_mangle]
+pub fn cteMove(_newCap: &cap_t, srcSlot: *mut cte_t, destSlot: *mut cte_t) {
+    unsafe {
+        cte_move(_newCap, &mut *srcSlot, &mut *destSlot)
+    }
+}
+
+#[no_mangle]
+pub fn cteSwap(cap1: &cap_t, slot1: *mut cte_t, cap2: &cap_t, slot2: *mut cte_t) {
+    unsafe {
+        cte_swap(cap1, &mut *slot1, cap2, &mut *slot2)
+    }
+}
+
+
+#[inline]
+#[no_mangle]
+pub fn capRemovable(cap: &cap_t, slot: *mut cte_t) -> bool {
+    cap_removable(cap, slot)
+}
+
+
+#[no_mangle]
+pub fn insertNewCap(parent: *mut cte_t, slot: *mut cte_t, cap: &cap_t) {
+    unsafe {
+        insert_new_cap(&mut *parent, &mut *slot, cap)
+    }
+}
+
+pub fn sameObjectAs(cap_a: &cap_t, cap_b: &cap_t) -> bool {
+    same_object_as(cap_a, cap_b)
+}
+
+#[inline]
+pub fn cap_capType_equals(cap: &cap_t, cap_type_tag: usize) -> bool {
+    cap.get_cap_type() as usize == cap_type_tag
 }

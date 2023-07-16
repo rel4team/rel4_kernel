@@ -4,7 +4,7 @@ use crate::{
         MAX_NUM_FREEMEM_REG, MAX_NUM_RESV_REG,
     },
     kernel::thread::n_contextRegisters,
-    BIT, cspace::{cap::cap_t, mdb_node_t, cte_t},
+    BIT, cspace::{cap::cap_t, cte_t},
 };
 
 #[repr(C)]
@@ -195,12 +195,6 @@ pub struct pte_t {
     pub words: [usize; 1],
 }
 
-#[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct deriveCap_ret {
-    pub status: exception_t,
-    pub cap: cap_t,
-}
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Clone, Copy)]

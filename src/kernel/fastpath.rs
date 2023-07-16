@@ -6,7 +6,6 @@ use crate::{
         ThreadStateBlockedOnReply, ThreadStateRunning,
     },
     object::{
-        objecttype::cap_capType_equals,
         structure_gen::{
             endpoint_ptr_get_epQueue_head,
             endpoint_ptr_get_epQueue_tail, endpoint_ptr_get_state, notification_ptr_get_state, 
