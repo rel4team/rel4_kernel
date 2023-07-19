@@ -1,4 +1,5 @@
-use crate::config::seL4_MinUntypedBits;
+use common::sel4_config::seL4_MinUntypedBits;
+
 
 #[macro_export]
 macro_rules! BIT {

@@ -19,7 +19,7 @@ use crate::{
     },
     println,
     riscv::read_sip,
-    structures::{exception_t, notification_t, seL4_MessageInfo_t, tcb_t},
+    structures::{notification_t, seL4_MessageInfo_t, tcb_t},
     BIT,
 };
 
@@ -37,7 +37,8 @@ use super::{
     vspace::{handleVMFault, lookupIPCBuffer},
 };
 
-use crate::cspace::interface::*;
+use common::structures::exception_t;
+use cspace::interface::*;
 
 #[no_mangle]
 pub fn handleInterruptEntry() -> exception_t {

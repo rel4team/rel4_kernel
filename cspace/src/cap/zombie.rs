@@ -1,4 +1,6 @@
-use crate::{MASK, config::wordRadix};
+use common::sel4_config::wordRadix;
+
+use crate::MASK;
 
 use super::{cap_t, CapTag};
 

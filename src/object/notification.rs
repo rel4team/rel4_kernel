@@ -9,7 +9,7 @@ use crate::{
         setThreadState,
     },
     object::tcb::tcbEPDequeue,
-    structures::{exception_t, notification_t, tcb_queue_t, tcb_t}, cspace::cap::cap_t,
+    structures::{notification_t, tcb_queue_t, tcb_t},
 };
 
 use super::{
@@ -25,7 +25,8 @@ use super::{
     tcb::{tcbEPAppend, tcbSchedEnqueue},
 };
 
-use crate::cspace::interface::*;
+use common::structures::exception_t;
+use cspace::interface::*;
 
 #[no_mangle]
 pub fn completeSignal(ptr: *mut notification_t, tcb: *mut tcb_t) {

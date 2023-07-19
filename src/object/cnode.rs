@@ -1,7 +1,7 @@
-use crate::{config::tcbReply, kernel::thread::getCSpace, structures::tcb_t, cspace::interface::cap_reply_cap_new};
+use crate::{config::tcbReply, kernel::thread::getCSpace, structures::tcb_t};
 
 
-use crate::cspace::interface::*;
+use cspace::interface::*;
 
 #[no_mangle]
 pub fn setupReplyMaster(thread: *mut tcb_t) {

@@ -1,6 +1,14 @@
-use crate::cspace::cte_t;
-use crate::structures::exception_t;
-use super::{cap::{cap_t, CapTag, is_cap_revocable, same_object_as}, mdb_node_t, cte_insert, cte_move, cte_swap, cap_removable, insert_new_cap};
+
+use common::structures::exception_t;
+
+use crate::cte::{cte_insert, cte_move, cte_swap, cap_removable, insert_new_cap};
+
+use super::cap::{is_cap_revocable, same_object_as};
+
+pub use crate::cte::cte_t;
+pub use crate::mdb::mdb_node_t;
+pub use crate::cap::cap_t;
+pub use crate::cap::CapTag;
 
 pub use super::cte::deriveCap_ret;
 pub use super::cap::null::cap_null_cap_new;

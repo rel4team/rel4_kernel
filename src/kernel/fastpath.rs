@@ -1,7 +1,7 @@
 use crate::{
     config::{
         msgRegister, seL4_Fault_NullFault, seL4_MsgExtraCapBits, seL4_MsgLengthBits, tcbCTable,
-        tcbCaller, tcbReply, tcbVTable, wordBits, EPState_Idle, EPState_Recv, EPState_Send,
+        tcbCaller, tcbReply, tcbVTable, EPState_Idle, EPState_Recv, EPState_Send,
         NtfnState_Active, SysCall, SysReplyRecv, ThreadStateBlockedOnReceive,
         ThreadStateBlockedOnReply, ThreadStateRunning,
     },
@@ -17,9 +17,11 @@ use crate::{
     structures::{
         endpoint_t, pte_t, seL4_MessageInfo_t, tcb_t, thread_state_t,
     },
-    MASK, cspace::{cap::cap_t, mdb_node_t, cte_t, interface::*},
+    MASK,
 };
 use core::intrinsics::{likely, unlikely};
+use common::sel4_config::wordBits;
+use cspace::interface::*;
 
 use super::{
     c_traps::slowpath,

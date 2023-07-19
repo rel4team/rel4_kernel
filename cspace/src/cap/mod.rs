@@ -1,8 +1,14 @@
-pub mod untyped;
-pub mod cnode;
+use common::sel4_config::{seL4_EndpointBits, seL4_NotificationBits, seL4_SlotBits, PT_SIZE_BITS, seL4_ReplyBits};
+
+use crate::{MASK, utils::pageBitsForSize};
+
+
 pub mod asid_control;
 pub mod asid_pool;
+pub mod cnode;
 pub mod domain;
+pub mod endpoint;
+pub mod frame;
 pub mod irq_control;
 pub mod irq_handler;
 pub mod notification;
@@ -10,13 +16,8 @@ pub mod null;
 pub mod page_table;
 pub mod reply;
 pub mod thread;
+pub mod untyped;
 pub mod zombie;
-pub mod frame;
-pub mod endpoint;
-
-
-use crate::{MASK, object::objecttype::{seL4_EndpointBits, seL4_NotificationBits, PT_SIZE_BITS, seL4_ReplyBits}, config::seL4_SlotBits, kernel::vspace::pageBitsForSize};
-
 
 #[derive(Eq, PartialEq, Debug)]
 pub enum CapTag {
@@ -36,6 +37,7 @@ pub enum CapTag {
     CapASIDControlCap = 11,
     CapASIDPoolCap = 13
 }
+
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -97,7 +99,6 @@ impl cap_t {
         self.get_cap_type() as usize % 2 != 0
     }
 }
-
 
 pub fn same_region_as(cap1: &cap_t, cap2: &cap_t) -> bool {
     match cap1.get_cap_type() {

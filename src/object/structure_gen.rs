@@ -4,21 +4,12 @@ use crate::config::{
     seL4_Fault_VMFault,
 };
 
-use crate::cspace::interface::*;
-use crate::cspace::cap::cap_t;
-use crate::cspace::mdb_node_t;
+use cspace::interface::*;
 use crate::structures::{
-    cap_tag_t, endpoint_t, lookup_fault_t, notification_t, pte_t, seL4_Fault_t,
+    endpoint_t, lookup_fault_t, notification_t, pte_t, seL4_Fault_t,
     thread_state_t,
 };
 
-//CSpace relevant
-use core::intrinsics::{likely, unlikely};
-
-use crate::MASK;
-
-//zombie config
-pub const wordRadix: usize = 6;
 
 //cap relevant
 
@@ -85,7 +76,7 @@ pub fn thread_state_get_blockingIPCBadge(thread_state_ptr: &thread_state_t) -> u
 }
 
 #[inline]
-pub fn thread_state_set_blockingIPCBadge(mut thread_state_ptr: &mut thread_state_t, v64: usize) {
+pub fn thread_state_set_blockingIPCBadge(thread_state_ptr: &mut thread_state_t, v64: usize) {
     (thread_state_ptr).words[2] &= !0xffffffffffffffffusize;
     (thread_state_ptr).words[2] |= v64 & 0xffffffffffffffffusize;
 }

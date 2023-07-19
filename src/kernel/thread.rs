@@ -23,11 +23,11 @@ use crate::{
     },
     println,
     structures::{
-        arch_tcb_t, cap_transfer_t, endpoint_t, exception_t, seL4_MessageInfo_t,
+        arch_tcb_t, cap_transfer_t, endpoint_t, seL4_MessageInfo_t,
         tcb_queue_t, tcb_t,
     },
     syscall::getSyscallArg,
-    BIT, MASK, cspace::cte_t,
+    BIT, MASK,
 };
 
 use core::{
@@ -51,7 +51,8 @@ use super::{
     vspace::{lookupIPCBuffer, setVMRoot},
 };
 
-use crate::cspace::interface::*;
+use common::structures::exception_t;
+use cspace::interface::*;
 
 #[no_mangle]
 pub static mut ksDomainTime: usize = 0;

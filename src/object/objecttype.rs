@@ -3,10 +3,9 @@ use core::intrinsics::unlikely;
 use crate::{
     config::{
         asidInvalid, seL4_CapTableObject, seL4_EndpointObject, seL4_HugePageBits,
-        seL4_IllegalOperation, seL4_InvalidCapability, seL4_LargePageBits, seL4_NotificationObject,
-        seL4_PageBits, seL4_SlotBits, seL4_TCBBits, seL4_TCBObject, seL4_UntypedObject,
-        tcbCNodeEntries, tcbCTable, wordBits, IRQInactive, RISCV_4K_Page, RISCV_Giga_Page,
-        RISCV_Mega_Page, ThreadStateRestart, VMReadWrite, CONFIG_TIME_SLICE, TCB_OFFSET,
+        seL4_InvalidCapability, seL4_LargePageBits, seL4_NotificationObject,
+        seL4_PageBits, seL4_TCBBits, seL4_TCBObject, seL4_UntypedObject,
+        tcbCNodeEntries, tcbCTable, IRQInactive, ThreadStateRestart, VMReadWrite, CONFIG_TIME_SLICE, TCB_OFFSET,
     },
     kernel::{
         boot::current_syscall_error,
@@ -27,10 +26,10 @@ use crate::{
     },
     println,
     structures::{
-        asid_pool_t, endpoint_t, exception_t, finaliseCap_ret,
+        asid_pool_t, endpoint_t, finaliseCap_ret,
         notification_t, pte_t, seL4_CNode_CapData_t, seL4_CapRights_t, tcb_t,
     },
-    MASK, cspace::{cap::cap_t, cte_t},
+    MASK,
 };
 
 use super::{
@@ -47,12 +46,9 @@ use super::{
     untyped::decodeUntypedInvocation,
 };
 
-use crate::cspace::interface::*;
+use common::{structures::exception_t, sel4_config::*};
+use cspace::interface::*;
 
-pub const seL4_EndpointBits: usize = 4;
-pub const seL4_NotificationBits: usize = 4;
-pub const seL4_ReplyBits: usize = 4;
-pub const PT_SIZE_BITS: usize = 12;
 
 pub const seL4_RISCV_Giga_Page: usize = 5;
 pub const seL4_RISCV_4K_Page: usize = 6;

@@ -1,4 +1,5 @@
 use core::{arch::asm, intrinsics::unlikely};
+use common::{structures::exception_t, sel4_config::*};
 use riscv::register::satp;
 
 use crate::{
@@ -11,8 +12,7 @@ use crate::{
         RISCVASIDPoolAssign, RISCVGigaPageBits, RISCVInstructionAccessFault,
         RISCVInstructionPageFault, RISCVLoadAccessFault, RISCVLoadPageFault, RISCVMegaPageBits,
         RISCVPageBits, RISCVPageGetAddress, RISCVPageMap, RISCVPageTableMap, RISCVPageTableUnmap,
-        RISCVPageUnmap, RISCVStoreAccessFault, RISCVStorePageFault, RISCV_4K_Page, RISCV_Giga_Page,
-        RISCV_Mega_Page, ThreadStateRestart, VMKernelOnly, VMReadOnly, VMReadWrite,
+        RISCVPageUnmap, RISCVStoreAccessFault, RISCVStorePageFault, ThreadStateRestart, VMKernelOnly, VMReadOnly, VMReadWrite,
         CONFIG_PT_LEVELS, IT_ASID, KERNEL_ELF_BASE, KERNEL_ELF_BASE_OFFSET, KERNEL_ELF_PADDR_BASE,
         PADDR_BASE, PPTR_BASE, PPTR_BASE_OFFSET, PPTR_TOP, PT_INDEX_BITS, USER_TOP,
     },
@@ -28,12 +28,12 @@ use crate::{
     println,
     riscv::read_stval,
     structures::{
-        asid_pool_t, exception_t, findVSpaceForASID_ret, lookupPTSlot_ret_t, pte_t,
+        asid_pool_t, findVSpaceForASID_ret, lookupPTSlot_ret_t, pte_t,
         satp_t, seL4_CapRights_t, tcb_t,
     },
     syscall::getSyscallArg,
     utils::MAX_FREE_INDEX,
-    BIT, IS_ALIGNED, MASK, ROUND_DOWN, boot::clearMemory, cspace::{cap::cap_t, cte_t},
+    BIT, IS_ALIGNED, MASK, ROUND_DOWN, boot::clearMemory,
 
 };
 
@@ -50,7 +50,7 @@ use super::{
     },
 };
 
-use crate::cspace::interface::*;
+use cspace::interface::*;
 
 pub type pptr_t = usize;
 pub type paddr_t = usize;
@@ -1115,6 +1115,9 @@ pub fn decodeRISCVMMUInvocation(
             let status = ensureNoChildren(parentSlot);
 
             if status != exception_t::EXCEPTION_NONE {
+                unsafe {
+                    current_syscall_error._type = seL4_RevokeFirst;
+                }
                 return status;
             }
 

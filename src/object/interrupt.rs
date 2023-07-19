@@ -15,9 +15,9 @@ use crate::{
     },
     println,
     riscv::{read_sip, resetTimer},
-    structures::{exception_t, notification_t},
+    structures::notification_t,
     syscall::getSyscallArg,
-    BIT, cspace::{cap::cap_t, cte_t},
+    BIT,
 };
 
 use super::{
@@ -25,7 +25,8 @@ use super::{
     notification::sendSignal,
 };
 
-use crate::cspace::interface::*;
+use common::structures::exception_t;
+use cspace::interface::*;
 
 #[no_mangle]
 pub static mut intStateIRQTable: [usize; 2] = [0; 2];

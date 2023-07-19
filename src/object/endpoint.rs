@@ -23,7 +23,7 @@ use crate::{
         },
         tcb::{setupCallerCap, tcbEPDequeue},
     },
-    structures::{endpoint_t, exception_t, notification_t, tcb_queue_t, tcb_t}, cspace::{cap::cap_t, cte_t, interface::mdb_node_get_mdbNext},
+    structures::{endpoint_t, notification_t, tcb_queue_t, tcb_t},
 };
 
 use super::{
@@ -41,7 +41,8 @@ use super::{
     tcb::{tcbEPAppend, tcbSchedEnqueue},
 };
 
-use crate::cspace::interface::*;
+use common::structures::exception_t;
+use cspace::interface::*;
 
 #[inline]
 pub fn ep_ptr_set_queue(epptr: *const endpoint_t, queue: tcb_queue_t) {

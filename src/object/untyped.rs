@@ -1,9 +1,9 @@
 use crate::{
     config::{
         seL4_CapTableObject, seL4_FailedLookup, seL4_IllegalOperation, seL4_InvalidArgument,
-        seL4_MaxUntypedBits, seL4_MinUntypedBits, seL4_NotEnoughMemory, seL4_ObjectTypeCount,
-        seL4_RangeError, seL4_TruncatedMessage, seL4_UntypedObject, wordBits, ThreadStateRestart,
-        UntypedRetype, CONFIG_RESET_CHUNK_BITS, CONFIG_RETYPE_FAN_OUT_LIMIT,
+        seL4_NotEnoughMemory, seL4_ObjectTypeCount, seL4_RangeError, seL4_TruncatedMessage,
+        seL4_UntypedObject, ThreadStateRestart, UntypedRetype, CONFIG_RESET_CHUNK_BITS,
+        CONFIG_RETYPE_FAN_OUT_LIMIT, seL4_RevokeFirst,
     },
     kernel::{
         boot::{current_extra_caps, current_lookup_fault, current_syscall_error},
@@ -12,9 +12,8 @@ use crate::{
     },
     object::structure_gen::lookup_fault_missing_capability_new,
     println,
-    structures::exception_t,
     syscall::getSyscallArg,
-    BIT, MASK, ROUND_DOWN, boot::clearMemory, cspace::{cap::cap_t, cte_t},
+    BIT, MASK, ROUND_DOWN, boot::clearMemory,
 };
 
 use super::{
@@ -24,7 +23,8 @@ use super::{
     },
 };
 
-use crate::cspace::interface::*;
+use common::{structures::exception_t, sel4_config::*};
+use cspace::interface::*;
 
 pub fn alignUp(baseValue: usize, alignment: usize) -> usize {
     (baseValue + BIT!(alignment) - 1) & !MASK!(alignment)
@@ -265,6 +265,9 @@ pub fn decodeUntypedInvocation(
     let freeIndex: usize;
     let reset: bool;
     if status != exception_t::EXCEPTION_NONE {
+        unsafe {
+            current_syscall_error._type = seL4_RevokeFirst;
+        }
         freeIndex = cap_untyped_cap_get_capFreeIndex(cap);
         reset = false;
     } else {

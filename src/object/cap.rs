@@ -1,6 +1,6 @@
 use crate::{
     config::{
-        seL4_DeleteFirst, seL4_FailedLookup, seL4_IllegalOperation, seL4_RevokeFirst,
+        seL4_DeleteFirst, seL4_FailedLookup, seL4_IllegalOperation,
         seL4_TruncatedMessage, tcbCaller, CNodeCancelBadgedSends, CNodeCopy, CNodeDelete,
         CNodeMint, CNodeMove, CNodeMutate, CNodeRevoke, CNodeRotate, CNodeSaveCaller,
         ThreadStateRestart,
@@ -17,9 +17,8 @@ use crate::{
         structure_gen::lookup_fault_missing_capability_new,
     },
     println,
-    structures::{endpoint_t, exception_t, finaliseCap_ret, finaliseSlot_ret, tcb_t},
+    structures::{endpoint_t, finaliseCap_ret, finaliseSlot_ret, tcb_t},
     syscall::getSyscallArg,
-    cspace::{cap::cap_t, cte_t},
 };
 
 use super::{
@@ -30,7 +29,8 @@ use super::{
     },
 };
 
-use crate::cspace::interface::*;
+use common::structures::exception_t;
+use cspace::interface::*;
 
 #[no_mangle]
 pub fn capSwapForDelete(slot1: *mut cte_t, slot2: *mut cte_t) {

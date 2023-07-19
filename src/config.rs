@@ -1,5 +1,7 @@
 //! Constants used in rCore
 
+use common::sel4_config::wordBits;
+
 use crate::{BIT, MASK};
 
 pub const USER_STACK_SIZE: usize = 4096 * 2;
@@ -47,8 +49,7 @@ pub const IT_ASID: usize = 1;
 pub const RISCVPageBits: usize = 12;
 pub const RISCVMegaPageBits: usize = 21;
 pub const RISCVGigaPageBits: usize = 30;
-pub const wordRadix: usize = 6;
-pub const wordBits: usize = BIT!(wordRadix);
+
 pub const CONFIG_NUM_DOMAINS: usize = 1;
 pub const CONFIG_NUM_PRIORITIES: usize = 256;
 pub const L2_BITMAP_SIZE: usize = (CONFIG_NUM_PRIORITIES + wordBits - 1) / wordBits;
@@ -81,7 +82,6 @@ pub const NUM_RESERVED_REGIONS: usize = 3;
 pub const MAX_NUM_RESV_REG: usize = MAX_NUM_FREEMEM_REG + NUM_RESERVED_REGIONS;
 
 pub const CONFIG_ROOT_CNODE_SIZE_BITS: usize = 13;
-pub const seL4_SlotBits: usize = 5;
 pub const seL4_PML4Bits: usize = 12;
 pub const seL4_VSpaceBits: usize = seL4_PML4Bits;
 pub const seL4_TCBBits: usize = 10;
@@ -205,8 +205,7 @@ pub const thread_control_update_space: usize = 0x4;
 pub const thread_control_update_mcp: usize = 0x8;
 
 pub const CONFIG_RESET_CHUNK_BITS: usize = 8;
-pub const seL4_MinUntypedBits: usize = 4;
-pub const seL4_MaxUntypedBits: usize = 38;
+
 pub const seL4_WordBits: usize = 64;
 
 pub const seL4_UserTop: usize = 0x00007fffffffffff;
@@ -230,11 +229,6 @@ pub const SEL4_BOOTINFO_HEADER_FDT: usize = 6;
 pub const SEL4_BOOTINFO_HEADER_PADDING: usize = 0;
 pub const CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS: usize = 230;
 
-// page table relevant
-pub const RISCV_4K_Page: usize = 0;
-pub const RISCV_Mega_Page: usize = 1;
-pub const RISCV_Giga_Page: usize = 2;
-pub const RISCV_Tera_Page: usize = 3;
 
 pub const VMKernelOnly: usize = 1;
 pub const VMReadOnly: usize = 2;

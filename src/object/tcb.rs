@@ -5,7 +5,7 @@ use crate::{
         seL4_MsgMaxExtraCaps, seL4_RangeError, seL4_TruncatedMessage, tcbBuffer, tcbCTable,
         tcbCaller, tcbReply, tcbVTable, thread_control_update_ipc_buffer,
         thread_control_update_mcp, thread_control_update_priority, thread_control_update_space,
-        wordBits, wordRadix, CopyRegisters_resumeTarget, CopyRegisters_suspendSource,
+        CopyRegisters_resumeTarget, CopyRegisters_suspendSource,
         CopyRegisters_transferFrame, CopyRegisters_transferInteger, ReadRegisters_suspend,
         TCBBindNotification, TCBConfigure, TCBCopyRegisters, TCBReadRegisters, TCBResume,
         TCBSetIPCBuffer, TCBSetMCPriority, TCBSetPriority, TCBSetSchedParams, TCBSetSpace,
@@ -29,10 +29,10 @@ use crate::{
     object::objecttype::updateCapData,
     println,
     structures::{
-        exception_t, notification_t, seL4_MessageInfo_t, tcb_queue_t, tcb_t,
+        notification_t, seL4_MessageInfo_t, tcb_queue_t, tcb_t,
     },
     syscall::getSyscallArg,
-    BIT, MASK, cspace::{cap::cap_t, cte_t},
+    BIT, MASK,
 };
 
 use super::{
@@ -44,7 +44,8 @@ use super::{
     },
 };
 
-use crate::cspace::interface::*;
+use common::{structures::exception_t, sel4_config::*};
+use cspace::interface::*;
 
 type prio_t = usize;
 
@@ -624,6 +625,9 @@ pub fn decodeTCBConfigure(
     } else {
         dc_ret = deriveCap(bufferSlot, &bufferCap);
         if dc_ret.status != exception_t::EXCEPTION_NONE {
+            unsafe {
+                current_syscall_error._type = seL4_IllegalOperation;
+            }
             return dc_ret.status;
         }
         bufferCap = dc_ret.cap.clone();
@@ -648,6 +652,9 @@ pub fn decodeTCBConfigure(
 
     dc_ret = deriveCap(cRootSlot, &cRootCap);
     if dc_ret.status != exception_t::EXCEPTION_NONE {
+        unsafe {
+            current_syscall_error._type = seL4_IllegalOperation;
+        }
         return dc_ret.status;
     }
     cRootCap = dc_ret.cap.clone();
@@ -666,6 +673,9 @@ pub fn decodeTCBConfigure(
 
     dc_ret = deriveCap(vRootSlot, &vRootCap);
     if dc_ret.status != exception_t::EXCEPTION_NONE {
+        unsafe {
+            current_syscall_error._type = seL4_IllegalOperation;
+        }
         return dc_ret.status;
     }
     vRootCap = dc_ret.cap.clone();
@@ -941,6 +951,9 @@ pub fn decodeSetIPCBuffer(
     } else {
         dc_ret = deriveCap(bufferSlot, bufferCap);
         if dc_ret.status != exception_t::EXCEPTION_NONE {
+            unsafe {
+                current_syscall_error._type = seL4_IllegalOperation;
+            }
             return dc_ret.status;
         }
         bufferCap = &dc_ret.cap;
@@ -1016,6 +1029,9 @@ pub fn decodeSetSpace(
     }
     let dc_ret1 = deriveCap(cRootSlot, &cRootCap);
     if dc_ret1.status != exception_t::EXCEPTION_NONE {
+        unsafe {
+            current_syscall_error._type = seL4_IllegalOperation;
+        }
         return dc_ret1.status;
     }
     cRootCap = dc_ret1.cap.clone();
@@ -1032,6 +1048,9 @@ pub fn decodeSetSpace(
     }
     let dc_ret = deriveCap(vRootSlot, &vRootCap);
     if dc_ret.status != exception_t::EXCEPTION_NONE {
+        unsafe {
+            current_syscall_error._type = seL4_IllegalOperation;
+        }
         return dc_ret.status;
     }
     vRootCap = dc_ret.cap.clone();

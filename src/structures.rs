@@ -1,22 +1,17 @@
+use common::structures::exception_t;
+use cspace::interface::{cap_t, cte_t};
+
 use crate::{
     config::{
         asidLowBits, seL4_MsgMaxExtraCaps, seL4_MsgMaxLength, CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS,
         MAX_NUM_FREEMEM_REG, MAX_NUM_RESV_REG,
     },
     kernel::thread::n_contextRegisters,
-    BIT, cspace::{cap::cap_t, cte_t},
+    BIT,
 };
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum exception_t {
-    EXCEPTION_NONE,
-    EXCEPTION_FAULT,
-    EXCEPTION_LOOKUP_FAULT,
-    EXCEPTION_SYSCALL_ERROR,
-    EXCEPTION_PREEMTED,
-    padding = isize::MAX - 1,
-}
 
 pub struct satp_t {
     pub words: usize,

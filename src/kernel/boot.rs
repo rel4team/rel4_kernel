@@ -1,12 +1,14 @@
 extern crate core;
 
+use cspace::interface::cte_t;
+
 use crate::{
     config::{
         ksDomScheduleLength, seL4_MsgMaxExtraCaps
     },
     structures::{
         dschedule_t, extra_caps_t, lookup_fault_t, seL4_Fault_t, syscall_error_t, tcb_t, 
-    }, cspace::cte_t,
+    },
 };
 
 

@@ -7,7 +7,7 @@ use crate::{
             seL4_Fault_CapFault_new, seL4_Fault_get_seL4_FaultType,
         },
     },
-    structures::{endpoint_t, exception_t, seL4_Fault_t, tcb_t},
+    structures::{endpoint_t, seL4_Fault_t, tcb_t},
 };
 
 use super::{
@@ -16,7 +16,8 @@ use super::{
     thread::setThreadState,
 };
 
-use crate::cspace::interface::*;
+use common::structures::exception_t;
+use cspace::interface::*;
 
 #[no_mangle]
 pub fn handleFault(tptr: *mut tcb_t) {

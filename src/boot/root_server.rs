@@ -1,17 +1,20 @@
 use super::calculate_extra_bi_size_bits;
 use super::utils::{arch_get_n_paging, write_slot, provide_cap, clearMemory};
 use super::{ndks_boot, utils::is_reg_empty};
-use crate::cspace::interface::*;
-use crate::cspace::{cap::*, cte_insert};
+use common::sel4_config::{wordBits, seL4_SlotBits};
+use common::structures::exception_t;
+use cspace::interface::*;
 use crate::kernel::boot::ksDomSchedule;
-use crate::kernel::thread::{ksDomScheduleIdx, Arch_initContext, capRegister, setRegister, setNextPC, setThreadState, ksCurDomain, ksDomainTime, getCSpace, getCSpaceRef};
-use crate::kernel::vspace::{copyGlobalMappings, map_it_frame_cap, riscvKSASIDTable, RISCV_GET_LVL_PGSIZE_BITS, RISCV_GET_LVL_PGSIZE, pptr_to_paddr, pptr_t, create_it_pt_cap};
+use crate::kernel::thread::{ksDomScheduleIdx, Arch_initContext, capRegister, setRegister, setNextPC, setThreadState,
+    ksCurDomain, ksDomainTime, getCSpaceRef};
+use crate::kernel::vspace::{copyGlobalMappings, map_it_frame_cap, riscvKSASIDTable, RISCV_GET_LVL_PGSIZE_BITS, RISCV_GET_LVL_PGSIZE,
+    pptr_to_paddr, pptr_t, create_it_pt_cap};
 use crate::object::cnode::setupReplyMaster;
 use crate::object::interrupt::setIRQState;
-use crate::structures::{region_t, rootserver_mem_t, v_region_t, tcb_t, exception_t, asid_pool_t, seL4_SlotRegion, create_frames_of_region_ret_t, seL4_BootInfo, seL4_IPCBuffer};
+use crate::structures::{region_t, rootserver_mem_t, v_region_t, tcb_t, asid_pool_t, seL4_SlotRegion, create_frames_of_region_ret_t,
+    seL4_BootInfo, seL4_IPCBuffer};
 use crate::{BIT, ROUND_DOWN, println};
 use crate::config::*;
-use crate::cspace::cte_t;
 
 #[no_mangle]
 #[link_section = ".boot.bss"]
@@ -127,17 +130,17 @@ unsafe fn create_initial_thread(
         println!("Failed to derive copy of IPC Buffer\n");
         return 0 as *mut tcb_t;
     }
-    cte_insert(
+    cteInsert(
         &root_cnode_cap.clone(),
         unsafe { &mut *(ptr.add(seL4_CapInitThreadCNode)) },
         getCSpaceRef(rootserver.tcb, tcbCTable),
     );
-    cte_insert(
+    cteInsert(
         &it_pd_cap.clone(),
         unsafe { &mut *(ptr.add(seL4_CapInitThreadVspace)) },
         getCSpaceRef(rootserver.tcb, tcbVTable),
     );
-    cte_insert(
+    cteInsert(
         &dc_ret.cap.clone(),
         unsafe { &mut *(ptr.add(seL4_CapInitThreadIPCBuffer)) },
         getCSpaceRef(rootserver.tcb, tcbBuffer),

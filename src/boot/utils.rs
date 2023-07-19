@@ -1,8 +1,7 @@
 
-use crate::cspace::{cte_t, mdb_node_t};
-use crate::{config::*, MASK};
-use crate::cspace::cap::cap_t;
-use crate::kernel::vspace::{pptr_t, vptr_t, map_it_pt_cap};
+
+use crate::config::*;
+use cspace::interface::*;
 use crate::{
     kernel::vspace::{paddr_to_pptr, pptr_to_paddr, RISCV_GET_LVL_PGSIZE_BITS},
     println,
