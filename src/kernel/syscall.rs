@@ -10,14 +10,8 @@ use crate::{
         endpoint::{receiveIPC, replyFromKernel_error, replyFromKernel_success_empty},
         interrupt::handleInterrupt,
         notification::receiveSignal,
-        objecttype::{
-            cap_endpoint_cap, cap_get_capType, cap_notification_cap, cap_reply_cap,
-            decodeInvocation,
-        },
+        objecttype::decodeInvocation,
         structure_gen::{
-            cap_endpoint_cap_get_capCanReceive, cap_notification_cap_get_capNtfnCanReceive,
-            cap_notification_cap_get_capNtfnPtr, cap_reply_cap_get_capReplyCanGrant,
-            cap_reply_cap_get_capReplyMaster, cap_reply_cap_get_capTCBPtr,
             lookup_fault_missing_capability_new, notification_ptr_get_ntfnBoundTCB,
             seL4_Fault_CapFault_new, seL4_Fault_UserException_new, thread_state_get_tsType,
         },
@@ -25,7 +19,7 @@ use crate::{
     },
     println,
     riscv::read_sip,
-    structures::{exception_t, notification_t, seL4_MessageInfo_t, tcb_t},
+    structures::{notification_t, seL4_MessageInfo_t, tcb_t},
     BIT,
 };
 
@@ -42,6 +36,9 @@ use super::{
     },
     vspace::{handleVMFault, lookupIPCBuffer},
 };
+
+use common::structures::exception_t;
+use cspace::interface::*;
 
 #[no_mangle]
 pub fn handleInterruptEntry() -> exception_t {

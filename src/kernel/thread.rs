@@ -12,15 +12,10 @@ use crate::{
         NUM_READY_QUEUES, SSTATUS_SPIE, SSTATUS_SPP, TCB_OFFSET,
     },
     object::{
-        cap::{cteDeleteOne, cteInsert},
+        cap::{cteDeleteOne},
         cnode::setupReplyMaster,
         endpoint::cancelIPC,
-        objecttype::{cap_endpoint_cap, cap_get_capType, cap_null_cap, cap_thread_cap, deriveCap},
-        structure_gen::{
-            cap_endpoint_cap_get_capEPBadge, cap_endpoint_cap_get_capEPPtr,
-            cap_thread_cap_get_capTCBPtr, seL4_Fault_get_seL4_FaultType, thread_state_get_tsType,
-            thread_state_set_tsType,
-        },
+        structure_gen::{seL4_Fault_get_seL4_FaultType, thread_state_get_tsType, thread_state_set_tsType,},
         tcb::{
             copyMRs, getHighestPrio, isHighestPrio, lookupExtraCaps, ready_queues_index,
             tcbSchedAppend, tcbSchedDequeue, tcbSchedEnqueue,
@@ -28,7 +23,7 @@ use crate::{
     },
     println,
     structures::{
-        arch_tcb_t, cap_transfer_t, cte_t, endpoint_t, exception_t, seL4_MessageInfo_t,
+        arch_tcb_t, cap_transfer_t, endpoint_t, seL4_MessageInfo_t,
         tcb_queue_t, tcb_t,
     },
     syscall::getSyscallArg,
@@ -55,6 +50,9 @@ use super::{
     },
     vspace::{lookupIPCBuffer, setVMRoot},
 };
+
+use common::structures::exception_t;
+use cspace::interface::*;
 
 #[no_mangle]
 pub static mut ksDomainTime: usize = 0;

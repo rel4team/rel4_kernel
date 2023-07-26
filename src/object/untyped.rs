@@ -1,9 +1,9 @@
 use crate::{
     config::{
         seL4_CapTableObject, seL4_FailedLookup, seL4_IllegalOperation, seL4_InvalidArgument,
-        seL4_MaxUntypedBits, seL4_MinUntypedBits, seL4_NotEnoughMemory, seL4_ObjectTypeCount,
-        seL4_RangeError, seL4_TruncatedMessage, seL4_UntypedObject, wordBits, ThreadStateRestart,
-        UntypedRetype, CONFIG_RESET_CHUNK_BITS, CONFIG_RETYPE_FAN_OUT_LIMIT,
+        seL4_NotEnoughMemory, seL4_ObjectTypeCount, seL4_RangeError, seL4_TruncatedMessage,
+        seL4_UntypedObject, ThreadStateRestart, UntypedRetype, CONFIG_RESET_CHUNK_BITS,
+        CONFIG_RETYPE_FAN_OUT_LIMIT, seL4_RevokeFirst,
     },
     kernel::{
         boot::{current_extra_caps, current_lookup_fault, current_syscall_error},
@@ -12,31 +12,24 @@ use crate::{
     },
     object::structure_gen::lookup_fault_missing_capability_new,
     println,
-    structures::{cap_t, cte_t, exception_t},
     syscall::getSyscallArg,
     BIT, MASK, ROUND_DOWN, boot::clearMemory,
 };
 
 use super::{
-    cap::{ensureEmptySlot, ensureNoChildren},
+    cap::{ensureEmptySlot},
     objecttype::{
-        cap_cnode_cap, cap_get_capType, createNewObjects, getObjectSize, Arch_isFrameType,
-    },
-    structure_gen::{
-        cap_cnode_cap_get_capCNodePtr, cap_cnode_cap_get_capCNodeRadix,
-        cap_untyped_cap_get_capBlockSize, cap_untyped_cap_get_capFreeIndex,
-        cap_untyped_cap_get_capIsDevice, cap_untyped_cap_get_capPtr,
-        cap_untyped_cap_set_capFreeIndex,
+        createNewObjects, getObjectSize, Arch_isFrameType,
     },
 };
+
+use common::{structures::exception_t, sel4_config::*};
+use cspace::interface::*;
 
 pub fn alignUp(baseValue: usize, alignment: usize) -> usize {
     (baseValue + BIT!(alignment) - 1) & !MASK!(alignment)
 }
 
-pub fn MAX_FREE_INDEX(sizeBits: usize) -> usize {
-    BIT!(sizeBits) - seL4_MinUntypedBits
-}
 pub fn FREE_INDEX_TO_OFFSET(freeIndex: usize) -> usize {
     freeIndex << seL4_MinUntypedBits
 }
@@ -272,6 +265,9 @@ pub fn decodeUntypedInvocation(
     let freeIndex: usize;
     let reset: bool;
     if status != exception_t::EXCEPTION_NONE {
+        unsafe {
+            current_syscall_error._type = seL4_RevokeFirst;
+        }
         freeIndex = cap_untyped_cap_get_capFreeIndex(cap);
         reset = false;
     } else {

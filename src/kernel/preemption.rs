@@ -1,6 +1,7 @@
+use common::structures::exception_t;
+
 use crate::{
     config::CONFIG_MAX_NUM_WORK_UNITS_PER_PREEMPTION, object::interrupt::isIRQPending,
-    structures::exception_t,
 };
 
 use super::boot::ksWorkUnitsCompleted;

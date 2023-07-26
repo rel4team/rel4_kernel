@@ -1,23 +1,21 @@
 use core::intrinsics::{likely, unlikely};
 
 use crate::{
-    config::{seL4_FailedLookup, seL4_RangeError, tcbCTable, wordBits, wordRadix},
-    object::{
-        objecttype::{cap_cnode_cap, cap_get_capType},
-        structure_gen::{
-            cap_cnode_cap_get_capCNodeGuard, cap_cnode_cap_get_capCNodeGuardSize,
-            cap_cnode_cap_get_capCNodePtr, cap_cnode_cap_get_capCNodeRadix, cap_null_cap_new,
-            lookup_fault_depth_mismatch_new, lookup_fault_guard_mismatch_new,
-            lookup_fault_invalid_root_new,
-        },
+    config::{seL4_FailedLookup, seL4_RangeError, tcbCTable},
+    object::structure_gen::{
+        lookup_fault_depth_mismatch_new, lookup_fault_guard_mismatch_new,
+        lookup_fault_invalid_root_new,
     },
     println,
     structures::{
-        cap_t, cte_t, exception_t, lookupCapAndSlot_ret_t, lookupCap_ret_t, lookupSlot_raw_ret_t,
+        lookupCapAndSlot_ret_t, lookupCap_ret_t, lookupSlot_raw_ret_t,
         lookupSlot_ret_t, resolveAddressBits_ret_t, tcb_t,
     },
     MASK,
 };
+
+use common::{structures::exception_t, sel4_config::{wordRadix, wordBits}};
+use cspace::interface::*;
 
 use super::{
     boot::{current_lookup_fault, current_syscall_error},

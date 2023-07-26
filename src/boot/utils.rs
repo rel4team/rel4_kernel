@@ -1,8 +1,7 @@
 
-use crate::cspace::{cte_t, mdb_node_t};
-use crate::{config::*, MASK};
-use crate::cspace::cap::{cap_page_table_cap_new, cap_t};
-use crate::kernel::vspace::{pptr_t, vptr_t, map_it_pt_cap};
+
+use crate::config::*;
+use cspace::interface::*;
 use crate::{
     kernel::vspace::{paddr_to_pptr, pptr_to_paddr, RISCV_GET_LVL_PGSIZE_BITS},
     println,
@@ -91,16 +90,3 @@ pub fn clearMemory(ptr: *mut u8, bits: usize) {
     }
 }
 
-
-pub fn getCSpace(ptr: usize, i: usize) -> &'static mut cte_t {
-    unsafe {
-        let p = (ptr & !MASK!(seL4_TCBBits)) as *mut cte_t;
-        &mut *(p.add(i))
-    }
-}
-
-pub fn create_it_pt_cap(vspace_cap: &cap_t, pptr: pptr_t, vptr: vptr_t, asid: usize) -> cap_t {
-    let cap = cap_page_table_cap_new(asid, pptr, 1, vptr);
-    map_it_pt_cap(&vspace_cap.to_struture_cap(), &cap.to_struture_cap());
-    return cap;
-}

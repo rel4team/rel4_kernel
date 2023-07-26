@@ -5,7 +5,7 @@ use crate::{
         seL4_MsgMaxExtraCaps, seL4_RangeError, seL4_TruncatedMessage, tcbBuffer, tcbCTable,
         tcbCaller, tcbReply, tcbVTable, thread_control_update_ipc_buffer,
         thread_control_update_mcp, thread_control_update_priority, thread_control_update_space,
-        wordBits, wordRadix, CopyRegisters_resumeTarget, CopyRegisters_suspendSource,
+        CopyRegisters_resumeTarget, CopyRegisters_suspendSource,
         CopyRegisters_transferFrame, CopyRegisters_transferInteger, ReadRegisters_suspend,
         TCBBindNotification, TCBConfigure, TCBCopyRegisters, TCBReadRegisters, TCBResume,
         TCBSetIPCBuffer, TCBSetMCPriority, TCBSetPriority, TCBSetSchedParams, TCBSetSpace,
@@ -26,35 +26,26 @@ use crate::{
         },
         vspace::{checkValidIPCBuffer, isValidVTableRoot, lookupIPCBuffer},
     },
-    object::{
-        cap::cteInsert,
-        objecttype::{cap_get_capType, cap_null_cap, cap_reply_cap, updateCapData},
-        structure_gen::{
-            cap_reply_cap_get_capReplyCanGrant, cap_reply_cap_get_capReplyMaster,
-            cap_reply_cap_get_capTCBPtr, cap_reply_cap_new,
-        },
-    },
+    object::objecttype::updateCapData,
     println,
     structures::{
-        cap_t, cte_t, deriveCap_ret, exception_t, notification_t, seL4_MessageInfo_t, tcb_queue_t,
-        tcb_t,
+        notification_t, seL4_MessageInfo_t, tcb_queue_t, tcb_t,
     },
     syscall::getSyscallArg,
     BIT, MASK,
 };
 
 use super::{
-    cap::{cteDelete, cteDeleteOne, slotCapLongRunningDelete},
+    cap::{cteDelete, cteDeleteOne},
     // cap::cteDelete,
     notification::{bindNotification, unbindNotification},
-    objecttype::{cap_cnode_cap, cap_notification_cap, cap_thread_cap, deriveCap, sameObjectAs},
-    structure_gen::{
-        cap_notification_cap_get_capNtfnCanReceive, cap_notification_cap_get_capNtfnPtr,
-        cap_null_cap_new, cap_thread_cap_get_capTCBPtr, cap_thread_cap_new,
-        notification_ptr_get_ntfnQueue_head, notification_ptr_get_ntfnQueue_tail,
+    structure_gen::{notification_ptr_get_ntfnQueue_head, notification_ptr_get_ntfnQueue_tail,
         thread_state_get_tcbQueued, thread_state_set_tcbQueued,
     },
 };
+
+use common::{structures::exception_t, sel4_config::*};
+use cspace::interface::*;
 
 type prio_t = usize;
 
@@ -634,6 +625,9 @@ pub fn decodeTCBConfigure(
     } else {
         dc_ret = deriveCap(bufferSlot, &bufferCap);
         if dc_ret.status != exception_t::EXCEPTION_NONE {
+            unsafe {
+                current_syscall_error._type = seL4_IllegalOperation;
+            }
             return dc_ret.status;
         }
         bufferCap = dc_ret.cap.clone();
@@ -658,6 +652,9 @@ pub fn decodeTCBConfigure(
 
     dc_ret = deriveCap(cRootSlot, &cRootCap);
     if dc_ret.status != exception_t::EXCEPTION_NONE {
+        unsafe {
+            current_syscall_error._type = seL4_IllegalOperation;
+        }
         return dc_ret.status;
     }
     cRootCap = dc_ret.cap.clone();
@@ -676,6 +673,9 @@ pub fn decodeTCBConfigure(
 
     dc_ret = deriveCap(vRootSlot, &vRootCap);
     if dc_ret.status != exception_t::EXCEPTION_NONE {
+        unsafe {
+            current_syscall_error._type = seL4_IllegalOperation;
+        }
         return dc_ret.status;
     }
     vRootCap = dc_ret.cap.clone();
@@ -951,6 +951,9 @@ pub fn decodeSetIPCBuffer(
     } else {
         dc_ret = deriveCap(bufferSlot, bufferCap);
         if dc_ret.status != exception_t::EXCEPTION_NONE {
+            unsafe {
+                current_syscall_error._type = seL4_IllegalOperation;
+            }
             return dc_ret.status;
         }
         bufferCap = &dc_ret.cap;
@@ -1026,6 +1029,9 @@ pub fn decodeSetSpace(
     }
     let dc_ret1 = deriveCap(cRootSlot, &cRootCap);
     if dc_ret1.status != exception_t::EXCEPTION_NONE {
+        unsafe {
+            current_syscall_error._type = seL4_IllegalOperation;
+        }
         return dc_ret1.status;
     }
     cRootCap = dc_ret1.cap.clone();
@@ -1042,6 +1048,9 @@ pub fn decodeSetSpace(
     }
     let dc_ret = deriveCap(vRootSlot, &vRootCap);
     if dc_ret.status != exception_t::EXCEPTION_NONE {
+        unsafe {
+            current_syscall_error._type = seL4_IllegalOperation;
+        }
         return dc_ret.status;
     }
     vRootCap = dc_ret.cap.clone();

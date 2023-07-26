@@ -1,3 +1,6 @@
+use common::structures::exception_t;
+use cspace::interface::{cap_t, cte_t};
+
 use crate::{
     config::{
         asidLowBits, seL4_MsgMaxExtraCaps, seL4_MsgMaxLength, CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS,
@@ -9,14 +12,6 @@ use crate::{
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum exception_t {
-    EXCEPTION_NONE,
-    EXCEPTION_FAULT,
-    EXCEPTION_LOOKUP_FAULT,
-    EXCEPTION_SYSCALL_ERROR,
-    EXCEPTION_PREEMTED,
-    padding = isize::MAX - 1,
-}
 
 pub struct satp_t {
     pub words: usize,
@@ -145,46 +140,6 @@ pub struct thread_state_t {
     pub words: [usize; 3],
 }
 
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct cap_t {
-    pub words: [usize; 2],
-}
-
-impl Default for cap_t {
-    fn default() -> Self {
-        cap_t { words: [0; 2] }
-    }
-}
-
-#[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct mdb_node_t {
-    pub words: [usize; 2],
-}
-
-impl Default for mdb_node_t {
-    fn default() -> Self {
-        mdb_node_t { words: [0; 2] }
-    }
-}
-
-#[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct cte_t {
-    pub cap: cap_t,
-    pub cteMDBNode: mdb_node_t,
-}
-
-impl Default for cte_t {
-    fn default() -> Self {
-        cte_t {
-            cap: cap_t::default(),
-            cteMDBNode: mdb_node_t::default(),
-        }
-    }
-}
-
 #[derive(PartialEq)]
 pub enum cap_tag_t {
     cap_null_cap = 0,
@@ -235,12 +190,6 @@ pub struct pte_t {
     pub words: [usize; 1],
 }
 
-#[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct deriveCap_ret {
-    pub status: exception_t,
-    pub cap: cap_t,
-}
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Clone, Copy)]
