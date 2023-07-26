@@ -7,6 +7,7 @@ mod interface;
 
 use core::mem::size_of;
 
+use common::BIT;
 use riscv::register::stvec;
 use riscv::register::utvec::TrapMode;
 
@@ -19,10 +20,10 @@ use crate::kernel::thread::{ksSchedulerAction, ksCurThread, ksIdleThread, create
 use crate::object::interrupt::set_sie_mask;
 use crate::sbi::{set_timer, get_time};
 use crate::structures::{ndks_boot_t, region_t, p_region_t, seL4_BootInfo, tcb_t, seL4_BootInfoHeader, seL4_SlotRegion, v_region_t};
-use crate::{BIT, println, ROUND_UP};
-use crate::kernel::vspace::{rust_map_kernel_window, activate_kernel_vspace, kpptr_to_paddr, paddr_to_pptr};
+use crate::{println, ROUND_UP};
 use crate::config::*;
 
+use crate::vspace::*;
 pub use root_server::rootserver;
 pub use utils::{write_slot, provide_cap, clearMemory};
 

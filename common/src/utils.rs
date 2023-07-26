@@ -1,3 +1,5 @@
+use crate::sel4_config::{RISCVPageBits, RISCVMegaPageBits, RISCVGigaPageBits, RISCV_4K_Page, RISCV_Mega_Page, RISCV_Giga_Page};
+
 #[macro_export]
 macro_rules! MASK {
     ($e:expr) => {
@@ -13,5 +15,32 @@ macro_rules! BIT {
         {
             1usize<<$e
         }
+    }
+}
+
+
+#[inline]
+pub fn convert_to_type_ref<T>(addr: usize) -> &'static T {
+    assert_ne!(addr, 0);
+    unsafe {
+        & *(addr as *mut T)
+    }
+}
+
+#[inline]
+pub fn convert_to_mut_type_ref<T>(addr: usize) -> &'static mut T {
+    assert_ne!(addr, 0);
+    unsafe {
+        &mut *(addr as *mut T)
+    }
+}
+#[no_mangle]
+#[inline]
+pub fn pageBitsForSize(page_size: usize) -> usize {
+    match page_size {
+        RISCV_4K_Page => RISCVPageBits,
+        RISCV_Mega_Page => RISCVMegaPageBits,
+        RISCV_Giga_Page => RISCVGigaPageBits,
+        _ => panic!("Invalid page size!"),
     }
 }

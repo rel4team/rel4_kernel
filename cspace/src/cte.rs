@@ -1,6 +1,6 @@
-use common::structures::exception_t;
+use common::{structures::exception_t, utils::{convert_to_type_ref, convert_to_mut_type_ref}};
 
-use crate::{cap::{cap_t, CapTag, same_region_as, same_object_as, is_cap_revocable}, mdb::mdb_node_t, utils::{convert_to_type_ref, convert_to_mut_type_ref, MAX_FREE_INDEX}};
+use crate::{cap::{cap_t, CapTag, same_region_as, same_object_as, is_cap_revocable}, mdb::mdb_node_t, utils::MAX_FREE_INDEX};
 
 #[repr(C)]
 #[derive(Clone, Copy)]

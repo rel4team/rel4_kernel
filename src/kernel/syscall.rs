@@ -20,7 +20,6 @@ use crate::{
     println,
     riscv::read_sip,
     structures::{notification_t, seL4_MessageInfo_t, tcb_t},
-    BIT,
 };
 
 use super::{
@@ -37,7 +36,7 @@ use super::{
     vspace::{handleVMFault, lookupIPCBuffer},
 };
 
-use common::structures::exception_t;
+use common::{structures::exception_t, BIT};
 use cspace::interface::*;
 
 #[no_mangle]

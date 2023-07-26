@@ -8,7 +8,7 @@ use crate::{
         tcbCNodeEntries, tcbCTable, IRQInactive, ThreadStateRestart, VMReadWrite, CONFIG_TIME_SLICE, TCB_OFFSET,
     },
     kernel::{
-        boot::current_syscall_error,
+        boot::{current_syscall_error, current_lookup_fault},
         thread::{
             decodeDomainInvocation, doReplyTransfer, getCSpace, ksCurDomain, ksCurThread,
             setThreadState, suspend, Arch_initContext,
@@ -20,16 +20,16 @@ use crate::{
             wordFromVMRights,
         },
         vspace::{
-            decodeRISCVMMUInvocation, deleteASID, deleteASIDPool, findVSpaceForASID, maskVMRights,
+            decodeRISCVMMUInvocation, deleteASID, deleteASIDPool, maskVMRights,
             unmapPage, unmapPageTable,
         },
     },
     println,
     structures::{
-        asid_pool_t, endpoint_t, finaliseCap_ret,
-        notification_t, pte_t, seL4_CNode_CapData_t, seL4_CapRights_t, tcb_t,
+        endpoint_t, finaliseCap_ret,
+        notification_t, seL4_CNode_CapData_t, seL4_CapRights_t, tcb_t,
     },
-    MASK,
+    vspace::*,
 };
 
 use super::{
@@ -46,7 +46,7 @@ use super::{
     untyped::decodeUntypedInvocation,
 };
 
-use common::{structures::exception_t, sel4_config::*};
+use common::{structures::exception_t, sel4_config::*, MASK};
 use cspace::interface::*;
 
 
@@ -76,7 +76,7 @@ pub fn Arch_finaliseCap(cap: &cap_t, _final: bool) -> finaliseCap_ret {
                 let find_ret = findVSpaceForASID(asid);
                 let pte = cap_page_table_cap_get_capPTBasePtr(cap);
                 if find_ret.status == exception_t::EXCEPTION_NONE
-                    && find_ret.vspace_root as usize == pte
+                    && find_ret.vspace_root.unwrap() as usize == pte
                 {
                     deleteASID(asid, pte as *mut pte_t);
                 } else {
@@ -85,6 +85,11 @@ pub fn Arch_finaliseCap(cap: &cap_t, _final: bool) -> finaliseCap_ret {
                         cap_page_table_cap_get_capPTMappedAddress(cap),
                         pte as *mut pte_t,
                     );
+                }
+                if let Some(lookup_fault) = find_ret.lookup_fault {
+                    unsafe {
+                        current_lookup_fault = lookup_fault;
+                    }
                 }
             }
         }

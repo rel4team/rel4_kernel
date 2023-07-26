@@ -1,23 +1,5 @@
-use common::sel4_config::seL4_MinUntypedBits;
+use common::{sel4_config::seL4_MinUntypedBits, BIT};
 
-
-#[macro_export]
-macro_rules! BIT {
-    ($e:expr) => {
-        {
-            1usize<<$e
-        }
-    }
-}
-
-#[macro_export]
-macro_rules! MASK {
-    ($e:expr) => {
-        {
-             (1usize << $e) - 1usize
-        }
-    }
-}
 
 #[macro_export]
 macro_rules! ROUND_DOWN {

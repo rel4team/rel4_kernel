@@ -13,7 +13,7 @@ use crate::{
     object::structure_gen::lookup_fault_missing_capability_new,
     println,
     syscall::getSyscallArg,
-    BIT, MASK, ROUND_DOWN, boot::clearMemory,
+    ROUND_DOWN, boot::clearMemory,
 };
 
 use super::{
@@ -23,7 +23,7 @@ use super::{
     },
 };
 
-use common::{structures::exception_t, sel4_config::*};
+use common::{structures::exception_t, sel4_config::*, BIT, MASK};
 use cspace::interface::*;
 
 pub fn alignUp(baseValue: usize, alignment: usize) -> usize {

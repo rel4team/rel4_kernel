@@ -1,7 +1,8 @@
+use common::MASK;
+
 use crate::{
     config::{seL4_CapRightsBits, seL4_MsgMaxLength},
     structures::{cap_transfer_t, seL4_CapRights_t, seL4_MessageInfo_t, vm_attributes_t, seL4_CNode_CapData_t},
-    MASK,
 };
 
 #[inline]

@@ -1,4 +1,4 @@
-use common::structures::exception_t;
+use common::{structures::exception_t, BIT};
 use cspace::interface::{cap_t, cte_t};
 
 use crate::{
@@ -7,34 +7,9 @@ use crate::{
         MAX_NUM_FREEMEM_REG, MAX_NUM_RESV_REG,
     },
     kernel::thread::n_contextRegisters,
-    BIT,
+    vspace::*,
 };
 
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-
-pub struct satp_t {
-    pub words: usize,
-}
-
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct lookupPTSlot_ret_t {
-    pub ptSlot: *mut pte_t,
-    pub ptBitsLeft: usize,
-}
-
-#[derive(Copy, Clone)]
-pub struct asid_pool_t {
-    pub array: [*mut pte_t; BIT!(asidLowBits)],
-}
-
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct findVSpaceForASID_ret {
-    pub status: exception_t,
-    pub vspace_root: *mut pte_t,
-}
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -184,11 +159,7 @@ impl Default for finaliseSlot_ret {
     }
 }
 
-#[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct pte_t {
-    pub words: [usize; 1],
-}
+
 
 
 #[repr(C)]

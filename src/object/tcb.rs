@@ -32,7 +32,6 @@ use crate::{
         notification_t, seL4_MessageInfo_t, tcb_queue_t, tcb_t,
     },
     syscall::getSyscallArg,
-    BIT, MASK,
 };
 
 use super::{
@@ -44,7 +43,7 @@ use super::{
     },
 };
 
-use common::{structures::exception_t, sel4_config::*};
+use common::{structures::exception_t, sel4_config::*, BIT, MASK};
 use cspace::interface::*;
 
 type prio_t = usize;

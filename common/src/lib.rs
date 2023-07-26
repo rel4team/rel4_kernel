@@ -6,4 +6,4 @@
 
 pub mod sel4_config;
 pub mod structures;
-mod utils;
+pub mod utils;

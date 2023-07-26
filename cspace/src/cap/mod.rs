@@ -1,6 +1,5 @@
-use common::sel4_config::{seL4_EndpointBits, seL4_NotificationBits, seL4_SlotBits, PT_SIZE_BITS, seL4_ReplyBits};
+use common::{sel4_config::{seL4_EndpointBits, seL4_NotificationBits, seL4_SlotBits, PT_SIZE_BITS, seL4_ReplyBits}, MASK, utils::pageBitsForSize};
 
-use crate::{MASK, utils::pageBitsForSize};
 
 
 pub mod asid_control;

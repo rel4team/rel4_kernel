@@ -1,12 +1,12 @@
-use crate::config::{
+use crate::{config::{
     lookup_fault_depth_mismatch, lookup_fault_invalid_root, lookup_fault_missing_capability,
     seL4_Fault_CapFault, seL4_Fault_NullFault, seL4_Fault_UnknownSyscall, seL4_Fault_UserException,
     seL4_Fault_VMFault,
-};
+}, vspace::*};
 
 use cspace::interface::*;
 use crate::structures::{
-    endpoint_t, lookup_fault_t, notification_t, pte_t, seL4_Fault_t,
+    endpoint_t, lookup_fault_t, notification_t, seL4_Fault_t,
     thread_state_t,
 };
 
@@ -20,45 +20,6 @@ pub fn cap_get_max_free_index(cap: &cap_t) -> usize {
     (1usize << ans) - sel4_MinUntypedbits
 }
 
-
-#[inline]
-pub fn pte_ptr_get_ppn(pte_ptr: *const pte_t) -> usize {
-    unsafe {
-        let ret = ((*pte_ptr).words[0] & 0x3f_ffff_ffff_fc00usize) >> 10;
-        ret
-    }
-}
-#[inline]
-pub fn pte_ptr_get_execute(pte_ptr: *const pte_t) -> usize {
-    unsafe {
-        let ret = ((*pte_ptr).words[0] & 0x8usize) >> 3;
-        ret
-    }
-}
-
-#[inline]
-pub fn pte_ptr_get_write(pte_ptr: *const pte_t) -> usize {
-    unsafe {
-        let ret = ((*pte_ptr).words[0] & 0x4usize) >> 2;
-        ret
-    }
-}
-
-#[inline]
-pub fn pte_ptr_get_read(pte_ptr: *const pte_t) -> usize {
-    unsafe {
-        let ret = ((*pte_ptr).words[0] & 0x2usize) >> 1;
-        ret
-    }
-}
-
-#[inline]
-pub fn pte_ptr_get_valid(pte_ptr: *const pte_t) -> usize {
-    unsafe {
-        let ret = ((*pte_ptr).words[0] & 0x1usize) >> 0;
-        ret
-    }
-}
 
 #[inline]
 pub fn thread_state_new() -> thread_state_t {

@@ -11,10 +11,9 @@ use crate::{
         lookupCapAndSlot_ret_t, lookupCap_ret_t, lookupSlot_raw_ret_t,
         lookupSlot_ret_t, resolveAddressBits_ret_t, tcb_t,
     },
-    MASK,
 };
 
-use common::{structures::exception_t, sel4_config::{wordRadix, wordBits}};
+use common::{structures::exception_t, sel4_config::{wordRadix, wordBits}, MASK};
 use cspace::interface::*;
 
 use super::{

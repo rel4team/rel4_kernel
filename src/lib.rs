@@ -33,6 +33,7 @@ mod object;
 mod riscv;
 mod syscall;
 mod boot;
+mod vspace;
 
 
 struct Stdout;

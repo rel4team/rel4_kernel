@@ -1,9 +1,9 @@
 use crate::{
     config::{
-        msgRegister, seL4_Fault_NullFault, seL4_MsgExtraCapBits, seL4_MsgLengthBits, tcbCTable,
+        msgRegister, seL4_Fault_NullFault, tcbCTable,
         tcbCaller, tcbReply, tcbVTable, EPState_Idle, EPState_Recv, EPState_Send,
         NtfnState_Active, SysCall, SysReplyRecv, ThreadStateBlockedOnReceive,
-        ThreadStateBlockedOnReply, ThreadStateRunning,
+        ThreadStateBlockedOnReply, ThreadStateRunning, seL4_MsgLengthBits, seL4_MsgExtraCapBits,
     },
     object::{
         structure_gen::{
@@ -15,14 +15,13 @@ use crate::{
     },
     println,
     structures::{
-        endpoint_t, pte_t, seL4_MessageInfo_t, tcb_t, thread_state_t,
+        endpoint_t, seL4_MessageInfo_t, tcb_t, thread_state_t,
     },
-    MASK,
+    vspace::*,
 };
 use core::intrinsics::{likely, unlikely};
-use common::sel4_config::wordBits;
+use common::{sel4_config::wordBits, MASK};
 use cspace::interface::*;
-
 use super::{
     c_traps::slowpath,
     thread::{getCSpace, getRegister, ksCurThread, setRegister},
@@ -30,7 +29,6 @@ use super::{
         messageInfoFromWord_raw, seL4_MessageInfo_ptr_get_length,
         seL4_MessageInfo_ptr_set_capsUnwrapped, wordFromMessageInfo,
     },
-    vspace::{pptr_to_paddr, setVSpaceRoot},
 };
 #[inline]
 #[no_mangle]

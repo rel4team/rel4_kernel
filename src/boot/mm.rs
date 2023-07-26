@@ -4,10 +4,9 @@ use crate::boot::utils::is_reg_empty;
 use crate::boot::utils::paddr_to_pptr_reg;
 use crate::boot::utils::pptr_to_paddr_reg;
 use crate::config::*;
-use crate::kernel::vspace::kpptr_to_paddr;
-use crate::kernel::vspace::paddr_to_pptr;
 use crate::println;
 use crate::structures::*;
+use crate::vspace::*;
 use super::ndks_boot;
 #[link_section = ".boot.bss"]
 static mut res_reg: [region_t; NUM_RESERVED_REGIONS] =

@@ -17,7 +17,6 @@ use crate::{
     riscv::{read_sip, resetTimer},
     structures::notification_t,
     syscall::getSyscallArg,
-    BIT,
 };
 
 use super::{
@@ -25,7 +24,7 @@ use super::{
     notification::sendSignal,
 };
 
-use common::structures::exception_t;
+use common::{structures::exception_t, BIT};
 use cspace::interface::*;
 
 #[no_mangle]

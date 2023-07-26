@@ -27,7 +27,6 @@ use crate::{
         tcb_queue_t, tcb_t,
     },
     syscall::getSyscallArg,
-    BIT, MASK,
 };
 
 use core::{
@@ -51,7 +50,7 @@ use super::{
     vspace::{lookupIPCBuffer, setVMRoot},
 };
 
-use common::structures::exception_t;
+use common::{structures::exception_t, BIT, MASK};
 use cspace::interface::*;
 
 #[no_mangle]
