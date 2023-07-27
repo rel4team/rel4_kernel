@@ -1,8 +1,10 @@
-use common::{utils::{convert_to_mut_type_ref, convert_to_type_ref}, MASK};
+use core::intrinsics::unlikely;
 
-use crate::config::{seL4_PageTableBits, CONFIG_PT_LEVELS, PT_INDEX_BITS, seL4_PageBits};
+use common::{utils::{convert_to_mut_type_ref, convert_to_type_ref}, MASK, structures::exception_t};
 
-use super::{vptr_t, paddr_to_pptr};
+use crate::{config::{seL4_PageTableBits, CONFIG_PT_LEVELS, PT_INDEX_BITS, seL4_PageBits}, vspace::{RISCV_GET_PT_INDEX, sfence}};
+
+use super::{vptr_t, paddr_to_pptr, asid_t, asid::find_vspace_for_asid};
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -65,6 +67,32 @@ impl pte_t {
             ppn, 0, is_leaf as usize, is_leaf as usize, 1,
             0, exec as usize, write as usize,read as usize, 1
         )
+    }
+
+    pub fn unmap_page_table(&mut self, asid: asid_t, vptr: vptr_t) {
+        let target_pt = self as *mut pte_t;
+        let find_ret = find_vspace_for_asid(asid);
+        if find_ret.status != exception_t::EXCEPTION_NONE {
+            return;
+        }
+        assert!(find_ret.vspace_root.unwrap() != target_pt);
+        let mut pt = find_ret.vspace_root.unwrap();
+        let mut ptSlot = unsafe { &mut *(pt.add(RISCV_GET_PT_INDEX(vptr, 0))) };
+        let mut i = 0;
+        while i < CONFIG_PT_LEVELS - 1 && pt != target_pt {
+            ptSlot = unsafe { &mut *(pt.add(RISCV_GET_PT_INDEX(vptr, i))) };
+            if unlikely(ptSlot.is_pte_table()) {
+                return;
+            }
+            pt = ptSlot.get_pte_from_ppn_mut() as *mut pte_t;
+            i += 1;
+        }
+
+        if pt != target_pt {
+            return;
+        }
+        *ptSlot = pte_t::new(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        sfence();
     }
 
     pub fn pte_invalid() -> Self {

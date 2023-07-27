@@ -3,7 +3,10 @@ mod utils;
 mod structures;
 mod asid;
 
-use common::BIT;
+use core::intrinsics::unlikely;
+
+use common::{BIT, utils::convert_to_mut_type_ref, structures::exception_t, MASK};
+use cspace::interface::{cap_t, CapTag};
 pub use utils::{
     RISCV_GET_LVL_PGSIZE, RISCV_GET_LVL_PGSIZE_BITS, RISCV_GET_PT_INDEX,
     paddr_to_pptr, pptr_to_paddr, kpptr_to_paddr
@@ -14,7 +17,7 @@ pub use asid::{asid_pool_t, findVSpaceForASID, asid_t, hwASIDFlush};
 use riscv::register::satp;
 
 use crate::{config::{PT_INDEX_BITS, PPTR_BASE, PADDR_BASE, PPTR_TOP, KERNEL_ELF_BASE, KERNEL_ELF_PADDR_BASE,
-    PPTR_BASE_OFFSET, asidHighBits}, ROUND_DOWN};
+    PPTR_BASE_OFFSET, asidHighBits, asidLowBits}, ROUND_DOWN, structures::lookup_fault_t};
 
 pub use pte::{pte_ptr_get_valid, pte_ptr_get_execute, pte_ptr_get_ppn, pte_ptr_get_write, pte_ptr_get_read};
 
@@ -166,5 +169,58 @@ pub fn getPPtrFromHWPTE(pte: *mut pte_t) -> *mut pte_t {
 pub extern "C" fn lookupPTSlot(lvl1pt: *mut pte_t, vptr: vptr_t) -> lookupPTSlot_ret_t {
     unsafe {
         (*lvl1pt).lookup_pt_slot(vptr)
+    }
+}
+
+pub fn set_vm_root(vspace_root: &cap_t) -> Option<lookup_fault_t> {
+    if vspace_root.get_cap_type() != CapTag::CapPageTableCap {
+        unsafe {
+            setVSpaceRoot(kpptr_to_paddr(kernel_root_pageTable.as_ptr() as usize), 0);
+            return None;
+        }
+    }
+    let mut ret = None;
+    let lvl1pt = convert_to_mut_type_ref::<pte_t>(vspace_root.get_pt_base_ptr());
+    let asid = vspace_root.get_pt_mapped_asid();
+    let find_ret = findVSpaceForASID(asid);
+    if unlikely(
+        find_ret.status != exception_t::EXCEPTION_NONE || find_ret.vspace_root.is_none() || find_ret.vspace_root.unwrap() != lvl1pt,
+    ) {
+        unsafe {
+            if let Some(lookup_fault) = find_ret.lookup_fault {
+                ret = Some(lookup_fault);
+            }
+            setVSpaceRoot(kpptr_to_paddr(kernel_root_pageTable.as_ptr() as usize), 0);
+        }
+    }
+    setVSpaceRoot(pptr_to_paddr(lvl1pt as *mut pte_t as usize), asid);
+    ret
+}
+
+pub fn delete_asid_pool(asid_base: asid_t, pool: *mut asid_pool_t, default_vspace_cap:&cap_t) {
+    unsafe {
+        if riscvKSASIDTable[asid_base >> asidLowBits] == pool {
+            riscvKSASIDTable[asid_base >> asidLowBits] = 0 as *mut asid_pool_t;
+            // setVMRoot(ksCurThread);
+            set_vm_root(default_vspace_cap);
+        }
+    }
+}
+
+pub fn delete_asid(asid: asid_t, vspace: *mut pte_t, default_vspace_cap: &cap_t) {
+    unsafe {
+        let poolPtr = riscvKSASIDTable[asid >> asidLowBits];
+        if poolPtr as usize != 0 && (*poolPtr).array[asid & MASK!(asidLowBits)] == vspace {
+            hwASIDFlush(asid);
+            (*poolPtr).array[asid & MASK!(asidLowBits)] = 0 as *mut pte_t;
+            set_vm_root(&default_vspace_cap);
+        }
+    }
+}
+
+#[no_mangle]
+pub fn unmapPageTable(asid: asid_t, vptr: vptr_t, target_pt: *mut pte_t) {
+    unsafe {
+        (*target_pt).unmap_page_table(asid, vptr);
     }
 }

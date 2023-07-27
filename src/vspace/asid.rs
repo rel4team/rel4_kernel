@@ -20,7 +20,7 @@ pub struct findVSpaceForASID_ret {
 }
 
 #[no_mangle]
-pub fn findVSpaceForASID(asid: asid_t) -> findVSpaceForASID_ret {
+pub fn find_vspace_for_asid(asid: asid_t) -> findVSpaceForASID_ret {
     let mut ret: findVSpaceForASID_ret = findVSpaceForASID_ret {
         status: exception_t::EXCEPTION_FAULT,
         vspace_root: None,
@@ -49,6 +49,11 @@ pub fn findVSpaceForASID(asid: asid_t) -> findVSpaceForASID_ret {
     ret.status = exception_t::EXCEPTION_NONE;
     // vspace_root0xffffffc17fec1000
     return ret;
+}
+
+#[no_mangle]
+pub fn findVSpaceForASID(asid: asid_t) -> findVSpaceForASID_ret {
+    find_vspace_for_asid(asid)
 }
 
 pub fn hwASIDFlush(asid: asid_t) {

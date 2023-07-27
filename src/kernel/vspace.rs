@@ -1,7 +1,8 @@
 use core::{arch::asm, intrinsics::unlikely};
-use common::utils::pageBitsForSize;
+use common::utils::{pageBitsForSize, convert_to_mut_type_ref};
 use common::{BIT, MASK};
 use common::{structures::exception_t, sel4_config::*};
+use crate::structures::lookup_fault_t;
 use crate::vspace::*;
 use crate::{
     config::{
@@ -10,9 +11,9 @@ use crate::{
         seL4_DeleteFirst, seL4_FailedLookup, seL4_IPCBufferSizeBits, seL4_IllegalOperation,
         seL4_InvalidArgument, seL4_InvalidCapability, seL4_PageBits, seL4_PageTableBits,
         seL4_RevokeFirst, seL4_TruncatedMessage, tcbBuffer, tcbVTable, RISCVASIDControlMakePool,
-        RISCVASIDPoolAssign, RISCVGigaPageBits, RISCVInstructionAccessFault,
-        RISCVInstructionPageFault, RISCVLoadAccessFault, RISCVLoadPageFault, RISCVMegaPageBits,
-        RISCVPageBits, RISCVPageGetAddress, RISCVPageMap, RISCVPageTableMap, RISCVPageTableUnmap,
+        RISCVASIDPoolAssign, RISCVInstructionAccessFault,
+        RISCVInstructionPageFault, RISCVLoadAccessFault, RISCVLoadPageFault,
+        RISCVPageGetAddress, RISCVPageMap, RISCVPageTableMap, RISCVPageTableUnmap,
         RISCVPageUnmap, RISCVStoreAccessFault, RISCVStorePageFault, ThreadStateRestart, VMKernelOnly, VMReadOnly, VMReadWrite,
         CONFIG_PT_LEVELS, USER_TOP,
     },
@@ -53,29 +54,14 @@ use cspace::interface::*;
 pub type vm_rights_t = usize;
 
 
+
 #[no_mangle]
 pub fn setVMRoot(thread: *mut tcb_t) {
     unsafe {
         let threadRoot = &(*getCSpace(thread as usize, tcbVTable)).cap;
-        if cap_get_capType(threadRoot) != cap_page_table_cap {
-            setVSpaceRoot(kpptr_to_paddr(kernel_root_pageTable.as_ptr() as usize), 0);
-            return;
+        if let Some(lookup_fault) = set_vm_root(threadRoot) {
+            current_lookup_fault = lookup_fault;
         }
-        let lvl1pt = cap_page_table_cap_get_capPTBasePtr(threadRoot) as *mut pte_t;
-        let asid = cap_page_table_cap_get_capPTMappedASID(threadRoot);
-        let find_ret = findVSpaceForASID(asid);
-        if unlikely(
-            find_ret.status != exception_t::EXCEPTION_NONE || find_ret.vspace_root.is_none() || find_ret.vspace_root.unwrap() != lvl1pt,
-        ) {
-            if let Some(lookup_fault) = find_ret.lookup_fault {
-                unsafe {
-                    current_lookup_fault = find_ret.lookup_fault.unwrap();
-                }
-            }
-            setVSpaceRoot(kpptr_to_paddr(kernel_root_pageTable.as_ptr() as usize), 0);
-            return;
-        }
-        setVSpaceRoot(pptr_to_paddr(lvl1pt as usize), asid);
     }
 }
 
@@ -131,10 +117,7 @@ pub fn handleVMFault(_thread: *mut tcb_t, _type: usize) -> exception_t {
 #[no_mangle]
 pub fn deleteASIDPool(asid_base: asid_t, pool: *mut asid_pool_t) {
     unsafe {
-        if riscvKSASIDTable[asid_base >> asidLowBits] == pool {
-            riscvKSASIDTable[asid_base >> asidLowBits] = 0 as *mut asid_pool_t;
-            setVMRoot(ksCurThread);
-        }
+        delete_asid_pool(asid_base, pool, &(*getCSpace(ksCurThread as usize, tcbVTable)).cap)
     }
 }
 
@@ -187,57 +170,7 @@ pub fn performASIDPoolInvocation(
 #[no_mangle]
 pub fn deleteASID(asid: asid_t, vspace: *mut pte_t) {
     unsafe {
-        let poolPtr = riscvKSASIDTable[asid >> asidLowBits];
-        if poolPtr as usize != 0 && (*poolPtr).array[asid & MASK!(asidLowBits)] == vspace {
-            hwASIDFlush(asid);
-            (*poolPtr).array[asid & MASK!(asidLowBits)] = 0 as *mut pte_t;
-            setVMRoot(ksCurThread as *mut tcb_t);
-        }
-    }
-}
-
-#[no_mangle]
-pub fn unmapPageTable(asid: asid_t, vptr: vptr_t, target_pt: *mut pte_t) {
-    let find_ret = findVSpaceForASID(asid);
-    if find_ret.status != exception_t::EXCEPTION_NONE {
-        unsafe {
-            current_lookup_fault = find_ret.lookup_fault.unwrap();
-        }
-        return;
-    }
-    assert!(find_ret.vspace_root.unwrap() != target_pt);
-    let mut pt = find_ret.vspace_root.unwrap();
-    let mut ptSlot: *mut pte_t = 0 as *mut pte_t;
-    let mut i = 0;
-    while i < CONFIG_PT_LEVELS - 1 && pt != target_pt {
-        ptSlot = unsafe { pt.add(RISCV_GET_PT_INDEX(vptr, i)) };
-        if unlikely(isPTEPageTable(ptSlot)) {
-            return;
-        }
-        pt = getPPtrFromHWPTE(ptSlot);
-        i += 1;
-    }
-
-    if pt != target_pt {
-        return;
-    }
-    assert!(ptSlot as usize != 0);
-    unsafe {
-        let slot = ptSlot as *mut usize;
-        *slot = pte_new(
-            0, /* phy_address */
-            0, /* sw */
-            0, /* dirty (reserved non-leaf) */
-            0, /* accessed (reserved non-leaf) */
-            0, /* global */
-            0, /* user (reserved non-leaf) */
-            0, /* execute */
-            0, /* write */
-            0, /* read */
-            0, /* valid */
-        )
-        .words[0];
-        sfence();
+        delete_asid(asid, vspace, &(*getCSpace(ksCurThread as usize, tcbVTable)).cap);
     }
 }
 

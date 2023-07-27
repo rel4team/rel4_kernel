@@ -21,7 +21,7 @@ use crate::{
         },
         vspace::{
             decodeRISCVMMUInvocation, deleteASID, deleteASIDPool, maskVMRights,
-            unmapPage, unmapPageTable,
+            unmapPage,
         },
     },
     println,
