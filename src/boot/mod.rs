@@ -23,7 +23,7 @@ use crate::structures::{ndks_boot_t, region_t, p_region_t, seL4_BootInfo, tcb_t,
 use crate::println;
 use crate::config::*;
 
-use vspace::*;
+use crate::vspace::*;
 pub use root_server::rootserver;
 pub use utils::{write_slot, provide_cap, clearMemory};
 

@@ -3,7 +3,7 @@ use common::structures::{lookup_fault_missing_capability_new, lookup_fault_inval
 use common::utils::pageBitsForSize;
 use common::{BIT, MASK, IS_ALIGNED};
 use common::{structures::exception_t, sel4_config::*};
-use vspace::*;
+use crate::vspace::*;
 use crate::{
     config::{
         badgeRegister, msgInfoRegister,

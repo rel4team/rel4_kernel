@@ -8,7 +8,7 @@ use crate::boot::utils::pptr_to_paddr_reg;
 use crate::config::*;
 use crate::println;
 use crate::structures::*;
-use vspace::*;
+use crate::vspace::*;
 use super::ndks_boot;
 #[link_section = ".boot.bss"]
 static mut res_reg: [region_t; NUM_RESERVED_REGIONS] =

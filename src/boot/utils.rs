@@ -7,7 +7,7 @@ use crate::{
     println,
     structures::{p_region_t, region_t, v_region_t},
 };
-use vspace::*;
+use crate::vspace::*;
 use super::ndks_boot;
 
 #[inline]

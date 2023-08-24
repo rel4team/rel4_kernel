@@ -16,7 +16,7 @@ use crate::structures::{region_t, rootserver_mem_t, v_region_t, tcb_t, seL4_Slot
 use crate::println;
 use crate::config::*;
 
-use vspace::*;
+use crate::vspace::*;
 #[no_mangle]
 #[link_section = ".boot.bss"]
 pub static mut rootserver_mem: region_t = region_t { start: 0, end: 0 };
