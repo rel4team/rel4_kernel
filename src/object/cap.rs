@@ -10,12 +10,8 @@ use crate::{
         cspace::{rust_lookupPivotSlot, rust_lookupSourceSlot, rust_lookupTargetSlot},
         preemption::preemptionPoint,
         thread::{getCSpace, ksCurThread, setThreadState},
-        transfermsg::rightsFromWord,
     },
-    object::{
-        objecttype::finaliseCap,
-        structure_gen::lookup_fault_missing_capability_new,
-    },
+    object::objecttype::finaliseCap,
     println,
     structures::{endpoint_t, finaliseCap_ret, finaliseSlot_ret, tcb_t},
     syscall::getSyscallArg,
@@ -29,7 +25,7 @@ use super::{
     },
 };
 
-use common::structures::exception_t;
+use common::structures::{exception_t, lookup_fault_missing_capability_new};
 use cspace::interface::*;
 
 #[no_mangle]

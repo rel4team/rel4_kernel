@@ -5,6 +5,7 @@ use crate::cte::{cte_insert, cte_move, cte_swap, cap_removable, insert_new_cap};
 
 use super::cap::{is_cap_revocable, same_object_as};
 
+pub use crate::cap_rights::seL4_CapRights_t;
 pub use crate::cte::cte_t;
 pub use crate::mdb::mdb_node_t;
 pub use crate::cap::cap_t;
@@ -12,6 +13,10 @@ pub use crate::cap::CapTag;
 
 pub use super::cte::deriveCap_ret;
 pub use super::cap::null::cap_null_cap_new;
+
+pub use crate::cap_rights::{seL4_CapRightsBits, seL4_CapRights_get_capAllowGrant, seL4_CapRights_get_capAllowGrantReply,
+    seL4_CapRights_get_capAllowRead, seL4_CapRights_get_capAllowWrite, rightsFromWord, wordFromRights};
+
 pub use super::cap::untyped::{
     cap_untyped_cap_get_capBlockSize, cap_untyped_cap_get_capFreeIndex, cap_untyped_cap_get_capIsDevice,
     cap_untyped_cap_get_capPtr, cap_untyped_cap_new, cap_untyped_cap_ptr_set_capFreeIndex, cap_untyped_cap_set_capFreeIndex,

@@ -1,8 +1,7 @@
 
 use crate::{
     config::{
-        lookup_fault_depth_mismatch, lookup_fault_guard_mismatch, lookup_fault_invalid_root,
-        lookup_fault_missing_capability, msgInfoRegister, msgRegister, n_exceptionMessage,
+        msgInfoRegister, msgRegister, n_exceptionMessage,
         n_msgRegisters, n_syscallMessage, seL4_CapFault_Addr, seL4_CapFault_BitsLeft,
         seL4_CapFault_DepthMismatch_BitsFound, seL4_CapFault_GuardMismatch_BitsFound,
         seL4_CapFault_GuardMismatch_GuardFound, seL4_CapFault_IP, seL4_CapFault_InRecvPhase,
@@ -12,17 +11,17 @@ use crate::{
         MAX_MSG_SIZE,
     },
     object::structure_gen::{
-        lookup_fault_depth_mismatch_get_bitsFound, lookup_fault_depth_mismatch_get_bitsLeft,
-        lookup_fault_get_lufType, lookup_fault_guard_mismatch_get_bitsFound,
-        lookup_fault_guard_mismatch_get_bitsLeft, lookup_fault_guard_mismatch_get_guardFound,
-        lookup_fault_missing_capability_get_bitsLeft, seL4_Fault_CapFault_get_address,
+        seL4_Fault_CapFault_get_address,
         seL4_Fault_CapFault_get_inReceivePhase, seL4_Fault_UnknownSyscall_get_syscallNumber,
         seL4_Fault_UserException_get_code, seL4_Fault_UserException_get_number,
         seL4_Fault_VMFault_get_FSR, seL4_Fault_VMFault_get_address,
         seL4_Fault_VMFault_get_instructionFault, seL4_Fault_get_seL4_FaultType,
     },
-    structures::{lookup_fault_t, seL4_MessageInfo_t, tcb_t},
+    structures::{seL4_MessageInfo_t, tcb_t},
 };
+
+use common::{sel4_config::{lookup_fault_depth_mismatch, lookup_fault_guard_mismatch, lookup_fault_invalid_root,
+    lookup_fault_missing_capability}, structures::{lookup_fault_t, lookup_fault_get_lufType, lookup_fault_missing_capability_get_bitsLeft, lookup_fault_depth_mismatch_get_bitsLeft, lookup_fault_depth_mismatch_get_bitsFound, lookup_fault_guard_mismatch_get_bitsLeft, lookup_fault_guard_mismatch_get_guardFound, lookup_fault_guard_mismatch_get_bitsFound}};
 
 pub const fault_messages: [[usize; MAX_MSG_SIZE]; 2] = [
     [33, 1, 0, 9, 10, 11, 12, 13, 14, 15],

@@ -1,38 +1,32 @@
-use core::{arch::asm, intrinsics::unlikely};
-use common::utils::{pageBitsForSize, convert_to_mut_type_ref};
-use common::{BIT, MASK};
+use core::intrinsics::unlikely;
+use common::structures::{lookup_fault_missing_capability_new, lookup_fault_invalid_root_new};
+use common::utils::pageBitsForSize;
+use common::{BIT, MASK, IS_ALIGNED};
 use common::{structures::exception_t, sel4_config::*};
-use crate::structures::lookup_fault_t;
-use crate::vspace::*;
+use vspace::*;
 use crate::{
     config::{
-        asidInvalid, asidLowBits, badgeRegister, msgInfoRegister, nASIDPools,
+        badgeRegister, msgInfoRegister,
         n_msgRegisters, seL4_ASIDPoolBits, seL4_AlignmentError,
         seL4_DeleteFirst, seL4_FailedLookup, seL4_IPCBufferSizeBits, seL4_IllegalOperation,
-        seL4_InvalidArgument, seL4_InvalidCapability, seL4_PageBits, seL4_PageTableBits,
+        seL4_InvalidArgument, seL4_InvalidCapability,
         seL4_RevokeFirst, seL4_TruncatedMessage, tcbBuffer, tcbVTable, RISCVASIDControlMakePool,
         RISCVASIDPoolAssign, RISCVInstructionAccessFault,
         RISCVInstructionPageFault, RISCVLoadAccessFault, RISCVLoadPageFault,
         RISCVPageGetAddress, RISCVPageMap, RISCVPageTableMap, RISCVPageTableUnmap,
-        RISCVPageUnmap, RISCVStoreAccessFault, RISCVStorePageFault, ThreadStateRestart, VMKernelOnly, VMReadOnly, VMReadWrite,
-        CONFIG_PT_LEVELS, USER_TOP,
+        RISCVPageUnmap, RISCVStoreAccessFault, RISCVStorePageFault, ThreadStateRestart, USER_TOP,
     },
     kernel::boot::current_syscall_error,
     object::{
         cap::ensureEmptySlot,
-        structure_gen::{
-            lookup_fault_invalid_root_new, lookup_fault_missing_capability_new,
-            seL4_Fault_VMFault_new,
-        },
+        structure_gen::seL4_Fault_VMFault_new
     },
     println,
     riscv::read_stval,
-    structures::{
-        seL4_CapRights_t, tcb_t,
-    },
+    structures::tcb_t,
     syscall::getSyscallArg,
     utils::MAX_FREE_INDEX,
-    IS_ALIGNED, boot::clearMemory,
+    boot::clearMemory,
 
 };
 
@@ -43,7 +37,6 @@ use super::{
     cspace::rust_lookupTargetSlot,
     thread::{getCSpace, ksCurThread, setMR, setRegister, setThreadState},
     transfermsg::{
-        rightsFromWord, seL4_CapRights_get_capAllowRead, seL4_CapRights_get_capAllowWrite,
         seL4_MessageInfo_new, vmAttributesFromWord, vm_attributes_get_riscvExecuteNever,
         wordFromMessageInfo,
     },
@@ -51,15 +44,11 @@ use super::{
 
 use cspace::interface::*;
 
-pub type vm_rights_t = usize;
-
-
-
 #[no_mangle]
 pub fn setVMRoot(thread: *mut tcb_t) {
     unsafe {
         let threadRoot = &(*getCSpace(thread as usize, tcbVTable)).cap;
-        if let Some(lookup_fault) = set_vm_root(threadRoot) {
+        if let Err(lookup_fault) = set_vm_root(threadRoot) {
             current_lookup_fault = lookup_fault;
         }
     }
@@ -117,7 +106,9 @@ pub fn handleVMFault(_thread: *mut tcb_t, _type: usize) -> exception_t {
 #[no_mangle]
 pub fn deleteASIDPool(asid_base: asid_t, pool: *mut asid_pool_t) {
     unsafe {
-        delete_asid_pool(asid_base, pool, &(*getCSpace(ksCurThread as usize, tcbVTable)).cap)
+        if let Err(lookup_fault) = delete_asid_pool(asid_base, pool, &(*getCSpace(ksCurThread as usize, tcbVTable)).cap) {
+            current_lookup_fault = lookup_fault;
+        }
     }
 }
 
@@ -170,35 +161,9 @@ pub fn performASIDPoolInvocation(
 #[no_mangle]
 pub fn deleteASID(asid: asid_t, vspace: *mut pte_t) {
     unsafe {
-        delete_asid(asid, vspace, &(*getCSpace(ksCurThread as usize, tcbVTable)).cap);
-    }
-}
-
-#[no_mangle]
-pub fn unmapPage(page_size: usize, asid: asid_t, vptr: vptr_t, pptr: pptr_t) {
-    let find_ret = findVSpaceForASID(asid);
-    if find_ret.status != exception_t::EXCEPTION_NONE {
-        unsafe {
-            current_lookup_fault = find_ret.lookup_fault.unwrap();
+        if let Err(lookup_fault) = delete_asid(asid, vspace, &(*getCSpace(ksCurThread as usize, tcbVTable)).cap) {
+            current_lookup_fault = lookup_fault;
         }
-        return;
-    }
-    let lu_ret = lookupPTSlot(find_ret.vspace_root.unwrap(), vptr);
-
-    if lu_ret.ptBitsLeft != pageBitsForSize(page_size) {
-        return;
-    }
-
-    if !(pte_ptr_get_valid(lu_ret.ptSlot) != 0)
-        || isPTEPageTable(lu_ret.ptSlot)
-        || (pte_ptr_get_ppn(lu_ret.ptSlot) << seL4_PageBits) != pptr_to_paddr(pptr)
-    {
-        return;
-    }
-    unsafe {
-        let slot = lu_ret.ptSlot as *mut usize;
-        *slot = 0;
-        sfence();
     }
 }
 
@@ -233,64 +198,21 @@ pub fn checkValidIPCBuffer(vptr: usize, cap: &cap_t) -> exception_t {
 }
 
 #[no_mangle]
-pub fn maskVMRights(vmrights: usize, rights: seL4_CapRights_t) -> usize {
-    if vmrights == VMReadOnly && seL4_CapRights_get_capAllowRead(&rights) != 0 {
-        return VMReadOnly;
-    }
-    if vmrights == VMReadWrite && seL4_CapRights_get_capAllowRead(&rights) != 0 {
-        if seL4_CapRights_get_capAllowWrite(&rights) == 0 {
-            return VMReadOnly;
-        } else {
-            return VMReadWrite;
-        }
-    }
-    VMKernelOnly
-}
-
-pub fn RISCVGetWriteFromVMRights(vm_rights: usize) -> bool {
-    return vm_rights == VMReadWrite;
-}
-
-pub fn RISCVGetReadFromVMRights(vm_rights: usize) -> bool {
-    return vm_rights != VMKernelOnly;
-}
-
-#[no_mangle]
-pub fn makeUserPTE(paddr: usize, executable: bool, vm_rights: usize) -> pte_t {
-    let write = RISCVGetWriteFromVMRights(vm_rights);
-    let read = RISCVGetReadFromVMRights(vm_rights);
-    if !executable && !read && !write {
-        return pte_pte_invalid_new();
-    }
-    pte_new(
-        paddr >> seL4_PageBits,
-        0,                   /* sw */
-        1,                   /* dirty (leaf) */
-        1,                   /* accessed (leaf) */
-        0,                   /* global */
-        1,                   /* user (leaf) */
-        executable as usize, /* execute */
-        write as usize,      /* write */
-        read as usize,       /* read */
-        1,                   /* valid */
-    )
-}
-
-#[inline]
-#[no_mangle]
-pub fn checkVPAlignment(sz: usize, w: usize) -> bool {
-    w & MASK!(pageBitsForSize(sz)) == 0
-}
-
-#[no_mangle]
 pub fn performPageInvocationUnmap(cap: &cap_t, ctSlot: *mut cte_t) -> exception_t {
     if cap_frame_cap_get_capFMappedASID(cap) != asidInvalid {
-        unmapPage(
+        match unmapPage(
             cap_frame_cap_get_capFSize(cap),
             cap_frame_cap_get_capFMappedASID(cap),
             cap_frame_cap_get_capFMappedAddress(cap),
             cap_frame_cap_get_capFBasePtr(cap),
-        );
+        ) {
+            Err(lookup_fault) => {
+                unsafe {
+                    current_lookup_fault = lookup_fault;
+                }
+            }
+            _ => {}
+        }
     }
 
     unsafe {
@@ -300,16 +222,6 @@ pub fn performPageInvocationUnmap(cap: &cap_t, ctSlot: *mut cte_t) -> exception_
         (*ctSlot).cap = slotCap.clone();
     }
     exception_t::EXCEPTION_NONE
-}
-
-#[no_mangle]
-pub fn updatePTE(pte: pte_t, base: *mut pte_t) -> exception_t {
-    unsafe {
-        *base = pte;
-        sfence();
-        // forget(*base);
-        exception_t::EXCEPTION_NONE
-    }
 }
 
 #[no_mangle]

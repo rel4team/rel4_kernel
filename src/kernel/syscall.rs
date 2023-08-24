@@ -12,7 +12,7 @@ use crate::{
         notification::receiveSignal,
         objecttype::decodeInvocation,
         structure_gen::{
-            lookup_fault_missing_capability_new, notification_ptr_get_ntfnBoundTCB,
+            notification_ptr_get_ntfnBoundTCB,
             seL4_Fault_CapFault_new, seL4_Fault_UserException_new, thread_state_get_tsType,
         },
         tcb::{deleteCallerCap, lookupExtraCaps, tcbSchedAppend, tcbSchedDequeue},
@@ -36,7 +36,7 @@ use super::{
     vspace::{handleVMFault, lookupIPCBuffer},
 };
 
-use common::{structures::exception_t, BIT};
+use common::{structures::{exception_t, lookup_fault_missing_capability_new}, BIT};
 use cspace::interface::*;
 
 #[no_mangle]

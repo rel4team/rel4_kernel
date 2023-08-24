@@ -2,10 +2,10 @@ use core::intrinsics::unlikely;
 
 use crate::{
     config::{
-        asidInvalid, seL4_CapTableObject, seL4_EndpointObject, seL4_HugePageBits,
+        seL4_CapTableObject, seL4_EndpointObject, seL4_HugePageBits,
         seL4_InvalidCapability, seL4_LargePageBits, seL4_NotificationObject,
-        seL4_PageBits, seL4_TCBBits, seL4_TCBObject, seL4_UntypedObject,
-        tcbCNodeEntries, tcbCTable, IRQInactive, ThreadStateRestart, VMReadWrite, CONFIG_TIME_SLICE, TCB_OFFSET,
+        seL4_TCBBits, seL4_TCBObject, seL4_UntypedObject,
+        tcbCNodeEntries, tcbCTable, IRQInactive, ThreadStateRestart, CONFIG_TIME_SLICE, TCB_OFFSET,
     },
     kernel::{
         boot::{current_syscall_error, current_lookup_fault},
@@ -14,26 +14,23 @@ use crate::{
             setThreadState, suspend, Arch_initContext,
         },
         transfermsg::{
-            seL4_CNode_capData_get_guard, seL4_CNode_capData_get_guardSize,
-            seL4_CapRights_get_capAllowGrant, seL4_CapRights_get_capAllowGrantReply,
-            seL4_CapRights_get_capAllowRead, seL4_CapRights_get_capAllowWrite, vmRighsFromWord,
+            seL4_CNode_capData_get_guard, seL4_CNode_capData_get_guardSize, vmRighsFromWord,
             wordFromVMRights,
         },
         vspace::{
-            decodeRISCVMMUInvocation, deleteASID, deleteASIDPool, maskVMRights,
-            unmapPage,
+            decodeRISCVMMUInvocation, deleteASID, deleteASIDPool,
         },
     },
     println,
     structures::{
         endpoint_t, finaliseCap_ret,
-        notification_t, seL4_CNode_CapData_t, seL4_CapRights_t, tcb_t,
+        notification_t, seL4_CNode_CapData_t, tcb_t,
     },
     vspace::*,
 };
 
 use super::{
-    cap::{decodeCNodeInvocation},
+    cap::decodeCNodeInvocation,
     endpoint::{cancelAllIPC, performInvocation_Endpoint},
     interrupt::{
         decodeIRQControlInvocation, decodeIRQHandlerInvocation, deletingIRQHandler, setIRQState,
@@ -62,12 +59,19 @@ pub fn Arch_finaliseCap(cap: &cap_t, _final: bool) -> finaliseCap_ret {
     match cap_get_capType(cap) {
         cap_frame_cap => {
             if cap_frame_cap_get_capFMappedASID(cap) != 0 {
-                unmapPage(
+                match unmapPage(
                     cap_frame_cap_get_capFSize(cap),
                     cap_frame_cap_get_capFMappedASID(cap),
                     cap_frame_cap_get_capFMappedAddress(cap),
                     cap_frame_cap_get_capFBasePtr(cap),
-                );
+                ) {
+                    Err(lookup_fault) => {
+                        unsafe {
+                            current_lookup_fault = lookup_fault
+                        }
+                    }
+                    _ => {}
+                }
             }
         }
         cap_page_table_cap => {

@@ -1,8 +1,8 @@
 use super::calculate_extra_bi_size_bits;
 use super::utils::{arch_get_n_paging, write_slot, provide_cap, clearMemory, create_it_pt_cap, map_it_frame_cap};
 use super::{ndks_boot, utils::is_reg_empty};
-use common::BIT;
-use common::sel4_config::{wordBits, seL4_SlotBits};
+use common::{BIT, ROUND_DOWN};
+use common::sel4_config::{wordBits, seL4_SlotBits, IT_ASID, asidLowBits, seL4_PageBits, seL4_PageTableBits, CONFIG_PT_LEVELS, PAGE_BITS};
 use common::structures::exception_t;
 use cspace::interface::*;
 use crate::kernel::boot::ksDomSchedule;
@@ -13,10 +13,10 @@ use crate::object::interrupt::setIRQState;
 use crate::structures::{region_t, rootserver_mem_t, v_region_t, tcb_t, seL4_SlotRegion, create_frames_of_region_ret_t,
     seL4_BootInfo, seL4_IPCBuffer};
 
-use crate::{ROUND_DOWN, println};
+use crate::println;
 use crate::config::*;
 
-use crate::vspace::*;
+use vspace::*;
 #[no_mangle]
 #[link_section = ".boot.bss"]
 pub static mut rootserver_mem: region_t = region_t { start: 0, end: 0 };

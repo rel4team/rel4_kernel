@@ -10,20 +10,19 @@ use crate::{
         cspace::rust_lookupTargetSlot,
         thread::{ksCurThread, setThreadState},
     },
-    object::structure_gen::lookup_fault_missing_capability_new,
     println,
     syscall::getSyscallArg,
-    ROUND_DOWN, boot::clearMemory,
+    boot::clearMemory,
 };
 
 use super::{
-    cap::{ensureEmptySlot},
+    cap::ensureEmptySlot,
     objecttype::{
         createNewObjects, getObjectSize, Arch_isFrameType,
     },
 };
 
-use common::{structures::exception_t, sel4_config::*, BIT, MASK};
+use common::{structures::{exception_t, lookup_fault_missing_capability_new}, sel4_config::*, BIT, MASK, ROUND_DOWN};
 use cspace::interface::*;
 
 pub fn alignUp(baseValue: usize, alignment: usize) -> usize {

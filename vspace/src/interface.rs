@@ -1,30 +1,11 @@
-mod pte;
-mod utils;
-mod structures;
-mod asid;
-mod vmrigths;
-mod satp;
-
-use core::intrinsics::unlikely;
-
-use common::{BIT, utils::{convert_to_mut_type_ref, pageBitsForSize}, structures::{exception_t, lookup_fault_t}, MASK, sel4_config::{PPTR_BASE, PADDR_BASE, PPTR_TOP, KERNEL_ELF_BASE, KERNEL_ELF_PADDR_BASE, PPTR_BASE_OFFSET, PT_INDEX_BITS, seL4_PageBits}, ROUND_DOWN};
+use common::{BIT, sel4_config::{PT_INDEX_BITS, PPTR_BASE, PADDR_BASE, PPTR_TOP, KERNEL_ELF_BASE, KERNEL_ELF_PADDR_BASE, PPTR_BASE_OFFSET, 
+    seL4_PageBits}, ROUND_DOWN, structures::{lookup_fault_t, exception_t}, utils::{convert_to_mut_type_ref, pageBitsForSize}};
 use cspace::interface::{cap_t, CapTag};
-pub use utils::{
-    RISCV_GET_LVL_PGSIZE, RISCV_GET_LVL_PGSIZE_BITS, RISCV_GET_PT_INDEX,
-    paddr_to_pptr, pptr_to_paddr, kpptr_to_paddr, checkVPAlignment
-};
+use core::intrinsics::unlikely;
+use crate::pte::{pte_t, pte_next};
+use crate::utils::{RISCV_GET_PT_INDEX, RISCV_GET_LVL_PGSIZE, RISCV_GET_LVL_PGSIZE_BITS, kpptr_to_paddr};
 
-pub use vmrigths::*;
-
-pub use pte::*;
-pub use satp::*;
-pub use structures::{paddr_t, vptr_t, pptr_t};
-pub use asid::*;
-
-pub use pte::{pte_ptr_get_valid, pte_ptr_get_execute, pte_ptr_get_ppn, pte_ptr_get_write, pte_ptr_get_read};
-
-use self::asid::find_vspace_for_asid;
-pub use self::pte::lookupPTSlot_ret_t;
+use crate::{satp::{setVSpaceRoot, sfence}, asid::{find_vspace_for_asid, asid_t}, utils::pptr_to_paddr, structures::{vptr_t, pptr_t}};
 
 #[no_mangle]
 #[link_section = ".page_table"]
@@ -35,6 +16,7 @@ pub static mut kernel_root_pageTable: [pte_t; BIT!(PT_INDEX_BITS)] =
 #[link_section = ".page_table"]
 pub static mut kernel_image_level2_pt: [pte_t; BIT!(PT_INDEX_BITS)] =
     [pte_t { words: [0] }; BIT!(PT_INDEX_BITS)];
+
 
 #[no_mangle]
 pub fn rust_map_kernel_window() {

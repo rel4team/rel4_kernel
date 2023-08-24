@@ -3,7 +3,6 @@ use crate::{
     object::{
         endpoint::sendIPC,
         structure_gen::{
-            lookup_fault_missing_capability_new,
             seL4_Fault_CapFault_new, seL4_Fault_get_seL4_FaultType,
         },
     },
@@ -16,7 +15,7 @@ use super::{
     thread::setThreadState,
 };
 
-use common::structures::exception_t;
+use common::structures::{exception_t, lookup_fault_missing_capability_new};
 use cspace::interface::*;
 
 #[no_mangle]

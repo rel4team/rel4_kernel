@@ -1,44 +1,7 @@
-use common::MASK;
-
 use crate::{
-    config::{seL4_CapRightsBits, seL4_MsgMaxLength},
-    structures::{cap_transfer_t, seL4_CapRights_t, seL4_MessageInfo_t, vm_attributes_t, seL4_CNode_CapData_t},
+    config::seL4_MsgMaxLength,
+    structures::{cap_transfer_t, seL4_MessageInfo_t, vm_attributes_t, seL4_CNode_CapData_t},
 };
-
-#[inline]
-#[no_mangle]
-pub fn rightsFromWord(w: usize) -> seL4_CapRights_t {
-    seL4_CapRights_t { word: w }
-}
-
-#[inline]
-pub fn wordFromRights(rights: &seL4_CapRights_t) -> usize {
-    rights.word & MASK!(seL4_CapRightsBits)
-}
-
-#[inline]
-pub fn seL4_CapRights_get_capAllowGrantReply(rights: &seL4_CapRights_t) -> usize {
-    let ret = (rights.word & 0x8usize) >> 3;
-    ret
-}
-
-#[inline]
-pub fn seL4_CapRights_get_capAllowGrant(rights: &seL4_CapRights_t) -> usize {
-    let ret = (rights.word & 0x4usize) >> 2;
-    ret
-}
-
-#[inline]
-pub fn seL4_CapRights_get_capAllowRead(rights: &seL4_CapRights_t) -> usize {
-    let ret = (rights.word & 0x2usize) >> 1;
-    ret
-}
-
-#[inline]
-pub fn seL4_CapRights_get_capAllowWrite(rights: &seL4_CapRights_t) -> usize {
-    let ret = (rights.word & 0x1usize) >> 0;
-    ret
-}
 
 #[inline]
 pub fn vmRighsFromWord(w: usize) -> usize {

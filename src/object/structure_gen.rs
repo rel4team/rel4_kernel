@@ -1,12 +1,12 @@
 use crate::{config::{
-    lookup_fault_depth_mismatch, lookup_fault_invalid_root, lookup_fault_missing_capability,
     seL4_Fault_CapFault, seL4_Fault_NullFault, seL4_Fault_UnknownSyscall, seL4_Fault_UserException,
     seL4_Fault_VMFault,
 }, vspace::*};
 
+use common::sel4_config::{lookup_fault_invalid_root, lookup_fault_missing_capability, lookup_fault_depth_mismatch};
 use cspace::interface::*;
 use crate::structures::{
-    endpoint_t, lookup_fault_t, notification_t, seL4_Fault_t,
+    endpoint_t, notification_t, seL4_Fault_t,
     thread_state_t,
 };
 
@@ -268,100 +268,6 @@ pub fn notification_ptr_set_state(ptr: *mut notification_t, v64: usize) {
 }
 
 #[inline]
-pub fn lookup_fault_get_lufType(lookup_fault: &lookup_fault_t) -> usize {
-    (lookup_fault.words[0] >> 0) & 0x3usize
-}
-
-#[inline]
-pub fn lookup_fault_invalid_root_new() -> lookup_fault_t {
-    let lookup_fault = lookup_fault_t {
-        words: [0 | (lookup_fault_invalid_root & 0x3usize) << 0, 0],
-    };
-
-    lookup_fault
-}
-
-#[inline]
-pub fn lookup_fault_missing_capability_new(bitsLeft: usize) -> lookup_fault_t {
-    let lookup_fault = lookup_fault_t {
-        words: [
-            0 | (bitsLeft & 0x7fusize) << 2 | (lookup_fault_missing_capability & 0x3usize) << 0,
-            0,
-        ],
-    };
-
-    lookup_fault
-}
-
-#[inline]
-pub fn lookup_fault_missing_capability_get_bitsLeft(lookup_fault: &lookup_fault_t) -> usize {
-    let ret = (lookup_fault.words[0] & 0x1fcusize) >> 2;
-    ret
-}
-
-#[inline]
-pub fn lookup_fault_depth_mismatch_new(bitsFound: usize, bitsLeft: usize) -> lookup_fault_t {
-    let lookup_fault = lookup_fault_t {
-        words: [
-            0 | (bitsFound & 0x7fusize) << 9
-                | (bitsLeft & 0x7fusize) << 2
-                | (lookup_fault_depth_mismatch & 0x3usize) << 0,
-            0,
-        ],
-    };
-
-    lookup_fault
-}
-
-#[inline]
-pub fn lookup_fault_depth_mismatch_get_bitsFound(lookup_fault: &lookup_fault_t) -> usize {
-    let ret = (lookup_fault.words[0] & 0xfe00usize) >> 9;
-    ret
-}
-
-#[inline]
-pub fn lookup_fault_depth_mismatch_get_bitsLeft(lookup_fault: &lookup_fault_t) -> usize {
-    let ret = (lookup_fault.words[0] & 0x1fcusize) >> 2;
-    ret
-}
-
-#[inline]
-pub fn lookup_fault_guard_mismatch_new(
-    guardFound: usize,
-    bitsFound: usize,
-    bitsLeft: usize,
-) -> lookup_fault_t {
-    let lookup_fault = lookup_fault_t {
-        words: [
-            0 | (bitsFound & 0x7fusize) << 9
-                | (bitsLeft & 0x7fusize) << 2
-                | (lookup_fault_depth_mismatch & 0x3usize) << 0,
-            0 | guardFound << 0,
-        ],
-    };
-
-    lookup_fault
-}
-
-#[inline]
-pub fn lookup_fault_guard_mismatch_get_guardFound(lookup_fault: &lookup_fault_t) -> usize {
-    let ret = (lookup_fault.words[1] & 0xffffffffffffffffusize) >> 0;
-    ret
-}
-
-#[inline]
-pub fn lookup_fault_guard_mismatch_get_bitsFound(lookup_fault: &lookup_fault_t) -> usize {
-    let ret = (lookup_fault.words[0] & 0xfe00usize) >> 9;
-    ret
-}
-
-#[inline]
-pub fn lookup_fault_guard_mismatch_get_bitsLeft(lookup_fault: &lookup_fault_t) -> usize {
-    let ret = (lookup_fault.words[0] & 0x1fcusize) >> 2;
-    ret
-}
-
-#[inline]
 pub fn seL4_Fault_get_seL4_FaultType(seL4_Fault: &seL4_Fault_t) -> usize {
     (seL4_Fault.words[0] >> 0) & 0xfusize
 }
@@ -457,4 +363,3 @@ pub fn seL4_Fault_VMFault_get_FSR(seL4_Fault: &seL4_Fault_t) -> usize {
 pub fn seL4_Fault_VMFault_get_instructionFault(seL4_Fault: &seL4_Fault_t) -> usize {
     (seL4_Fault.words[0] & 0x80000usize) >> 19
 }
-

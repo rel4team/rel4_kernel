@@ -1,8 +1,8 @@
 use core::arch::asm;
 
-use super::{pte::pte_t, set_vm_root};
-use common::{BIT, structures::{exception_t, lookup_fault_invalid_root_new, lookup_fault_t}, MASK, sel4_config::{asidHighBits, asidLowBits}};
+use common::{BIT, structures::{exception_t, lookup_fault_t, lookup_fault_invalid_root_new}, MASK, sel4_config::asidHighBits, sel4_config::asidLowBits};
 use cspace::interface::cap_t;
+use crate::{pte::{pte_t}, interface::set_vm_root};
 
 #[no_mangle]
 pub static mut riscvKSASIDTable: [*mut asid_pool_t; BIT!(asidHighBits)] =

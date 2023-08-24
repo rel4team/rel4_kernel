@@ -13,5 +13,6 @@ crate-type = ["staticlib"]
 [dependencies]
 cspace = { path = "./cspace" }
 common = { path = "./common" }
+vspace = { path = "./vspace" }
 buddy_system_allocator = "0.6"
 riscv = { git = "https://gitee.com/rcore-os/riscv", features = ["inline-asm"] }

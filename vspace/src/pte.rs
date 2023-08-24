@@ -2,12 +2,13 @@ use core::intrinsics::unlikely;
 
 use common::{utils::{convert_to_mut_type_ref, convert_to_type_ref}, MASK, structures::exception_t, sel4_config::{seL4_PageBits, CONFIG_PT_LEVELS, seL4_PageTableBits, PT_INDEX_BITS}};
 
-use super::{RISCV_GET_PT_INDEX, sfence};
-
-use super::{vptr_t, paddr_to_pptr, asid_t, asid::find_vspace_for_asid, RISCVGetWriteFromVMRights, RISCVGetReadFromVMRights};
+use crate::{structures::vptr_t, satp::sfence};
+use crate::utils::{paddr_to_pptr, RISCV_GET_PT_INDEX};
+use crate::asid::{asid_t, find_vspace_for_asid};
+use crate::vm_rights::{RISCVGetWriteFromVMRights, RISCVGetReadFromVMRights};
 
 #[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Copy)]
 pub struct pte_t {
     pub words: [usize; 1],
 }

@@ -1,7 +1,8 @@
-use common::{MASK, BIT, utils::pageBitsForSize, sel4_config::{KERNEL_ELF_BASE_OFFSET, PPTR_BASE_OFFSET, PT_INDEX_BITS, CONFIG_PT_LEVELS, seL4_PageBits}};
+use common::{MASK, BIT, utils::pageBitsForSize, sel4_config::{PT_INDEX_BITS, CONFIG_PT_LEVELS, seL4_PageBits, KERNEL_ELF_BASE_OFFSET, PPTR_BASE_OFFSET}};
+
+use crate::structures::paddr_t;
 
 
-use super::paddr_t;
 
 pub fn RISCV_GET_PT_INDEX(addr: usize, n: usize) -> usize {
     ((addr) >> (((PT_INDEX_BITS) * (((CONFIG_PT_LEVELS) - 1) - (n))) + seL4_PageBits))

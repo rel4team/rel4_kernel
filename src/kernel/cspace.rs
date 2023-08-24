@@ -2,10 +2,6 @@ use core::intrinsics::{likely, unlikely};
 
 use crate::{
     config::{seL4_FailedLookup, seL4_RangeError, tcbCTable},
-    object::structure_gen::{
-        lookup_fault_depth_mismatch_new, lookup_fault_guard_mismatch_new,
-        lookup_fault_invalid_root_new,
-    },
     println,
     structures::{
         lookupCapAndSlot_ret_t, lookupCap_ret_t, lookupSlot_raw_ret_t,
@@ -13,7 +9,7 @@ use crate::{
     },
 };
 
-use common::{structures::exception_t, sel4_config::{wordRadix, wordBits}, MASK};
+use common::{structures::{exception_t, lookup_fault_invalid_root_new, lookup_fault_guard_mismatch_new, lookup_fault_depth_mismatch_new}, sel4_config::{wordRadix, wordBits}, MASK};
 use cspace::interface::*;
 
 use super::{

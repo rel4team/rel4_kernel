@@ -10,5 +10,6 @@ mod cap;
 mod utils;
 mod mdb;
 mod cte;
+mod cap_rights;
 
 pub mod interface;

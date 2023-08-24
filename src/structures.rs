@@ -1,15 +1,13 @@
-use common::{structures::exception_t, BIT};
+use common::structures::{exception_t, lookup_fault_t};
 use cspace::interface::{cap_t, cte_t};
 
 use crate::{
     config::{
-        asidLowBits, seL4_MsgMaxExtraCaps, seL4_MsgMaxLength, CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS,
+        seL4_MsgMaxExtraCaps, seL4_MsgMaxLength, CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS,
         MAX_NUM_FREEMEM_REG, MAX_NUM_RESV_REG,
     },
     kernel::thread::n_contextRegisters,
-    vspace::*,
 };
-
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -205,12 +203,6 @@ pub struct seL4_Fault_t {
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub struct lookup_fault_t {
-    pub words: [usize; 2],
-}
-
-#[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct tcb_t {
     pub tcbArch: arch_tcb_t,
     pub tcbState: thread_state_t,
@@ -347,11 +339,6 @@ pub struct syscall_error_t {
     pub _type: usize,
 }
 
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct seL4_CapRights_t {
-    pub word: usize,
-}
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

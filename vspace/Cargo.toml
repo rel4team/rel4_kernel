@@ -1,0 +1,11 @@
+[package]
+name = "vspace"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+common = { path = "../common" }
+cspace = { path = "../cspace" }
+riscv = { git = "https://gitee.com/rcore-os/riscv", features = ["inline-asm"] }

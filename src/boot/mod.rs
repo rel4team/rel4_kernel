@@ -7,7 +7,8 @@ mod interface;
 
 use core::mem::size_of;
 
-use common::BIT;
+use common::{BIT, ROUND_UP};
+use common::sel4_config::{PADDR_TOP, KERNEL_ELF_BASE, seL4_PageBits, PAGE_BITS};
 use riscv::register::stvec;
 use riscv::register::utvec::TrapMode;
 
@@ -15,15 +16,14 @@ use crate::boot::mm::init_freemem;
 use crate::boot::root_server::root_server_init;
 use crate::boot::untyped::create_untypeds;
 use crate::boot::utils::paddr_to_pptr_reg;
-use crate::config::KERNEL_ELF_BASE;
 use crate::kernel::thread::{ksSchedulerAction, ksCurThread, ksIdleThread, create_idle_thread};
 use crate::object::interrupt::set_sie_mask;
 use crate::sbi::{set_timer, get_time};
 use crate::structures::{ndks_boot_t, region_t, p_region_t, seL4_BootInfo, tcb_t, seL4_BootInfoHeader, seL4_SlotRegion, v_region_t};
-use crate::{println, ROUND_UP};
+use crate::println;
 use crate::config::*;
 
-use crate::vspace::*;
+use vspace::*;
 pub use root_server::rootserver;
 pub use utils::{write_slot, provide_cap, clearMemory};
 
