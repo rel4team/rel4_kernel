@@ -21,13 +21,14 @@ use crate::{
             decodeRISCVMMUInvocation, deleteASID, deleteASIDPool,
         },
     },
-    println,
     structures::{
         endpoint_t, finaliseCap_ret,
         notification_t, seL4_CNode_CapData_t, tcb_t,
     },
-    vspace::*,
 };
+
+use log::debug;
+use vspace::*;
 
 use super::{
     cap::decodeCNodeInvocation,
@@ -444,11 +445,11 @@ pub fn decodeInvocation(
     call: bool,
     buffer: *mut usize,
 ) -> exception_t {
-    // println!("cap :{:#x} {:#x}")
-    // println!("type:{}", cap_get_capType(cap));
+    // debug!("cap :{:#x} {:#x}")
+    // debug!("type:{}", cap_get_capType(cap));
     match cap_get_capType(cap) {
         cap_null_cap => {
-            println!("Attempted to invoke a null cap {:#x}.", capIndex);
+            debug!("Attempted to invoke a null cap {:#x}.", capIndex);
             unsafe {
                 current_syscall_error._type = seL4_InvalidCapability;
                 current_syscall_error.invalidCapNumber = 0;
@@ -456,7 +457,7 @@ pub fn decodeInvocation(
             }
         }
         cap_zombie_cap => {
-            println!("Attempted to invoke a zombie cap {:#x}.", capIndex);
+            debug!("Attempted to invoke a zombie cap {:#x}.", capIndex);
             unsafe {
                 current_syscall_error._type = seL4_InvalidCapability;
                 current_syscall_error.invalidCapNumber = 0;
@@ -465,7 +466,7 @@ pub fn decodeInvocation(
         }
         cap_endpoint_cap => {
             if unlikely(cap_endpoint_cap_get_capCanSend(cap) == 0) {
-                println!("Attempted to invoke a read-only endpoint cap {}.", capIndex);
+                debug!("Attempted to invoke a read-only endpoint cap {}.", capIndex);
                 unsafe {
                     current_syscall_error._type = seL4_InvalidCapability;
                     current_syscall_error.invalidCapNumber = 0;
@@ -486,7 +487,7 @@ pub fn decodeInvocation(
         }
         cap_notification_cap => {
             if unlikely(cap_notification_cap_get_capNtfnCanSend(cap) == 0) {
-                println!(
+                debug!(
                     "Attempted to invoke a read-only notification cap {}.",
                     capIndex
                 );
@@ -506,7 +507,7 @@ pub fn decodeInvocation(
         }
         cap_reply_cap => {
             if unlikely(cap_reply_cap_get_capReplyMaster(cap) != 0) {
-                println!("Attempted to invoke an invalid reply cap {}.", capIndex);
+                debug!("Attempted to invoke an invalid reply cap {}.", capIndex);
                 unsafe {
                     current_syscall_error._type = seL4_InvalidCapability;
                     current_syscall_error.invalidCapNumber = 0;

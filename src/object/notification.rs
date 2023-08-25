@@ -42,7 +42,7 @@ pub fn completeSignal(ptr: *mut notification_t, tcb: *mut tcb_t) {
 #[inline]
 #[no_mangle]
 pub fn ntfn_ptr_get_queue(ptr: *const notification_t) -> tcb_queue_t {
-    // println!("not val :{:#x} {:#x}",notification_ptr_get_ntfnQueue_head(ptr),notification_ptr_get_ntfnQueue_tail(ptr));
+    // debug!("not val :{:#x} {:#x}",notification_ptr_get_ntfnQueue_head(ptr),notification_ptr_get_ntfnQueue_tail(ptr));
     tcb_queue_t {
         head: notification_ptr_get_ntfnQueue_head(ptr) as *mut tcb_t,
         tail: notification_ptr_get_ntfnQueue_tail(ptr) as *mut tcb_t,

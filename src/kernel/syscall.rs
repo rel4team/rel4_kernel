@@ -17,7 +17,6 @@ use crate::{
         },
         tcb::{deleteCallerCap, lookupExtraCaps, tcbSchedAppend, tcbSchedDequeue},
     },
-    println,
     riscv::read_sip,
     structures::{notification_t, seL4_MessageInfo_t, tcb_t},
 };
@@ -38,6 +37,7 @@ use super::{
 
 use common::{structures::{exception_t, lookup_fault_missing_capability_new}, BIT};
 use cspace::interface::*;
+use log::debug;
 
 #[no_mangle]
 pub fn handleInterruptEntry() -> exception_t {
@@ -45,8 +45,8 @@ pub fn handleInterruptEntry() -> exception_t {
     if irq != irqInvalid {
         handleInterrupt(irq);
     } else {
-        println!("Spurious interrupt!");
-        println!("Superior IRQ!! SIP {:#x}\n", read_sip());
+        debug!("Spurious interrupt!");
+        debug!("Superior IRQ!! SIP {:#x}\n", read_sip());
     }
 
     schedule();
@@ -112,7 +112,7 @@ pub fn handleInvocation(isCall: bool, isBlocking: bool) -> exception_t {
     let mut lu_ret = lookupCapAndSlot(thread, cptr);
 
     if unlikely(lu_ret.status != exception_t::EXCEPTION_NONE) {
-        println!("Invocation of invalid cap {:#x}.", cptr);
+        debug!("Invocation of invalid cap {:#x}.", cptr);
         unsafe {
             current_fault = seL4_Fault_CapFault_new(cptr, 0);
         }
@@ -125,7 +125,7 @@ pub fn handleInvocation(isCall: bool, isBlocking: bool) -> exception_t {
     let status = lookupExtraCaps(thread, buffer, &info);
 
     if unlikely(status != exception_t::EXCEPTION_NONE) {
-        println!("Lookup of extra caps failed.");
+        debug!("Lookup of extra caps failed.");
         if isBlocking {
             handleFault(thread);
         }

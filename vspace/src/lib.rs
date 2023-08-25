@@ -1,4 +1,10 @@
 #![feature(core_intrinsics)]
+#![no_std]
+#![allow(dead_code)]
+#![allow(non_snake_case)]
+#![allow(non_camel_case_types)]
+#![allow(non_upper_case_globals)]
+
 
 pub mod interface;
 mod asid;
@@ -14,4 +20,4 @@ pub use vm_rights::{VMReadWrite, VMReadOnly, maskVMRights};
 pub use asid::{asid_t, asid_pool_t, riscvKSASIDTable, delete_asid_pool, delete_asid, findVSpaceForASID};
 pub use utils::{pptr_to_paddr, paddr_to_pptr, kpptr_to_paddr, RISCV_GET_LVL_PGSIZE_BITS, RISCV_GET_LVL_PGSIZE, checkVPAlignment};
 pub use pte::{pte_t, updatePTE, lookupPTSlot, isPTEPageTable, pte_ptr_get_valid, makeUserPTE, pte_new};
-pub use satp::sfence;
+pub use satp::{sfence, setVSpaceRoot};

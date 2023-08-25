@@ -1,14 +1,14 @@
 
 use common::sel4_config::KERNEL_ELF_BASE;
+use log::debug;
 
 use crate::boot::utils::ceiling_kernel_window;
 use crate::boot::utils::is_reg_empty;
 use crate::boot::utils::paddr_to_pptr_reg;
 use crate::boot::utils::pptr_to_paddr_reg;
 use crate::config::*;
-use crate::println;
 use crate::structures::*;
-use crate::vspace::*;
+use vspace::*;
 use super::ndks_boot;
 #[link_section = ".boot.bss"]
 static mut res_reg: [region_t; NUM_RESERVED_REGIONS] =
@@ -38,7 +38,7 @@ pub fn init_freemem(ui_reg: region_t, dtb_p_reg: p_region_t) -> bool {
 
     if dtb_p_reg.start != 0 {
         if index >= NUM_RESERVED_REGIONS {
-            println!("ERROR: no slot to add DTB to reserved regions\n");
+            debug!("ERROR: no slot to add DTB to reserved regions\n");
             return false;
         }
         unsafe {
@@ -47,7 +47,7 @@ pub fn init_freemem(ui_reg: region_t, dtb_p_reg: p_region_t) -> bool {
         }
     }
     if index >= NUM_RESERVED_REGIONS {
-        println!("ERROR: no slot to add user image to reserved regions\n");
+        debug!("ERROR: no slot to add user image to reserved regions\n");
         return false;
     }
     unsafe {
@@ -146,7 +146,7 @@ fn rust_init_freemem(
             a += 1;
         }
         if !is_reg_empty(&ndks_boot.freemem[ndks_boot.freemem.len() - 1]) {
-            println!(
+            debug!(
                 "ERROR: insufficient MAX_NUM_FREEMEM_REG {}\n",
                 MAX_NUM_FREEMEM_REG
             );
@@ -159,29 +159,29 @@ fn rust_init_freemem(
 
 fn check_available_memory(n_available: usize, available: usize) -> bool {
     if n_available == 0 {
-        println!("ERROR: no memory regions available");
+        debug!("ERROR: no memory regions available");
         return false;
     }
-    println!("available phys memory regions: {:#x}", n_available);
+    debug!("available phys memory regions: {:#x}", n_available);
     let mut last: p_region_t = unsafe { (*(available as *const p_region_t).add(0)).clone() };
     for i in 0..n_available {
         let r: p_region_t;
         unsafe {
             r = (*(available as *const p_region_t).add(i)).clone();
         }
-        println!(" [{:#x}..{:#x}]", r.start, r.end);
+        debug!(" [{:#x}..{:#x}]", r.start, r.end);
 
         if r.start > r.end {
-            println!("ERROR: memory region {} has start > end", i);
+            debug!("ERROR: memory region {} has start > end", i);
             return false;
         }
 
         if r.start == r.end {
-            println!("ERROR: memory region {} empty", i);
+            debug!("ERROR: memory region {} empty", i);
             return false;
         }
         if i > 0 && r.start < last.end {
-            println!("ERROR: memory region {} in wrong order", i);
+            debug!("ERROR: memory region {} in wrong order", i);
         }
         last = r.clone();
     }
@@ -193,19 +193,19 @@ fn check_reserved_memory(
     n_reserved: usize,
     reserved: [region_t; NUM_RESERVED_REGIONS],
 ) -> bool {
-    println!("reserved virt address space regions: {}", n_reserved);
+    debug!("reserved virt address space regions: {}", n_reserved);
     let mut last: region_t = reserved[0].clone();
     for i in 0..n_reserved {
         let r: region_t;
         r = reserved[i].clone();
-        println!("  [{:#x}..{:#x}]", r.start, r.end);
+        debug!("  [{:#x}..{:#x}]", r.start, r.end);
         if r.start > r.end {
-            println!("ERROR: reserved region {} has start > end\n", i);
+            debug!("ERROR: reserved region {} has start > end\n", i);
             return false;
         }
 
         if i > 0 && r.start < last.end {
-            println!("ERROR: reserved region {} in wrong order", i);
+            debug!("ERROR: reserved region {} in wrong order", i);
             return false;
         }
         last = r.clone();
@@ -230,7 +230,7 @@ fn insert_region(reg: region_t) -> bool {
             i += 1;
         }
     }
-    println!(
+    debug!(
         "no free memory slot left for [{}..{}],
      consider increasing MAX_NUM_FREEMEM_REG (%{})\n",
         reg.start, reg.end, MAX_NUM_FREEMEM_REG
@@ -259,7 +259,7 @@ unsafe fn reserve_region(reg: p_region_t) -> bool {
             }
             if ndks_boot.reserved[i].start > reg.end {
                 if ndks_boot.resv_count + 1 >= MAX_NUM_RESV_REG {
-                    println!("Can't mark region {:#x}-{:#x} as reserved, try increasing MAX_NUM_RESV_REG (currently {})\n",reg.start,reg.end,MAX_NUM_RESV_REG);
+                    debug!("Can't mark region {:#x}-{:#x} as reserved, try increasing MAX_NUM_RESV_REG (currently {})\n",reg.start,reg.end,MAX_NUM_RESV_REG);
                     return false;
                 }
                 let mut j = ndks_boot.resv_count;
@@ -274,7 +274,7 @@ unsafe fn reserve_region(reg: p_region_t) -> bool {
             i += 1;
         }
         if i + 1 == MAX_NUM_RESV_REG {
-            println!("Can't mark region 0x{}-0x{} as reserved, try increasing MAX_NUM_RESV_REG (currently {})\n",reg.start,reg.end,MAX_NUM_RESV_REG);
+            debug!("Can't mark region 0x{}-0x{} as reserved, try increasing MAX_NUM_RESV_REG (currently {})\n",reg.start,reg.end,MAX_NUM_RESV_REG);
             return false;
         }
         ndks_boot.reserved[i] = reg;

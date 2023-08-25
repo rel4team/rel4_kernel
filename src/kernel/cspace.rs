@@ -2,7 +2,6 @@ use core::intrinsics::{likely, unlikely};
 
 use crate::{
     config::{seL4_FailedLookup, seL4_RangeError, tcbCTable},
-    println,
     structures::{
         lookupCapAndSlot_ret_t, lookupCap_ret_t, lookupSlot_raw_ret_t,
         lookupSlot_ret_t, resolveAddressBits_ret_t, tcb_t,
@@ -11,6 +10,7 @@ use crate::{
 
 use common::{structures::{exception_t, lookup_fault_invalid_root_new, lookup_fault_guard_mismatch_new, lookup_fault_depth_mismatch_new}, sel4_config::{wordRadix, wordBits}, MASK};
 use cspace::interface::*;
+use log::debug;
 
 use super::{
     boot::{current_lookup_fault, current_syscall_error},
@@ -128,7 +128,7 @@ pub fn lookupSlotForCNodeOp(
             current_syscall_error.failedLookupWasSource = isSource as usize;
             current_lookup_fault = lookup_fault_invalid_root_new();
         }
-        println!("in here1");
+        debug!("in here1");
         ret.status = exception_t::EXCEPTION_SYSCALL_ERROR;
         return ret;
     }
@@ -138,7 +138,7 @@ pub fn lookupSlotForCNodeOp(
             current_syscall_error.rangeErrorMin = 1;
             current_syscall_error.rangeErrorMax = wordBits;
         }
-        println!("in here2");
+        debug!("in here2");
         ret.status = exception_t::EXCEPTION_SYSCALL_ERROR;
         return ret;
     }
@@ -151,7 +151,7 @@ pub fn lookupSlotForCNodeOp(
             current_syscall_error.failedLookupWasSource = isSource as usize;
         }
         ret.status = exception_t::EXCEPTION_SYSCALL_ERROR;
-        println!("in here3");
+        debug!("in here3");
         return ret;
     }
 
@@ -162,7 +162,7 @@ pub fn lookupSlotForCNodeOp(
             current_lookup_fault = lookup_fault_depth_mismatch_new(0, res_ret.bitsRemaining);
         }
         ret.status = exception_t::EXCEPTION_SYSCALL_ERROR;
-        println!("in here4");
+        debug!("in here4");
         return ret;
     }
     ret.slot = res_ret.slot;

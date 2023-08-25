@@ -65,3 +65,9 @@ pub fn resetTimer() {
         set_timer(target);
     }
 }
+
+
+#[inline]
+pub fn hart_id() -> usize {
+    0
+}

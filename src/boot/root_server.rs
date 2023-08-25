@@ -5,6 +5,7 @@ use common::{BIT, ROUND_DOWN};
 use common::sel4_config::{wordBits, seL4_SlotBits, IT_ASID, asidLowBits, seL4_PageBits, seL4_PageTableBits, CONFIG_PT_LEVELS, PAGE_BITS};
 use common::structures::exception_t;
 use cspace::interface::*;
+use log::debug;
 use crate::kernel::boot::ksDomSchedule;
 use crate::kernel::thread::{ksDomScheduleIdx, Arch_initContext, capRegister, setRegister, setNextPC, setThreadState,
     ksCurDomain, ksDomainTime, getCSpaceRef};
@@ -13,10 +14,9 @@ use crate::object::interrupt::setIRQState;
 use crate::structures::{region_t, rootserver_mem_t, v_region_t, tcb_t, seL4_SlotRegion, create_frames_of_region_ret_t,
     seL4_BootInfo, seL4_IPCBuffer};
 
-use crate::println;
 use crate::config::*;
 
-use crate::vspace::*;
+use vspace::*;
 #[no_mangle]
 #[link_section = ".boot.bss"]
 pub static mut rootserver_mem: region_t = region_t { start: 0, end: 0 };
@@ -48,7 +48,7 @@ pub fn root_server_init(it_v_reg: v_region_t, extra_bi_size_bits: usize, ipcbuf_
         create_root_cnode()
     };
     if root_cnode_cap.get_cap_type() == CapTag::CapNullCap {
-        println!("ERROR: root c-node creation failed\n");
+        debug!("ERROR: root c-node creation failed\n");
         return None;
     }
 
@@ -61,7 +61,7 @@ pub fn root_server_init(it_v_reg: v_region_t, extra_bi_size_bits: usize, ipcbuf_
         rust_create_it_address_space(&root_cnode_cap, it_v_reg)
     };
     if it_pd_cap.get_cap_type() == CapTag::CapNullCap {
-        println!("ERROR: address space creation for initial thread failed");
+        debug!("ERROR: address space creation for initial thread failed");
         return None;
     }
 
@@ -72,12 +72,12 @@ pub fn root_server_init(it_v_reg: v_region_t, extra_bi_size_bits: usize, ipcbuf_
         create_ipcbuf_frame_cap(&root_cnode_cap, &it_pd_cap, ipcbuf_vptr)
     };
     if ipcbuf_cap.get_cap_type() == CapTag::CapNullCap {
-        println!("ERROR: could not create IPC buffer for initial thread");
+        debug!("ERROR: could not create IPC buffer for initial thread");
         return None;
     }
 
     if ipcbuf_cap.get_cap_type() == CapTag::CapNullCap {
-        println!("ERROR: could not create IPC buffer for initial thread");
+        debug!("ERROR: could not create IPC buffer for initial thread");
         return None;
     }
     if !create_frame_ui_frames(root_cnode_cap, it_pd_cap, ui_reg, pv_offset) {
@@ -100,7 +100,7 @@ pub fn root_server_init(it_v_reg: v_region_t, extra_bi_size_bits: usize, ipcbuf_
     };
 
     if initial as usize == 0 {
-        println!("ERROR: could not create initial thread");
+        debug!("ERROR: could not create initial thread");
         return None;
     }
     Some((initial, root_cnode_cap))
@@ -128,7 +128,7 @@ unsafe fn create_initial_thread(
     };
     let dc_ret = cte.derive_cap(&ipcbuf_cap.clone());
     if dc_ret.status != exception_t::EXCEPTION_NONE {
-        println!("Failed to derive copy of IPC Buffer\n");
+        debug!("Failed to derive copy of IPC Buffer\n");
         return 0 as *mut tcb_t;
     }
     cteInsert(
@@ -167,7 +167,7 @@ unsafe fn create_initial_thread(
 fn asid_init(root_cnode_cap: cap_t, it_pd_cap: cap_t) -> bool {
     let it_ap_cap = create_it_asid_pool(&root_cnode_cap);
     if it_ap_cap.get_cap_type() == CapTag::CapNullCap {
-        println!("ERROR: could not create ASID pool for initial thread");
+        debug!("ERROR: could not create ASID pool for initial thread");
         return false;
     }
     
@@ -200,7 +200,7 @@ fn create_frame_ui_frames(root_cnode_cap: cap_t, it_pd_cap: cap_t, ui_reg: regio
         pv_offset as isize,
     );
     if !create_frames_ret.success {
-        println!("ERROR: could not create all userland image frames");
+        debug!("ERROR: could not create all userland image frames");
         return false;
     }
     unsafe {
@@ -416,7 +416,7 @@ fn init_bi_frame_cap(root_cnode_cap: cap_t, it_pd_cap: cap_t, bi_frame_vptr: usi
         );
 
         if !extra_bi_ret.success {
-            println!("ERROR: mapping extra boot info to initial thread failed");
+            debug!("ERROR: mapping extra boot info to initial thread failed");
             return false;
         }
         unsafe {

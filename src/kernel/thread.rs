@@ -12,7 +12,7 @@ use crate::{
         NUM_READY_QUEUES, SSTATUS_SPIE, SSTATUS_SPP, TCB_OFFSET,
     },
     object::{
-        cap::{cteDeleteOne},
+        cap::cteDeleteOne,
         cnode::setupReplyMaster,
         endpoint::cancelIPC,
         structure_gen::{seL4_Fault_get_seL4_FaultType, thread_state_get_tsType, thread_state_set_tsType,},
@@ -21,7 +21,6 @@ use crate::{
             tcbSchedAppend, tcbSchedDequeue, tcbSchedEnqueue,
         },
     },
-    println,
     structures::{
         arch_tcb_t, cap_transfer_t, endpoint_t, seL4_MessageInfo_t,
         tcb_queue_t, tcb_t,
@@ -52,6 +51,7 @@ use super::{
 
 use common::{structures::exception_t, BIT, MASK};
 use cspace::interface::*;
+use log::debug;
 
 #[no_mangle]
 pub static mut ksDomainTime: usize = 0;
@@ -242,7 +242,7 @@ pub fn decodeDomainInvocation(invLabel: usize, length: usize, buffer: *mut usize
     }
     let domain: usize;
     if length == 0 {
-        println!("Domain Configure: Truncated message.");
+        debug!("Domain Configure: Truncated message.");
         unsafe {
             current_syscall_error._type = seL4_TruncatedMessage;
             return exception_t::EXCEPTION_SYSCALL_ERROR;
@@ -250,7 +250,7 @@ pub fn decodeDomainInvocation(invLabel: usize, length: usize, buffer: *mut usize
     } else {
         domain = getSyscallArg(0, buffer);
         if domain >= 1 {
-            println!("Domain Configure: invalid domain ({} >= 1).", domain);
+            debug!("Domain Configure: invalid domain ({} >= 1).", domain);
             unsafe {
                 current_syscall_error._type = seL4_InvalidArgument;
                 current_syscall_error.invalidArgumentNumber = 0;
@@ -260,14 +260,14 @@ pub fn decodeDomainInvocation(invLabel: usize, length: usize, buffer: *mut usize
     }
     unsafe {
         if current_extra_caps.excaprefs[0] as usize == 0 {
-            println!("Domain Configure: Truncated message.");
+            debug!("Domain Configure: Truncated message.");
             current_syscall_error._type = seL4_TruncatedMessage;
             return exception_t::EXCEPTION_SYSCALL_ERROR;
         }
     }
     let tcap = unsafe { &(*current_extra_caps.excaprefs[0]).cap };
     if unlikely(cap_get_capType(tcap) != cap_thread_cap) {
-        println!("Domain Configure: thread cap required.");
+        debug!("Domain Configure: thread cap required.");
         unsafe {
             current_syscall_error._type = seL4_InvalidArgument;
             current_syscall_error.invalidArgumentNumber = 1;

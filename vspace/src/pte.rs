@@ -8,7 +8,7 @@ use crate::asid::{asid_t, find_vspace_for_asid};
 use crate::vm_rights::{RISCVGetWriteFromVMRights, RISCVGetReadFromVMRights};
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub struct pte_t {
     pub words: [usize; 1],
 }

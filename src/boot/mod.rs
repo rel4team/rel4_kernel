@@ -9,6 +9,7 @@ use core::mem::size_of;
 
 use common::{BIT, ROUND_UP};
 use common::sel4_config::{PADDR_TOP, KERNEL_ELF_BASE, seL4_PageBits, PAGE_BITS};
+use log::debug;
 use riscv::register::stvec;
 use riscv::register::utvec::TrapMode;
 
@@ -20,10 +21,10 @@ use crate::kernel::thread::{ksSchedulerAction, ksCurThread, ksIdleThread, create
 use crate::object::interrupt::set_sie_mask;
 use crate::sbi::{set_timer, get_time};
 use crate::structures::{ndks_boot_t, region_t, p_region_t, seL4_BootInfo, tcb_t, seL4_BootInfoHeader, seL4_SlotRegion, v_region_t};
-use crate::println;
+use crate::logging;
 use crate::config::*;
 
-use crate::vspace::*;
+use vspace::*;
 pub use root_server::rootserver;
 pub use utils::{write_slot, provide_cap, clearMemory};
 
@@ -74,7 +75,7 @@ fn init_dtb(dtb_size: usize, dtb_phys_addr: usize, extra_bi_size:&mut usize) -> 
     if dtb_size > 0 {
         let dtb_phys_end = dtb_phys_addr + dtb_size;
         if dtb_phys_end < dtb_phys_addr {
-            println!(
+            debug!(
                 "ERROR: DTB location at {}
              len {} invalid",
                 dtb_phys_addr, dtb_size
@@ -82,7 +83,7 @@ fn init_dtb(dtb_size: usize, dtb_phys_addr: usize, extra_bi_size:&mut usize) -> 
             return None;
         }
         if dtb_phys_end >= PADDR_TOP {
-            println!(
+            debug!(
                 "ERROR: DTB at [{}..{}] exceeds PADDR_TOP ({})\n",
                 dtb_phys_addr, dtb_phys_end, PADDR_TOP
             );
@@ -160,6 +161,9 @@ pub fn try_init_kernel(
     dtb_size: usize,
     ki_boot_end: usize
 ) -> bool {
+    logging::init();
+    debug!("hello logging");
+    debug!("hello logging");
     let boot_mem_reuse_p_reg = p_region_t {
         start: kpptr_to_paddr(KERNEL_ELF_BASE),
         end: kpptr_to_paddr(ki_boot_end as usize),
@@ -198,7 +202,7 @@ pub fn try_init_kernel(
     };
 
     if it_v_reg.end >= USER_TOP {
-        println!(
+        debug!(
             "ERROR: userland image virt [{}..{}]
         exceeds USER_TOP ({})\n",
             it_v_reg.start, it_v_reg.end, USER_TOP
@@ -209,7 +213,7 @@ pub fn try_init_kernel(
         ui_reg.clone(),
         dtb_p_reg.unwrap().clone(),
     ) {
-        println!("ERROR: free memory management initialization failed\n");
+        debug!("ERROR: free memory management initialization failed\n");
         return false;
     }
 
@@ -219,7 +223,7 @@ pub fn try_init_kernel(
         create_idle_thread();
         init_core_state(initial_thread);
         if !create_untypeds(&root_cnode_cap, boot_mem_reuse_reg) {
-            println!("ERROR: could not create untypteds for kernel image boot memory");
+            debug!("ERROR: could not create untypteds for kernel image boot memory");
         }
         unsafe {
             (*ndks_boot.bi_frame).sharedFrames = seL4_SlotRegion { start: 0, end: 0 };
@@ -228,8 +232,8 @@ pub fn try_init_kernel(
     
         }
     
-        println!("Booting all finished, dropped to user space");
-        println!("\n");
+        debug!("Booting all finished, dropped to user space");
+        debug!("\n");
 
     } else {
         return false;

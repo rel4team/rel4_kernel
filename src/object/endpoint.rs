@@ -188,7 +188,7 @@ pub fn receiveIPC(thread: *mut tcb_t, cap: &cap_t, isBlocking: bool) {
                     } else {
                         false
                     };
-                // println!("in recvIPC ,  sender:{:#x} , thread:{:#x}",sender as usize,thread as usize);
+                // debug!("in recvIPC ,  sender:{:#x} , thread:{:#x}",sender as usize,thread as usize);
                 doIPCTransfer(sender, epptr as *mut endpoint_t, badge, canGrant, thread);
                 let do_call = if thread_state_get_blockingIPCIsCall(&(*sender).tcbState) != 0 {
                     true

@@ -12,7 +12,6 @@ use crate::{
         thread::{getCSpace, ksCurThread, setThreadState},
     },
     object::objecttype::finaliseCap,
-    println,
     structures::{endpoint_t, finaliseCap_ret, finaliseSlot_ret, tcb_t},
     syscall::getSyscallArg,
 };
@@ -27,6 +26,7 @@ use super::{
 
 use common::structures::{exception_t, lookup_fault_missing_capability_new};
 use cspace::interface::*;
+use log::debug;
 
 #[no_mangle]
 pub fn capSwapForDelete(slot1: *mut cte_t, slot2: *mut cte_t) {
@@ -251,7 +251,7 @@ pub fn invokeCNodeSaveCaller(destSlot: *mut cte_t) -> exception_t {
     let cap = unsafe { &(*srcSlot).cap };
     match cap_get_capType(cap) {
         cap_null_cap => {
-            println!("CNode SaveCaller: Reply cap not present.");
+            debug!("CNode SaveCaller: Reply cap not present.");
         }
         cap_reply_cap => {
             if cap_reply_cap_get_capReplyMaster(cap) == 0 {
@@ -320,7 +320,7 @@ pub fn decodeCNodeInvocation(
     buffer: *mut usize,
 ) -> exception_t {
     if invLabel < CNodeRevoke || invLabel > CNodeSaveCaller {
-        println!("CNodeCap: Illegal Operation attempted.");
+        debug!("CNodeCap: Illegal Operation attempted.");
         unsafe {
             current_syscall_error._type = seL4_IllegalOperation;
             return exception_t::EXCEPTION_SYSCALL_ERROR;
@@ -328,7 +328,7 @@ pub fn decodeCNodeInvocation(
     }
 
     if length < 2 {
-        println!("CNode operation: Truncated message.");
+        debug!("CNode operation: Truncated message.");
         unsafe {
             current_syscall_error._type = seL4_TruncatedMessage;
             return exception_t::EXCEPTION_SYSCALL_ERROR;
@@ -339,13 +339,13 @@ pub fn decodeCNodeInvocation(
     let lu_ret = rust_lookupTargetSlot(cap, index, w_bits);
     let destSlot = lu_ret.slot;
     if lu_ret.status != exception_t::EXCEPTION_NONE {
-        println!("CNode operation: Target slot invalid.");
+        debug!("CNode operation: Target slot invalid.");
         return lu_ret.status;
     }
     if invLabel >= CNodeCopy && invLabel <= CNodeMutate {
         unsafe {
             if length < 4 || current_extra_caps.excaprefs[0] as usize == 0 {
-                println!("CNode Copy/Mint/Move/Mutate: Truncated message.");
+                debug!("CNode Copy/Mint/Move/Mutate: Truncated message.");
                 current_syscall_error._type = seL4_TruncatedMessage;
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
             }
@@ -358,18 +358,18 @@ pub fn decodeCNodeInvocation(
         }
         let status = ensureEmptySlot(destSlot);
         if status != exception_t::EXCEPTION_NONE {
-            println!("CNode Copy/Mint/Move/Mutate: Destination not empty.");
+            debug!("CNode Copy/Mint/Move/Mutate: Destination not empty.");
             return status;
         }
         let lu_ret = rust_lookupSourceSlot(srcRoot, srcIndex, srcDepth);
         if lu_ret.status != exception_t::EXCEPTION_NONE {
-            println!("CNode Copy/Mint/Move/Mutate: Invalid source slot.");
+            debug!("CNode Copy/Mint/Move/Mutate: Invalid source slot.");
             return status;
         }
         let srcSlot = lu_ret.slot;
         unsafe {
             if cap_get_capType(&(*srcSlot).cap) == cap_null_cap {
-                println!("CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.");
+                debug!("CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.");
                 current_syscall_error._type = seL4_FailedLookup;
                 current_syscall_error.failedLookupWasSource = 1;
                 current_lookup_fault = lookup_fault_missing_capability_new(srcDepth);
@@ -385,7 +385,7 @@ pub fn decodeCNodeInvocation(
         match invLabel {
             CNodeCopy => {
                 if length < 5 {
-                    println!("Truncated message for CNode Copy operation.");
+                    debug!("Truncated message for CNode Copy operation.");
                     unsafe {
                         current_syscall_error._type = seL4_TruncatedMessage;
                         return exception_t::EXCEPTION_SYSCALL_ERROR;
@@ -397,7 +397,7 @@ pub fn decodeCNodeInvocation(
                     srcCap = &srcCap1;
                     let dc_ret = deriveCap(srcSlot, &srcCap);
                     if dc_ret.status != exception_t::EXCEPTION_NONE {
-                        println!("Error deriving cap for CNode Copy operation.");
+                        debug!("Error deriving cap for CNode Copy operation.");
                         return dc_ret.status;
                     }
                     newCap1 = dc_ret.cap;
@@ -407,7 +407,7 @@ pub fn decodeCNodeInvocation(
             }
             CNodeMint => {
                 if length < 6 {
-                    println!("Truncated message for CNode Mint operation.");
+                    debug!("Truncated message for CNode Mint operation.");
                     unsafe {
                         current_syscall_error._type = seL4_TruncatedMessage;
                         return exception_t::EXCEPTION_SYSCALL_ERROR;
@@ -420,7 +420,7 @@ pub fn decodeCNodeInvocation(
                     srcCap = &srcCap1;
                     let dc_ret = deriveCap(srcSlot, &updateCapData(false, capData, &srcCap));
                     if dc_ret.status != exception_t::EXCEPTION_NONE {
-                        println!("Error deriving cap for CNode Mint operation.");
+                        debug!("Error deriving cap for CNode Mint operation.");
                         return dc_ret.status;
                     }
                     newCap1 = dc_ret.cap;
@@ -434,7 +434,7 @@ pub fn decodeCNodeInvocation(
             },
             CNodeMutate => {
                 if length < 5 {
-                    println!("Truncated message for CNode Mutate operation.");
+                    debug!("Truncated message for CNode Mutate operation.");
                     unsafe {
                         current_syscall_error._type = seL4_TruncatedMessage;
                         return exception_t::EXCEPTION_SYSCALL_ERROR;
@@ -450,7 +450,7 @@ pub fn decodeCNodeInvocation(
             _ => panic!("invalid invLabel:{}", invLabel),
         }
         if cap_get_capType(newCap) == cap_null_cap {
-            println!("CNode Copy/Mint/Move/Mutate: Mutated cap would be invalid.");
+            debug!("CNode Copy/Mint/Move/Mutate: Mutated cap would be invalid.");
             unsafe {
                 current_syscall_error._type = seL4_IllegalOperation;
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
@@ -481,7 +481,7 @@ pub fn decodeCNodeInvocation(
     if invLabel == CNodeSaveCaller {
         let status = ensureEmptySlot(destSlot);
         if status != exception_t::EXCEPTION_NONE {
-            println!("CNode SaveCaller: Destination slot not empty.");
+            debug!("CNode SaveCaller: Destination slot not empty.");
             return status;
         }
         unsafe {
@@ -493,7 +493,7 @@ pub fn decodeCNodeInvocation(
         unsafe {
             let destCap = &(*destSlot).cap;
             if !hasCancelSendRight(destCap) {
-                println!("CNode CancelBadgedSends: Target cap invalid.");
+                debug!("CNode CancelBadgedSends: Target cap invalid.");
                 current_syscall_error._type = seL4_IllegalOperation;
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
             }
@@ -507,7 +507,7 @@ pub fn decodeCNodeInvocation(
                 || current_extra_caps.excaprefs[0] as usize == 0
                 || current_extra_caps.excaprefs[1] as usize == 0
             {
-                println!("CNode Rotate: Target cap invalid.");
+                debug!("CNode Rotate: Target cap invalid.");
                 current_syscall_error._type = seL4_TruncatedMessage;
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
             }
@@ -537,7 +537,7 @@ pub fn decodeCNodeInvocation(
             pivotSlot = lu_ret.slot as *mut cte_t;
 
             if pivotSlot == srcSlot || pivotSlot == destSlot {
-                println!("CNode Rotate: Pivot slot the same as source or dest slot.");
+                debug!("CNode Rotate: Pivot slot the same as source or dest slot.");
                 current_syscall_error._type = seL4_IllegalOperation;
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
             }
@@ -549,14 +549,14 @@ pub fn decodeCNodeInvocation(
                 }
             }
             if cap_get_capType(&(*srcSlot).cap) == cap_null_cap {
-                println!("CNode Rotate: Target cap invalid.");
+                debug!("CNode Rotate: Target cap invalid.");
                 current_syscall_error._type = seL4_FailedLookup;
                 current_syscall_error.failedLookupWasSource = 1;
                 current_lookup_fault = lookup_fault_missing_capability_new(srcDepth);
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
             }
             if cap_get_capType(&(*pivotSlot).cap) == cap_null_cap {
-                println!("CNode Rotate: Target cap invalid.");
+                debug!("CNode Rotate: Target cap invalid.");
                 current_syscall_error._type = seL4_FailedLookup;
                 current_syscall_error.failedLookupWasSource = 0;
                 current_lookup_fault = lookup_fault_missing_capability_new(pivotDepth);
@@ -565,12 +565,12 @@ pub fn decodeCNodeInvocation(
             let newSrcCap = updateCapData(true, srcNewData, &(*srcSlot).cap);
             let newPivot = updateCapData(true, pivotNewData, &(*pivotSlot).cap);
             if cap_get_capType(&newSrcCap) == cap_null_cap {
-                println!("CNode Rotate: Source cap invalid");
+                debug!("CNode Rotate: Source cap invalid");
                 current_syscall_error._type = seL4_IllegalOperation;
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
             }
             if cap_get_capType(&newPivot) == cap_null_cap {
-                println!("CNode Rotate: Pivot cap invalid");
+                debug!("CNode Rotate: Pivot cap invalid");
                 current_syscall_error._type = seL4_IllegalOperation;
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
             }

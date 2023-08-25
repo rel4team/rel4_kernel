@@ -5,7 +5,7 @@ pub fn pRegsToR(ptr: *const usize, size: usize) {
     unsafe {
         avail_p_regs_addr = ptr as usize;
         avail_p_regs_size = size;
-        // println!("{:#x} {:#x}", avail_p_regs_addr, avail_p_regs_size);
+        // debug!("{:#x} {:#x}", avail_p_regs_addr, avail_p_regs_size);
     }
 }
 

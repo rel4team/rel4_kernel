@@ -10,7 +10,6 @@ use crate::{
         cspace::rust_lookupTargetSlot,
         thread::{ksCurThread, setThreadState},
     },
-    println,
     syscall::getSyscallArg,
     boot::clearMemory,
 };
@@ -24,6 +23,7 @@ use super::{
 
 use common::{structures::{exception_t, lookup_fault_missing_capability_new}, sel4_config::*, BIT, MASK, ROUND_DOWN};
 use cspace::interface::*;
+use log::debug;
 
 pub fn alignUp(baseValue: usize, alignment: usize) -> usize {
     (baseValue + BIT!(alignment) - 1) & !MASK!(alignment)
@@ -128,7 +128,7 @@ pub fn decodeUntypedInvocation(
     buffer: *mut usize,
 ) -> exception_t {
     if invLabel != UntypedRetype {
-        println!("Untyped cap: Illegal operation attempted.");
+        debug!("Untyped cap: Illegal operation attempted.");
         unsafe {
             current_syscall_error._type = seL4_IllegalOperation;
             return exception_t::EXCEPTION_SYSCALL_ERROR;
@@ -136,7 +136,7 @@ pub fn decodeUntypedInvocation(
     }
     unsafe {
         if length < 6 || current_extra_caps.excaprefs[0] as usize == 0 {
-            println!("Untyped invocation: Truncated message.");
+            debug!("Untyped invocation: Truncated message.");
             current_syscall_error._type = seL4_TruncatedMessage;
             return exception_t::EXCEPTION_SYSCALL_ERROR;
         }
@@ -151,7 +151,7 @@ pub fn decodeUntypedInvocation(
     let _rootSlot = unsafe { current_extra_caps.excaprefs[0] };
 
     if newType >= seL4_ObjectTypeCount {
-        println!("Untyped Retype: Invalid object type.");
+        debug!("Untyped Retype: Invalid object type.");
         unsafe {
             current_syscall_error._type = seL4_InvalidArgument;
             current_syscall_error.invalidArgumentNumber = 0;
@@ -163,7 +163,7 @@ pub fn decodeUntypedInvocation(
 
     if userObjSize >= wordBits || objectSize > seL4_MaxUntypedBits {
         unsafe {
-            println!("Untyped Retype: Invalid object size.");
+            debug!("Untyped Retype: Invalid object size.");
             current_syscall_error._type = seL4_RangeError;
             current_syscall_error.rangeErrorMin = 0;
             current_syscall_error.rangeErrorMax = seL4_MaxUntypedBits;
@@ -173,7 +173,7 @@ pub fn decodeUntypedInvocation(
 
     if newType == seL4_CapTableObject && userObjSize == 0 {
         unsafe {
-            println!("Untyped Retype: Requested CapTable size too small.");
+            debug!("Untyped Retype: Requested CapTable size too small.");
             current_syscall_error._type = seL4_InvalidArgument;
             current_syscall_error.invalidArgumentNumber = 1;
             return exception_t::EXCEPTION_SYSCALL_ERROR;
@@ -182,7 +182,7 @@ pub fn decodeUntypedInvocation(
 
     if newType == seL4_UntypedObject && userObjSize < seL4_MinUntypedBits {
         unsafe {
-            println!("Untyped Retype: Requested UntypedItem size too small.");
+            debug!("Untyped Retype: Requested UntypedItem size too small.");
             current_syscall_error._type = seL4_InvalidArgument;
             current_syscall_error.invalidArgumentNumber = 1;
             return exception_t::EXCEPTION_SYSCALL_ERROR;
@@ -195,14 +195,14 @@ pub fn decodeUntypedInvocation(
         let rootCap = unsafe { (*current_extra_caps.excaprefs[0]).cap.clone() };
         let lu_ret = rust_lookupTargetSlot(&rootCap, nodeIndex, nodeDepth);
         if lu_ret.status != exception_t::EXCEPTION_NONE {
-            println!("Untyped Retype: Invalid destination address.");
+            debug!("Untyped Retype: Invalid destination address.");
             return lu_ret.status;
         }
         nodeCap = unsafe { (*lu_ret.slot).cap.clone() };
     }
 
     if cap_get_capType(&nodeCap) != cap_cnode_cap {
-        println!("Untyped Retype: Destination cap invalid or read-only.");
+        debug!("Untyped Retype: Destination cap invalid or read-only.");
         unsafe {
             current_syscall_error._type = seL4_FailedLookup;
             current_syscall_error.failedLookupWasSource = 0;
@@ -214,7 +214,7 @@ pub fn decodeUntypedInvocation(
 
     if nodeOffset > (nodeSize - 1) {
         unsafe {
-            println!(
+            debug!(
                 "Untyped Retype: Destination node offset {} too large.",
                 nodeOffset
             );
@@ -227,7 +227,7 @@ pub fn decodeUntypedInvocation(
 
     if nodeWindow < 1 || nodeWindow > CONFIG_RETYPE_FAN_OUT_LIMIT {
         unsafe {
-            println!(
+            debug!(
                 "Untyped Retype: Number of requested objects {} too small or large.",
                 nodeWindow
             );
@@ -240,7 +240,7 @@ pub fn decodeUntypedInvocation(
 
     if nodeWindow > nodeSize - nodeOffset {
         unsafe {
-            println!("Untyped Retype: Requested destination window overruns size of node.");
+            debug!("Untyped Retype: Requested destination window overruns size of node.");
             current_syscall_error._type = seL4_RangeError;
             current_syscall_error.rangeErrorMin = 1;
             current_syscall_error.rangeErrorMax = nodeSize - nodeOffset;
@@ -252,7 +252,7 @@ pub fn decodeUntypedInvocation(
     for i in nodeOffset..(nodeOffset + nodeWindow) {
         let status = unsafe { ensureEmptySlot(destCNode.add(i)) };
         if status != exception_t::EXCEPTION_NONE {
-            println!(
+            debug!(
                 "Untyped Retype: Slot {:#x} in destination window non-empty.",
                 i
             );
@@ -279,7 +279,7 @@ pub fn decodeUntypedInvocation(
         BIT!(cap_untyped_cap_get_capBlockSize(cap)) - FREE_INDEX_TO_OFFSET(freeIndex);
 
     if (untypedFreeBytes >> objectSize) < nodeWindow {
-        println!(
+        debug!(
             "Untyped Retype: Insufficient memory 
                       ({} * {} bytes needed, {} bytes available).",
             nodeWindow,
@@ -299,7 +299,7 @@ pub fn decodeUntypedInvocation(
 
     let deviceMemory = cap_untyped_cap_get_capIsDevice(cap) != 0;
     if deviceMemory && !Arch_isFrameType(newType) && newType != seL4_UntypedObject {
-        println!("Untyped Retype: Creating kernel objects with device untyped");
+        debug!("Untyped Retype: Creating kernel objects with device untyped");
         unsafe {
             current_syscall_error._type = seL4_InvalidArgument;
             current_syscall_error.invalidArgumentNumber = 1;

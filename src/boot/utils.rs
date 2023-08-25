@@ -1,13 +1,13 @@
 
 
-use crate::{config::*, vspace::RISCV_GET_LVL_PGSIZE_BITS};
+use crate::config::*;
 use common::{BIT, utils::convert_to_mut_type_ref, sel4_config::{PADDR_TOP, PPTR_TOP, PPTR_BASE, asidLowBits, IT_ASID, CONFIG_PT_LEVELS, seL4_PageBits}, ROUND_DOWN, ROUND_UP};
 use cspace::interface::*;
+use log::debug;
 use crate::{
-    println,
     structures::{p_region_t, region_t, v_region_t},
 };
-use crate::vspace::*;
+use vspace::*;
 use super::ndks_boot;
 
 #[inline]
@@ -70,7 +70,7 @@ pub fn write_slot(ptr: *mut cte_t, cap: cap_t) {
 pub fn provide_cap(root_cnode_cap: &cap_t, cap: cap_t) -> bool {
     unsafe {
         if ndks_boot.slot_pos_cur >= BIT!(CONFIG_ROOT_CNODE_SIZE_BITS) {
-            println!(
+            debug!(
                 "ERROR: can't add another cap, all {} (=2^CONFIG_ROOT_CNODE_SIZE_BITS) slots used",
                 BIT!(CONFIG_ROOT_CNODE_SIZE_BITS)
             );

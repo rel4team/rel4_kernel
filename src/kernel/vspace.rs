@@ -3,7 +3,8 @@ use common::structures::{lookup_fault_missing_capability_new, lookup_fault_inval
 use common::utils::pageBitsForSize;
 use common::{BIT, MASK, IS_ALIGNED};
 use common::{structures::exception_t, sel4_config::*};
-use crate::vspace::*;
+use log::debug;
+use vspace::*;
 use crate::{
     config::{
         badgeRegister, msgInfoRegister,
@@ -21,7 +22,6 @@ use crate::{
         cap::ensureEmptySlot,
         structure_gen::seL4_Fault_VMFault_new
     },
-    println,
     riscv::read_stval,
     structures::tcb_t,
     syscall::getSyscallArg,
@@ -174,21 +174,21 @@ pub fn isValidVTableRoot(cap: &cap_t) -> bool {
 
 pub fn checkValidIPCBuffer(vptr: usize, cap: &cap_t) -> exception_t {
     if cap_get_capType(cap) != cap_frame_cap {
-        println!("Requested IPC Buffer is not a frame cap.");
+        debug!("Requested IPC Buffer is not a frame cap.");
         unsafe {
             current_syscall_error._type = seL4_IllegalOperation;
         }
         return exception_t::EXCEPTION_SYSCALL_ERROR;
     }
     if cap_frame_cap_get_capFIsDevice(cap) != 0 {
-        println!("Specifying a device frame as an IPC buffer is not permitted.");
+        debug!("Specifying a device frame as an IPC buffer is not permitted.");
         unsafe {
             current_syscall_error._type = seL4_IllegalOperation;
         }
         return exception_t::EXCEPTION_SYSCALL_ERROR;
     }
     if !IS_ALIGNED!(vptr, seL4_IPCBufferSizeBits) {
-        println!("Requested IPC Buffer location 0x%x is not aligned.");
+        debug!("Requested IPC Buffer location 0x%x is not aligned.");
         unsafe {
             current_syscall_error._type = seL4_AlignmentError;
         }
@@ -300,7 +300,7 @@ pub fn decodeRISCVFrameInvocation(
     match label {
         RISCVPageMap => unsafe {
             if length < 3 || current_extra_caps.excaprefs[0] as usize == 0 {
-                println!("RISCVPageMap: Truncated message.");
+                debug!("RISCVPageMap: Truncated message.");
                 current_syscall_error._type = seL4_TruncatedMessage;
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
             }
@@ -316,7 +316,7 @@ pub fn decodeRISCVFrameInvocation(
             if cap_get_capType(lvl1ptCap) != cap_page_table_cap
                 || (cap_page_table_cap_get_capPTIsMapped(lvl1ptCap) == 0)
             {
-                println!("RISCVPageMap: Bad PageTable cap.");
+                debug!("RISCVPageMap: Bad PageTable cap.");
                 current_syscall_error._type = seL4_InvalidCapability;
                 current_syscall_error.invalidCapNumber = 1;
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
@@ -326,7 +326,7 @@ pub fn decodeRISCVFrameInvocation(
 
             let find_ret = findVSpaceForASID(asid);
             if find_ret.status != exception_t::EXCEPTION_NONE {
-                println!("RISCVPageMap: No PageTable for ASID");
+                debug!("RISCVPageMap: No PageTable for ASID");
                 unsafe {
                     current_lookup_fault = find_ret.lookup_fault.unwrap();
                 }
@@ -336,7 +336,7 @@ pub fn decodeRISCVFrameInvocation(
             }
 
             if find_ret.vspace_root.unwrap() != lvl1pt {
-                println!("RISCVPageMap: ASID lookup failed");
+                debug!("RISCVPageMap: ASID lookup failed");
                 current_syscall_error._type = seL4_InvalidCapability;
                 current_syscall_error.invalidCapNumber = 1;
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
@@ -367,7 +367,7 @@ pub fn decodeRISCVFrameInvocation(
             let frame_asid = cap_frame_cap_get_capFMappedASID(cap);
             if frame_asid != asidInvalid {
                 if frame_asid != asid {
-                    println!("RISCVPageMap: Attempting to remap a frame that does not belong to the passed address space");
+                    debug!("RISCVPageMap: Attempting to remap a frame that does not belong to the passed address space");
                     current_syscall_error._type = seL4_InvalidCapability;
                     current_syscall_error.invalidCapNumber = 1;
                     return exception_t::EXCEPTION_SYSCALL_ERROR;
@@ -375,20 +375,20 @@ pub fn decodeRISCVFrameInvocation(
 
                 let mapped_vaddr = cap_frame_cap_get_capFMappedAddress(cap);
                 if mapped_vaddr != vaddr {
-                    println!("RISCVPageMap: attempting to map frame into multiple addresses");
+                    debug!("RISCVPageMap: attempting to map frame into multiple addresses");
                     current_syscall_error._type = seL4_InvalidArgument;
                     current_syscall_error.invalidArgumentNumber = 0;
                     return exception_t::EXCEPTION_SYSCALL_ERROR;
                 }
 
                 if isPTEPageTable(lu_ret.ptSlot) {
-                    println!("RISCVPageMap: no mapping to remap.");
+                    debug!("RISCVPageMap: no mapping to remap.");
                     current_syscall_error._type = seL4_DeleteFirst;
                     return exception_t::EXCEPTION_SYSCALL_ERROR;
                 }
             } else {
                 if pte_ptr_get_valid(lu_ret.ptSlot) != 0 {
-                    println!("Virtual address already mapped");
+                    debug!("Virtual address already mapped");
                     current_syscall_error._type = seL4_DeleteFirst;
                     return exception_t::EXCEPTION_SYSCALL_ERROR;
                 }
@@ -402,7 +402,7 @@ pub fn decodeRISCVFrameInvocation(
             let executable = vm_attributes_get_riscvExecuteNever(attr) == 0;
             let pte = makeUserPTE(frame_paddr, executable, vmRights);
             setThreadState(ksCurThread, ThreadStateRestart);
-            // println!(" res {:#x} {:#x} {:#x} {:#x} {:#x} {:#x}",cap.words[0],cap.words[1],cte as usize,pte.words[0],lu_ret.ptSlot as usize ,ksCurThread as usize);
+            // debug!(" res {:#x} {:#x} {:#x} {:#x} {:#x} {:#x}",cap.words[0],cap.words[1],cte as usize,pte.words[0],lu_ret.ptSlot as usize ,ksCurThread as usize);
             performPageInvocationMapPTE(cap, cte as *mut cte_t, pte, lu_ret.ptSlot as *mut pte_t)
         },
         RISCVPageUnmap => {
@@ -419,7 +419,7 @@ pub fn decodeRISCVFrameInvocation(
             performPageGetAddress(cap_frame_cap_get_capFBasePtr(cap), call)
         }
         _ => {
-            println!("invalid operation label:{}", label);
+            debug!("invalid operation label:{}", label);
             unsafe {
                 current_syscall_error._type = seL4_IllegalOperation;
             }
@@ -438,7 +438,7 @@ pub fn decodeRISCVPageTableInvocation(
 ) -> exception_t {
     if label == RISCVPageTableUnmap {
         if !isFinalCapability(cte) {
-            println!("RISCVPageTableUnmap: cannot unmap if more than once cap exists");
+            debug!("RISCVPageTableUnmap: cannot unmap if more than once cap exists");
             unsafe {
                 current_syscall_error._type = seL4_RevokeFirst;
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
@@ -449,7 +449,7 @@ pub fn decodeRISCVPageTableInvocation(
             let find_ret = findVSpaceForASID(asid);
             let pte = cap_page_table_cap_get_capPTBasePtr(cap) as *mut pte_t;
             if find_ret.status == exception_t::EXCEPTION_NONE && find_ret.vspace_root.unwrap() == pte {
-                println!("RISCVPageTableUnmap: cannot call unmap on top level PageTable");
+                debug!("RISCVPageTableUnmap: cannot call unmap on top level PageTable");
                 unsafe {
                     current_syscall_error._type = seL4_RevokeFirst;
                     return exception_t::EXCEPTION_SYSCALL_ERROR;
@@ -467,7 +467,7 @@ pub fn decodeRISCVPageTableInvocation(
     }
 
     if unlikely(label != RISCVPageTableMap) {
-        println!("RISCVPageTable: Illegal Operation");
+        debug!("RISCVPageTable: Illegal Operation");
         unsafe {
             current_syscall_error._type = seL4_IllegalOperation;
             return exception_t::EXCEPTION_SYSCALL_ERROR;
@@ -475,13 +475,13 @@ pub fn decodeRISCVPageTableInvocation(
     }
     unsafe {
         if unlikely(length < 2 || current_extra_caps.excaprefs[0] as usize == 0) {
-            println!("RISCVPageTable: truncated message");
+            debug!("RISCVPageTable: truncated message");
             current_syscall_error._type = seL4_TruncatedMessage;
             return exception_t::EXCEPTION_SYSCALL_ERROR;
         }
     }
     if unlikely(cap_page_table_cap_get_capPTIsMapped(cap) != 0) {
-        println!("RISCVPageTable: PageTable is already mapped.");
+        debug!("RISCVPageTable: PageTable is already mapped.");
         unsafe {
             current_syscall_error._type = seL4_InvalidCapability;
             current_syscall_error.invalidCapNumber = 0;
@@ -495,7 +495,7 @@ pub fn decodeRISCVPageTableInvocation(
     if cap_get_capType(lvl1ptCap) != cap_page_table_cap
         || cap_page_table_cap_get_capPTIsMapped(lvl1ptCap) == asidInvalid
     {
-        println!("RISCVPageTableMap: Invalid top-level PageTable.");
+        debug!("RISCVPageTableMap: Invalid top-level PageTable.");
         unsafe {
             current_syscall_error._type = seL4_InvalidCapability;
             current_syscall_error.invalidCapNumber = 1;
@@ -506,7 +506,7 @@ pub fn decodeRISCVPageTableInvocation(
     let asid = cap_page_table_cap_get_capPTMappedASID(lvl1ptCap);
 
     if unlikely(vaddr >= USER_TOP) {
-        println!("RISCVPageTableMap: Virtual address cannot be in kernel window.");
+        debug!("RISCVPageTableMap: Virtual address cannot be in kernel window.");
         unsafe {
             current_syscall_error._type = seL4_InvalidArgument;
             current_syscall_error.invalidCapNumber = 0;
@@ -516,7 +516,7 @@ pub fn decodeRISCVPageTableInvocation(
 
     let find_ret = findVSpaceForASID(asid);
     if find_ret.status != exception_t::EXCEPTION_NONE {
-        println!("RISCVPageTableMap: ASID lookup failed");
+        debug!("RISCVPageTableMap: ASID lookup failed");
         unsafe {
             current_lookup_fault = find_ret.lookup_fault.unwrap();
             current_syscall_error._type = seL4_FailedLookup;
@@ -526,7 +526,7 @@ pub fn decodeRISCVPageTableInvocation(
     }
 
     if find_ret.vspace_root.unwrap() != lvl1pt {
-        println!("RISCVPageTableMap: ASID lookup failed");
+        debug!("RISCVPageTableMap: ASID lookup failed");
         unsafe {
             current_syscall_error._type = seL4_InvalidCapability;
             current_syscall_error.invalidCapNumber = 1;
@@ -536,7 +536,7 @@ pub fn decodeRISCVPageTableInvocation(
 
     let lu_ret = lookupPTSlot(lvl1pt, vaddr);
     if lu_ret.ptBitsLeft == seL4_PageBits || pte_ptr_get_valid(lu_ret.ptSlot) != 0 {
-        println!("RISCVPageTableMap: All objects mapped at this address");
+        debug!("RISCVPageTableMap: All objects mapped at this address");
         unsafe {
             current_syscall_error._type = seL4_DeleteFirst;
             return exception_t::EXCEPTION_SYSCALL_ERROR;
@@ -579,7 +579,7 @@ pub fn decodeRISCVMMUInvocation(
         cap_page_table_cap => decodeRISCVPageTableInvocation(label, length, cte, cap, buffer),
         cap_frame_cap => decodeRISCVFrameInvocation(label, length, cte, cap, call, buffer),
         cap_asid_control_cap => {
-            // println!("in cap_asid_control_cap");
+            // debug!("in cap_asid_control_cap");
             if label != RISCVASIDControlMakePool {
                 unsafe {
                     current_syscall_error._type = seL4_IllegalOperation;
@@ -659,7 +659,7 @@ pub fn decodeRISCVMMUInvocation(
         }
 
         cap_asid_pool_cap => {
-            // println!("in cap_asid_pool_cap");
+            // debug!("in cap_asid_pool_cap");
             if label != RISCVASIDPoolAssign {
                 unsafe {
                     current_syscall_error._type = seL4_IllegalOperation;
@@ -681,7 +681,7 @@ pub fn decodeRISCVMMUInvocation(
                     || cap_page_table_cap_get_capPTIsMapped(vspaceCap) != 0,
             ) {
                 unsafe {
-                    println!("RISCVASIDPool: Invalid vspace root.");
+                    debug!("RISCVASIDPool: Invalid vspace root.");
                     current_syscall_error._type = seL4_InvalidCapability;
                     current_syscall_error.invalidCapNumber = 1;
                 }

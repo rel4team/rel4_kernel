@@ -13,12 +13,13 @@ use crate::{
         },
         tcb::isHighestPrio,
     },
-    println,
     structures::{
         endpoint_t, seL4_MessageInfo_t, tcb_t, thread_state_t,
     },
-    vspace::*,
 };
+
+use log::error;
+use vspace::*;
 use core::intrinsics::{likely, unlikely};
 use common::{sel4_config::wordBits, MASK};
 use cspace::interface::*;
@@ -158,7 +159,7 @@ pub fn fastpath_copy_mrs(length: usize, src: *mut tcb_t, dest: *mut tcb_t) {
         reg = msgRegister[0] + i;
         setRegister(dest, reg, getRegister(src, reg));
         if getRegister(src, reg) != getRegister(dest, reg) {
-            println!("wrong!!!!");
+            error!("wrong!!!!");
         }
     }
 }
@@ -274,7 +275,7 @@ pub fn fastpath_call(cptr: usize, msgInfo: usize) {
         switchToThread_fp(dest, cap_pd, stored_hw_asid);
         seL4_MessageInfo_ptr_set_capsUnwrapped((&mut info) as *mut seL4_MessageInfo_t, 0);
         let msgInfo1 = wordFromMessageInfo(info);
-        // println!("badge :{:#x} msgInfo:{:#x} ksCurThread:{:#x},dest:{:#x},cap_pd:{:#x},stored_hw_asid:{:#x}",badge,msgInfo,ksCurThread as usize,dest as usize ,cap_pd as usize , stored_hw_asid.words[0]);
+        // debug!("badge :{:#x} msgInfo:{:#x} ksCurThread:{:#x},dest:{:#x},cap_pd:{:#x},stored_hw_asid:{:#x}",badge,msgInfo,ksCurThread as usize,dest as usize ,cap_pd as usize , stored_hw_asid.words[0]);
         fastpath_restore(badge, msgInfo1, ksCurThread);
     }
 }
@@ -387,7 +388,7 @@ pub fn fastpath_reply_recv(cptr: usize, msgInfo: usize) {
         switchToThread_fp(caller, cap_pd, stored_hw_asid);
         seL4_MessageInfo_ptr_set_capsUnwrapped((&mut info) as *mut seL4_MessageInfo_t, 0);
         let msgInfo1 = wordFromMessageInfo(info);
-        // println!("out fastpath_reply_recv{}", msgInfo1);
+        // debug!("out fastpath_reply_recv{}", msgInfo1);
         fastpath_restore(0, msgInfo1, ksCurThread);
     }
 }

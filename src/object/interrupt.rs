@@ -13,7 +13,6 @@ use crate::{
         cspace::rust_lookupTargetSlot,
         thread::{getExtraCPtr, ksCurThread, setThreadState, timerTick},
     },
-    println,
     riscv::{read_sip, resetTimer},
     structures::notification_t,
     syscall::getSyscallArg,
@@ -26,6 +25,7 @@ use super::{
 
 use common::{structures::exception_t, BIT};
 use cspace::interface::*;
+use log::debug;
 
 #[no_mangle]
 pub static mut intStateIRQTable: [usize; 2] = [0; 2];
@@ -138,7 +138,7 @@ pub fn Arch_checkIRQ(irq: usize) -> exception_t {
             current_syscall_error._type = seL4_RangeError;
             current_syscall_error.rangeErrorMin = 1;
             current_syscall_error.rangeErrorMax = maxIRQ;
-            println!(
+            debug!(
                 "Rejecting request for IRQ {}. IRQ is out of range [1..maxIRQ].",
                 irq
             );
@@ -178,14 +178,14 @@ pub fn Arch_decodeIRQControlInvocation(
         if isIRQActive(irq) {
             unsafe {
                 current_syscall_error._type = seL4_RevokeFirst;
-                println!("Rejecting request for IRQ {}. Already active.", irq);
+                debug!("Rejecting request for IRQ {}. Already active.", irq);
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
             }
         }
 
         let lu_ret = rust_lookupTargetSlot(&cnodeCap, index, depth);
         if lu_ret.status != exception_t::EXCEPTION_NONE {
-            println!(
+            debug!(
                 "Target slot for new IRQ Handler cap invalid: cap {:#x}, IRQ {}.",
                 getExtraCPtr(buffer, 0),
                 irq
@@ -244,14 +244,14 @@ pub fn decodeIRQControlInvocation(
         if isIRQActive(irq) {
             unsafe {
                 current_syscall_error._type = seL4_RevokeFirst;
-                println!("Rejecting request for IRQ {}. Already active.", irq);
+                debug!("Rejecting request for IRQ {}. Already active.", irq);
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
             }
         }
 
         let lu_ret = rust_lookupTargetSlot(&cnodeCap, index, depth);
         if lu_ret.status != exception_t::EXCEPTION_NONE {
-            println!(
+            debug!(
                 "Target slot for new IRQ Handler cap invalid: cap {:#x}, IRQ {}.",
                 getExtraCPtr(buffer, 0),
                 irq
@@ -262,7 +262,7 @@ pub fn decodeIRQControlInvocation(
 
         let status = ensureEmptySlot(destSlot);
         if status != exception_t::EXCEPTION_NONE {
-            println!(
+            debug!(
                 "Target slot for new IRQ Handler cap not empty: cap {}, IRQ {}.",
                 getExtraCPtr(buffer, 0),
                 irq
@@ -281,7 +281,7 @@ pub fn decodeIRQControlInvocation(
 #[no_mangle]
 pub fn handleInterrupt(irq: usize) {
     if unlikely(irq > maxIRQ) {
-        println!(
+        debug!(
             "Received IRQ {}, which is above the platforms maxIRQ of {}\n",
             irq, maxIRQ
         );
@@ -309,11 +309,11 @@ pub fn handleInterrupt(irq: usize) {
                 resetTimer();
             }
             IRQReserved => {
-                println!("Received unhandled reserved IRQ: {}\n", irq);
+                debug!("Received unhandled reserved IRQ: {}\n", irq);
             }
             IRQInactive => {
                 maskInterrupt(true, irq);
-                println!("Received disabled IRQ: {}\n", irq);
+                debug!("Received disabled IRQ: {}\n", irq);
             }
             _ => {
                 panic!("invalid IRQ state");
@@ -342,9 +342,9 @@ pub fn decodeIRQHandlerInvocation(invLabel: usize, irq: usize) -> exception_t {
                 || cap_notification_cap_get_capNtfnCanSend(ntfnCap) == 0
             {
                 if cap_get_capType(ntfnCap) != cap_notification_cap {
-                    println!("IRQSetHandler: provided cap is not an notification capability.");
+                    debug!("IRQSetHandler: provided cap is not an notification capability.");
                 } else {
-                    println!("IRQSetHandler: caller does not have send rights on the endpoint.");
+                    debug!("IRQSetHandler: caller does not have send rights on the endpoint.");
                 }
                 current_syscall_error._type = seL4_InvalidCapability;
                 current_syscall_error.invalidCapNumber = 0;
@@ -361,7 +361,7 @@ pub fn decodeIRQHandlerInvocation(invLabel: usize, irq: usize) -> exception_t {
             return exception_t::EXCEPTION_NONE;
         },
         _ => unsafe {
-            println!("IRQHandler: Illegal operation.");
+            debug!("IRQHandler: Illegal operation.");
             current_syscall_error._type = seL4_IllegalOperation;
             return exception_t::EXCEPTION_SYSCALL_ERROR;
         },

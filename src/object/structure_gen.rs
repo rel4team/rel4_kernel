@@ -1,9 +1,8 @@
-use crate::{config::{
+use crate::config::{
     seL4_Fault_CapFault, seL4_Fault_NullFault, seL4_Fault_UnknownSyscall, seL4_Fault_UserException,
     seL4_Fault_VMFault,
-}, vspace::*};
+};
 
-use common::sel4_config::{lookup_fault_invalid_root, lookup_fault_missing_capability, lookup_fault_depth_mismatch};
 use cspace::interface::*;
 use crate::structures::{
     endpoint_t, notification_t, seL4_Fault_t,
