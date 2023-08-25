@@ -6,9 +6,9 @@ use crate::config::{
 use cspace::interface::*;
 use crate::structures::{
     endpoint_t, notification_t, seL4_Fault_t,
-    thread_state_t,
 };
 
+use crate::task_manager::*;
 
 //cap relevant
 
@@ -17,107 +17,6 @@ pub fn cap_get_max_free_index(cap: &cap_t) -> usize {
     let ans = cap_untyped_cap_get_capBlockSize(cap);
     let sel4_MinUntypedbits: usize = 4;
     (1usize << ans) - sel4_MinUntypedbits
-}
-
-
-#[inline]
-pub fn thread_state_new() -> thread_state_t {
-    let state = thread_state_t { words: [0; 3] };
-    state
-}
-
-#[inline]
-pub fn thread_state_get_blockingIPCBadge(thread_state_ptr: &thread_state_t) -> usize {
-    let mut ret = (thread_state_ptr).words[2] & 0xffffffffffffffffusize;
-    if (ret & (1usize << (38))) != 0 {
-        ret |= 0xffffff8000000000;
-    }
-    ret
-}
-
-#[inline]
-pub fn thread_state_set_blockingIPCBadge(thread_state_ptr: &mut thread_state_t, v64: usize) {
-    (thread_state_ptr).words[2] &= !0xffffffffffffffffusize;
-    (thread_state_ptr).words[2] |= v64 & 0xffffffffffffffffusize;
-}
-
-#[inline]
-pub fn thread_state_get_blockingIPCCanGrant(thread_state_ptr: &thread_state_t) -> usize {
-    let ret = ((thread_state_ptr).words[1] & 0x8usize) >> 3;
-    ret
-}
-
-#[inline]
-pub fn thread_state_set_blockingIPCCanGrant(thread_state_ptr: &mut thread_state_t, v64: usize) {
-    (thread_state_ptr).words[1] &= !0x8usize;
-    (thread_state_ptr).words[1] |= (v64 << 3) & 0x8usize;
-}
-
-#[inline]
-pub fn thread_state_get_blockingIPCCanGrantReply(thread_state_ptr: &thread_state_t) -> usize {
-    let ret = ((thread_state_ptr).words[1] & 0x4usize) >> 2;
-    ret
-}
-
-#[inline]
-pub fn thread_state_set_blockingIPCCanGrantReply(
-    thread_state_ptr: &mut thread_state_t,
-    v64: usize,
-) {
-    (thread_state_ptr).words[1] &= !0x4usize;
-    (thread_state_ptr).words[1] |= (v64 << 2) & 0x4usize;
-}
-
-#[inline]
-pub fn thread_state_get_blockingIPCIsCall(thread_state_ptr: &thread_state_t) -> usize {
-    let ret = ((thread_state_ptr).words[1] & 0x2usize) >> 1;
-    ret
-}
-
-#[inline]
-pub fn thread_state_set_blockingIPCIsCall(thread_state_ptr: &mut thread_state_t, v64: usize) {
-    (thread_state_ptr).words[1] &= !0x2usize;
-    (thread_state_ptr).words[1] |= (v64 << 1) & 0x2usize;
-}
-
-#[inline]
-pub fn thread_state_get_tcbQueued(thread_state_ptr: &thread_state_t) -> usize {
-    let ret = ((thread_state_ptr).words[1] & 0x1usize) >> 0;
-    ret
-}
-
-#[inline]
-pub fn thread_state_set_tcbQueued(thread_state_ptr: &mut thread_state_t, v64: usize) {
-    thread_state_ptr.words[1] &= !0x1usize;
-    thread_state_ptr.words[1] |= (v64 << 0) & 0x1usize;
-}
-
-#[inline]
-pub fn thread_state_get_blockingObject(thread_state_ptr: &thread_state_t) -> usize {
-    let mut ret = ((thread_state_ptr).words[0] & 0x7ffffffff0usize) << 0;
-    if (ret & (1usize << (38))) != 0 {
-        ret |= 0xffffff8000000000;
-    }
-    ret
-}
-
-#[inline]
-pub fn thread_state_set_blockingObject(thread_state_ptr: &mut thread_state_t, v64: usize) {
-    (thread_state_ptr).words[0] &= !0x7ffffffff0usize;
-    (thread_state_ptr).words[0] |= (v64 >> 0) & 0x7ffffffff0usize;
-}
-
-#[inline]
-pub fn thread_state_get_tsType(thread_state_ptr: &thread_state_t) -> usize {
-    let ret = (thread_state_ptr).words[0] & 0xfusize;
-    ret
-}
-
-#[inline]
-#[no_mangle]
-pub fn thread_state_set_tsType(thread_state_ptr: &mut thread_state_t, v64: usize) {
-    (thread_state_ptr).words[0] &= !0xfusize;
-    (thread_state_ptr).words[0] |= v64 & 0xfusize;
 }
 
 

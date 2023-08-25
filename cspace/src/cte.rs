@@ -1,6 +1,8 @@
-use common::{structures::exception_t, utils::{convert_to_type_ref, convert_to_mut_type_ref}};
+use core::intrinsics::{unlikely, likely};
 
-use crate::{cap::{cap_t, CapTag, same_region_as, same_object_as, is_cap_revocable}, mdb::mdb_node_t, utils::MAX_FREE_INDEX};
+use common::{structures::{exception_t, lookup_fault_t, lookup_fault_invalid_root_new, lookup_fault_guard_mismatch_new, lookup_fault_depth_mismatch_new}, utils::{convert_to_type_ref, convert_to_mut_type_ref}, MASK, sel4_config::wordRadix};
+
+use crate::{cap::{cap_t, CapTag, same_region_as, same_object_as, is_cap_revocable}, mdb::mdb_node_t, utils::{MAX_FREE_INDEX, resolveAddressBits_ret_t}};
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -295,4 +297,52 @@ fn setUntypedCapAsFull(srcCap: &cap_t, newCap: &cap_t, srcSlot: &mut cte_t) {
             );
         }
     }
+}
+
+pub fn resolve_address_bits(node_cap: &cap_t, cap_ptr: usize, _n_bits: usize) -> resolveAddressBits_ret_t {
+    let mut ret = resolveAddressBits_ret_t::default();
+    let mut n_bits = _n_bits;
+    ret.bitsRemaining = n_bits;
+    let mut nodeCap = node_cap.clone();
+
+    if unlikely(nodeCap.get_cap_type() != CapTag::CapCNodeCap) {
+        // return Err(lookup_fault_invalid_root_new());
+        ret.status = exception_t::EXCEPTION_LOOKUP_FAULT;
+        return ret;
+    }
+
+    loop {
+        let radixBits = nodeCap.get_cnode_radix();
+        let guardBits = nodeCap.get_cnode_guard_size();
+        let levelBits = radixBits + guardBits;
+        assert!(levelBits != 0);
+        let capGuard = nodeCap.get_cnode_guard();
+        let guard = (cap_ptr >> ((n_bits - guardBits) & MASK!(wordRadix))) & MASK!(guardBits);
+        if unlikely(guardBits > n_bits || guard != capGuard) {
+            // return Err(lookup_fault_guard_mismatch_new(capGuard, n_bits, guardBits));
+            ret.status = exception_t::EXCEPTION_LOOKUP_FAULT;
+            return ret;
+        }
+        if unlikely(levelBits > n_bits) {
+            // return Err(lookup_fault_depth_mismatch_new(levelBits, n_bits));
+            ret.status = exception_t::EXCEPTION_LOOKUP_FAULT;
+            return ret;
+        }
+        let offset = (cap_ptr >> (n_bits - levelBits)) & MASK!(radixBits);
+        let slot = unsafe { (nodeCap.get_cnode_ptr() as *mut cte_t).add(offset) };
+
+        if likely(n_bits == levelBits) {
+            ret.slot = slot;
+            ret.bitsRemaining = 0;
+            return ret;
+        }
+        n_bits -= levelBits;
+        nodeCap = unsafe { (*slot).cap.clone() };
+        if unlikely(nodeCap.get_cap_type() != CapTag::CapCNodeCap) {
+            ret.slot = slot;
+            ret.bitsRemaining = n_bits;
+            return ret;
+        }
+    }
+    panic!("UNREACHABLE");
 }

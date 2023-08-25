@@ -10,7 +10,7 @@ use crate::{
     kernel::{
         boot::{current_syscall_error, current_lookup_fault},
         thread::{
-            decodeDomainInvocation, doReplyTransfer, getCSpace, ksCurDomain, ksCurThread,
+            decodeDomainInvocation, doReplyTransfer,
             setThreadState, suspend, Arch_initContext,
         },
         transfermsg::{
@@ -23,10 +23,11 @@ use crate::{
     },
     structures::{
         endpoint_t, finaliseCap_ret,
-        notification_t, seL4_CNode_CapData_t, tcb_t,
+        notification_t, seL4_CNode_CapData_t,
     },
 };
 
+use crate::task_manager::*;
 use log::debug;
 use vspace::*;
 

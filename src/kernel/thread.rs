@@ -15,19 +15,15 @@ use crate::{
         cap::cteDeleteOne,
         cnode::setupReplyMaster,
         endpoint::cancelIPC,
-        structure_gen::{seL4_Fault_get_seL4_FaultType, thread_state_get_tsType, thread_state_set_tsType,},
+        structure_gen::seL4_Fault_get_seL4_FaultType,
         tcb::{
-            copyMRs, getHighestPrio, isHighestPrio, lookupExtraCaps, ready_queues_index,
-            tcbSchedAppend, tcbSchedDequeue, tcbSchedEnqueue,
+            copyMRs, lookupExtraCaps
         },
     },
-    structures::{
-        arch_tcb_t, cap_transfer_t, endpoint_t, seL4_MessageInfo_t,
-        tcb_queue_t, tcb_t,
-    },
-    syscall::getSyscallArg,
+    structures::{cap_transfer_t, endpoint_t, seL4_MessageInfo_t}, syscall::getSyscallArg,
 };
 
+use crate::task_manager::*;
 use core::{
     arch::asm,
     intrinsics::{likely, unlikely},
@@ -54,85 +50,8 @@ use cspace::interface::*;
 use log::debug;
 
 #[no_mangle]
-pub static mut ksDomainTime: usize = 0;
-
-#[no_mangle]
-pub static mut ksCurDomain: usize = 0;
-
-#[no_mangle]
-pub static mut ksDomScheduleIdx: usize = 0;
-
-#[no_mangle]
-pub static mut ksCurThread: *mut tcb_t = 0 as *mut tcb_t;
-
-#[no_mangle]
-pub static mut ksIdleThread: *mut tcb_t = 0 as *mut tcb_t;
-
-#[no_mangle]
-pub static mut ksSchedulerAction: *mut tcb_t = 1 as *mut tcb_t;
-
-#[no_mangle]
 pub static mut kernel_stack_alloc: [[u8; BIT!(CONFIG_KERNEL_STACK_BITS)]; CONFIG_MAX_NUM_NODES] =
     [[0; BIT!(CONFIG_KERNEL_STACK_BITS)]; CONFIG_MAX_NUM_NODES];
-
-#[no_mangle]
-pub static mut ksReadyQueues: [tcb_queue_t; NUM_READY_QUEUES] = [tcb_queue_t {
-    head: 0 as *mut tcb_t,
-    tail: 0 as *mut tcb_t,
-}; NUM_READY_QUEUES];
-
-#[no_mangle]
-pub static mut ksReadyQueuesL2Bitmap: [[usize; L2_BITMAP_SIZE]; CONFIG_NUM_DOMAINS] =
-    [[0; L2_BITMAP_SIZE]; CONFIG_NUM_DOMAINS];
-
-#[no_mangle]
-pub static mut ksReadyQueuesL1Bitmap: [usize; CONFIG_NUM_DOMAINS] = [0; CONFIG_NUM_DOMAINS];
-
-#[no_mangle]
-#[link_section = "._idle_thread"]
-pub static mut ksIdleThreadTCB: [[u8; BIT!(seL4_TCBBits)]; CONFIG_MAX_NUM_NODES] =
-    [[0; BIT!(seL4_TCBBits)]; CONFIG_MAX_NUM_NODES];
-
-type prio_t = usize;
-pub const ra: usize = 0;
-pub const sp: usize = 1;
-const gp: usize = 2;
-const tp: usize = 3;
-pub const TLS_BASE: usize = 3;
-const t0: usize = 4;
-const t1: usize = 5;
-const t2: usize = 6;
-const s0: usize = 7;
-const s1: usize = 8;
-const a0: usize = 9;
-pub const capRegister: usize = 9;
-pub const badgeRegister: usize = 9;
-const a1: usize = 10;
-const a2: usize = 11;
-const a3: usize = 12;
-const a4: usize = 13;
-const a5: usize = 14;
-const a6: usize = 15;
-const a7: usize = 16;
-const s2: usize = 17;
-const s3: usize = 18;
-const s4: usize = 19;
-const s5: usize = 20;
-const s6: usize = 21;
-const s7: usize = 22;
-const s8: usize = 23;
-const s9: usize = 24;
-const s10: usize = 25;
-const s11: usize = 26;
-const t3: usize = 27;
-const t4: usize = 28;
-const t5: usize = 29;
-const t6: usize = 30;
-pub const SCAUSE: usize = 31;
-pub const SSTATUS: usize = 32;
-pub const FaultIP: usize = 33;
-pub const NextIP: usize = 34;
-pub const n_contextRegisters: usize = 35;
 
 
 pub fn create_idle_thread() {
@@ -344,19 +263,6 @@ pub fn setNextPC(thread: *mut tcb_t, v: usize) {
 pub fn configureIdleThread(tcb: *const tcb_t) {
     Arch_configureIdleThread(tcb);
     setThreadState(tcb as *mut tcb_t, ThreadStateIdleThreadState);
-}
-
-pub fn getCSpace(ptr: usize, i: usize) -> *mut cte_t {
-    unsafe {
-        let p = (ptr & !MASK!(seL4_TCBBits)) as *mut cte_t;
-        p.add(i)
-    }
-}
-
-pub fn getCSpaceRef(ptr: usize, i: usize) -> &'static mut cte_t {
-    unsafe {
-        &mut *(getCSpace(ptr, i))
-    }
 }
 
 #[no_mangle]

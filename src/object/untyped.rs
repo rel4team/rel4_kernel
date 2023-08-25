@@ -8,7 +8,7 @@ use crate::{
     kernel::{
         boot::{current_extra_caps, current_lookup_fault, current_syscall_error},
         cspace::rust_lookupTargetSlot,
-        thread::{ksCurThread, setThreadState},
+        thread::setThreadState
     },
     syscall::getSyscallArg,
     boot::clearMemory,
@@ -20,7 +20,7 @@ use super::{
         createNewObjects, getObjectSize, Arch_isFrameType,
     },
 };
-
+use crate::task_manager::*;
 use common::{structures::{exception_t, lookup_fault_missing_capability_new}, sel4_config::*, BIT, MASK, ROUND_DOWN};
 use cspace::interface::*;
 use log::debug;

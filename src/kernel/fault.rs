@@ -17,8 +17,10 @@ use crate::{
         seL4_Fault_VMFault_get_FSR, seL4_Fault_VMFault_get_address,
         seL4_Fault_VMFault_get_instructionFault, seL4_Fault_get_seL4_FaultType,
     },
-    structures::{seL4_MessageInfo_t, tcb_t},
+    structures::seL4_MessageInfo_t,
 };
+
+use crate::task_manager::*;
 
 use common::{sel4_config::{lookup_fault_depth_mismatch, lookup_fault_guard_mismatch, lookup_fault_invalid_root,
     lookup_fault_missing_capability}, structures::{lookup_fault_t, lookup_fault_get_lufType, lookup_fault_missing_capability_get_bitsLeft, lookup_fault_depth_mismatch_get_bitsLeft, lookup_fault_depth_mismatch_get_bitsFound, lookup_fault_guard_mismatch_get_bitsLeft, lookup_fault_guard_mismatch_get_guardFound, lookup_fault_guard_mismatch_get_bitsFound}};

@@ -4,21 +4,19 @@ use crate::{
     config::{seL4_FailedLookup, seL4_RangeError, tcbCTable},
     structures::{
         lookupCapAndSlot_ret_t, lookupCap_ret_t, lookupSlot_raw_ret_t,
-        lookupSlot_ret_t, resolveAddressBits_ret_t, tcb_t,
+        lookupSlot_ret_t,
     },
 };
+
+use crate::task_manager::*;
 
 use common::{structures::{exception_t, lookup_fault_invalid_root_new, lookup_fault_guard_mismatch_new, lookup_fault_depth_mismatch_new}, sel4_config::{wordRadix, wordBits}, MASK};
 use cspace::interface::*;
 use log::debug;
 
-use super::{
-    boot::{current_lookup_fault, current_syscall_error},
-    thread::getCSpace,
-};
+use super::boot::{current_lookup_fault, current_syscall_error};
 
-#[no_mangle]
-pub extern "C" fn lookupSlot(thread: *const tcb_t, capptr: usize) -> lookupSlot_raw_ret_t {
+pub fn lookupSlot(thread: *const tcb_t, capptr: usize) -> lookupSlot_raw_ret_t {
     unsafe {
         let threadRoot = &(*getCSpace(thread as usize, tcbCTable)).cap;
         let res_ret = rust_resolveAddressBits(threadRoot, capptr, wordBits);
@@ -48,70 +46,6 @@ pub extern "C" fn lookupCapAndSlot(thread: *const tcb_t, cPtr: usize) -> lookupC
             cap: (*lu_ret.slot).cap.clone(),
         };
         ret
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn rust_resolveAddressBits(
-    _nodeCap: &cap_t,
-    capptr: usize,
-    _n_bits: usize,
-) -> resolveAddressBits_ret_t {
-    unsafe {
-        let mut ret = resolveAddressBits_ret_t::default();
-        let mut n_bits = _n_bits;
-        ret.bitsRemaining = n_bits;
-        let mut radixBits: usize;
-        let mut guardBits: usize;
-        let mut guard: usize;
-        let mut levelBits: usize;
-        let mut capGuard: usize;
-        let mut offset: usize;
-        let mut slot: *mut cte_t;
-        let mut nodeCap = _nodeCap.clone();
-        if unlikely(cap_get_capType(&nodeCap) != cap_cnode_cap) {
-            current_lookup_fault = lookup_fault_invalid_root_new();
-            ret.status = exception_t::EXCEPTION_LOOKUP_FAULT;
-            return ret;
-        }
-
-        while true {
-            radixBits = cap_cnode_cap_get_capCNodeRadix(&nodeCap);
-            guardBits = cap_cnode_cap_get_capCNodeGuardSize(&nodeCap);
-            levelBits = radixBits + guardBits;
-
-            assert!(levelBits != 0);
-            capGuard = cap_cnode_cap_get_capCNodeGuard(&nodeCap);
-            guard = (capptr >> ((n_bits - guardBits) & MASK!(wordRadix))) & MASK!(guardBits);
-            if unlikely(guardBits > n_bits || guard != capGuard) {
-                current_lookup_fault = lookup_fault_guard_mismatch_new(capGuard, n_bits, guardBits);
-                ret.status = exception_t::EXCEPTION_LOOKUP_FAULT;
-                return ret;
-            }
-
-            if unlikely(levelBits > n_bits) {
-                current_lookup_fault = lookup_fault_depth_mismatch_new(levelBits, n_bits);
-                ret.status = exception_t::EXCEPTION_LOOKUP_FAULT;
-                return ret;
-            }
-
-            offset = (capptr >> (n_bits - levelBits)) & MASK!(radixBits);
-            slot = ((cap_cnode_cap_get_capCNodePtr(&nodeCap)) as *mut cte_t).add(offset);
-
-            if likely(n_bits == levelBits) {
-                ret.slot = slot;
-                ret.bitsRemaining = 0;
-                return ret;
-            }
-            n_bits -= levelBits;
-            nodeCap = (*slot).cap.clone();
-            if unlikely(cap_get_capType(&nodeCap) != cap_cnode_cap) {
-                ret.slot = slot;
-                ret.bitsRemaining = n_bits;
-                return ret;
-            }
-        }
-        panic!("UNREACHABLE");
     }
 }
 

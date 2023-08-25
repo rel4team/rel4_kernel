@@ -5,18 +5,17 @@ use crate::{
         NtfnState_Active, SysCall, SysReplyRecv, ThreadStateBlockedOnReceive,
         ThreadStateBlockedOnReply, ThreadStateRunning, seL4_MsgLengthBits, seL4_MsgExtraCapBits,
     },
-    object::{
-        structure_gen::{
-            endpoint_ptr_get_epQueue_head,
-            endpoint_ptr_get_epQueue_tail, endpoint_ptr_get_state, notification_ptr_get_state, 
-            seL4_Fault_get_seL4_FaultType, thread_state_get_blockingIPCCanGrant, thread_state_set_blockingIPCCanGrant,
-        },
-        tcb::isHighestPrio,
+    object::structure_gen::{
+        endpoint_ptr_get_epQueue_head,
+        endpoint_ptr_get_epQueue_tail, endpoint_ptr_get_state, notification_ptr_get_state, 
+        seL4_Fault_get_seL4_FaultType,
     },
     structures::{
-        endpoint_t, seL4_MessageInfo_t, tcb_t, thread_state_t,
+        endpoint_t, seL4_MessageInfo_t,
     },
 };
+
+use crate::task_manager::*;
 
 use log::error;
 use vspace::*;
@@ -25,7 +24,7 @@ use common::{sel4_config::wordBits, MASK};
 use cspace::interface::*;
 use super::{
     c_traps::slowpath,
-    thread::{getCSpace, getRegister, ksCurThread, setRegister},
+    thread::{getRegister, setRegister},
     transfermsg::{
         messageInfoFromWord_raw, seL4_MessageInfo_ptr_get_length,
         seL4_MessageInfo_ptr_set_capsUnwrapped, wordFromMessageInfo,

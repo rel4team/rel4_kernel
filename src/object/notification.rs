@@ -8,9 +8,10 @@ use crate::{
         doNBRecvFailedTransfer, possibleSwitchTo, rescheduleRequired, scheduleTCB, setRegister,
         setThreadState,
     },
-    object::tcb::tcbEPDequeue,
-    structures::{notification_t, tcb_queue_t, tcb_t},
+    structures::notification_t,
 };
+
+use crate::task_manager::*;
 
 use super::{
     endpoint::cancelIPC,
@@ -19,10 +20,8 @@ use super::{
         notification_ptr_get_ntfnQueue_tail, notification_ptr_get_state,
         notification_ptr_set_ntfnBoundTCB, notification_ptr_set_ntfnMsgIdentifier,
         notification_ptr_set_ntfnQueue_head, notification_ptr_set_ntfnQueue_tail,
-        notification_ptr_set_state, thread_state_get_tsType, thread_state_set_blockingObject,
-        thread_state_set_tsType,
+        notification_ptr_set_state
     },
-    tcb::{tcbEPAppend, tcbSchedEnqueue},
 };
 
 use common::structures::exception_t;

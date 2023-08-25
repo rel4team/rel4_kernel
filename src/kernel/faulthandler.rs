@@ -6,8 +6,10 @@ use crate::{
             seL4_Fault_CapFault_new, seL4_Fault_get_seL4_FaultType,
         },
     },
-    structures::{endpoint_t, seL4_Fault_t, tcb_t},
+    structures::{endpoint_t, seL4_Fault_t},
 };
+
+use crate::task_manager::*;
 
 use super::{
     boot::{current_fault, current_lookup_fault},

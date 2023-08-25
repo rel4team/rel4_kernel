@@ -1,12 +1,9 @@
-use common::structures::{exception_t, lookup_fault_t};
+use common::structures::exception_t;
 use cspace::interface::{cap_t, cte_t};
 
-use crate::{
-    config::{
-        seL4_MsgMaxExtraCaps, seL4_MsgMaxLength, CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS,
-        MAX_NUM_FREEMEM_REG, MAX_NUM_RESV_REG,
-    },
-    kernel::thread::n_contextRegisters,
+use crate::config::{
+    seL4_MsgMaxExtraCaps, seL4_MsgMaxLength, CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS,
+    MAX_NUM_FREEMEM_REG, MAX_NUM_RESV_REG,
 };
 
 #[repr(C)]
@@ -107,12 +104,6 @@ pub struct rootserver_mem_t {
     pub paging: region_t,
 }
 
-#[repr(C)]
-#[derive(Debug, PartialEq, Copy, Clone)]
-pub struct thread_state_t {
-    pub words: [usize; 3],
-}
-
 #[derive(PartialEq)]
 pub enum cap_tag_t {
     cap_null_cap = 0,
@@ -189,11 +180,6 @@ pub struct create_frames_of_region_ret_t {
     pub success: bool,
 }
 
-#[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct arch_tcb_t {
-    pub registers: [usize; n_contextRegisters],
-}
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -202,54 +188,9 @@ pub struct seL4_Fault_t {
 }
 
 #[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct tcb_t {
-    pub tcbArch: arch_tcb_t,
-    pub tcbState: thread_state_t,
-    pub tcbBoundNotification: *mut notification_t,
-    pub tcbFault: seL4_Fault_t,
-    pub tcbLookupFailure: lookup_fault_t,
-    pub domain: usize,
-    pub tcbMCP: usize,
-    pub tcbPriority: usize,
-    pub tcbTimeSlice: usize,
-    pub tcbFaultHandler: usize,
-    pub tcbIPCBuffer: usize,
-    pub tcbSchedNext: usize,
-    pub tcbSchedPrev: usize,
-    pub tcbEPNext: usize,
-    pub tcbEPPrev: usize,
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct tcb_queue_t {
-    pub head: *mut tcb_t,
-    pub tail: *mut tcb_t,
-}
-
-#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct notification_t {
     pub words: [usize; 4],
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct resolveAddressBits_ret_t {
-    pub status: exception_t,
-    pub slot: *mut cte_t,
-    pub bitsRemaining: usize,
-}
-
-impl Default for resolveAddressBits_ret_t {
-    fn default() -> Self {
-        resolveAddressBits_ret_t {
-            status: exception_t::EXCEPTION_NONE,
-            slot: 0 as *mut cte_t,
-            bitsRemaining: 0,
-        }
-    }
 }
 
 #[repr(C)]

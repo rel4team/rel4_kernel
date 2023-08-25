@@ -1,7 +1,8 @@
 
-use common::structures::exception_t;
+use common::structures::{exception_t, lookup_fault_t};
 
-use crate::cte::{cte_insert, cte_move, cte_swap, cap_removable, insert_new_cap};
+use crate::cte::{cte_insert, cte_move, cte_swap, cap_removable, insert_new_cap, resolve_address_bits};
+use crate::utils::resolveAddressBits_ret_t;
 
 use super::cap::{is_cap_revocable, same_object_as};
 
@@ -248,4 +249,9 @@ pub fn sameObjectAs(cap_a: &cap_t, cap_b: &cap_t) -> bool {
 #[inline]
 pub fn cap_capType_equals(cap: &cap_t, cap_type_tag: usize) -> bool {
     cap.get_cap_type() as usize == cap_type_tag
+}
+
+#[inline]
+pub fn rust_resolveAddressBits(node_cap: &cap_t, cap_ptr: usize, _n_bits: usize) -> resolveAddressBits_ret_t {
+    resolve_address_bits(node_cap, cap_ptr, _n_bits)
 }

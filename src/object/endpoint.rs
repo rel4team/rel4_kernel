@@ -8,7 +8,7 @@ use crate::{
     kernel::{
         boot::current_syscall_error,
         thread::{
-            doIPCTransfer, doNBRecvFailedTransfer, getCSpace, ksCurThread, possibleSwitchTo,
+            doIPCTransfer, doNBRecvFailedTransfer, possibleSwitchTo,
             rescheduleRequired, scheduleTCB, setMRs_syscall_error, setRegister, setThreadState,
         },
         transfermsg::{seL4_MessageInfo_new, wordFromMessageInfo},
@@ -16,15 +16,13 @@ use crate::{
     },
     object::{
         notification::completeSignal,
-        structure_gen::{
-            notification_ptr_get_state, thread_state_get_blockingIPCCanGrant,
-            thread_state_get_blockingIPCCanGrantReply, thread_state_get_blockingIPCIsCall,
-            thread_state_get_blockingObject,
-        },
-        tcb::{setupCallerCap, tcbEPDequeue},
+        structure_gen::notification_ptr_get_state,
+        tcb::setupCallerCap,
     },
-    structures::{endpoint_t, notification_t, tcb_queue_t, tcb_t},
+    structures::{endpoint_t, notification_t},
 };
+
+use crate::task_manager::*;
 
 use super::{
     cap::cteDeleteOne,
@@ -32,13 +30,8 @@ use super::{
     structure_gen::{
         endpoint_ptr_get_epQueue_head, endpoint_ptr_get_epQueue_tail, endpoint_ptr_get_state,
         endpoint_ptr_set_epQueue_head, endpoint_ptr_set_epQueue_tail, endpoint_ptr_set_state,
-        seL4_Fault_NullFault_new, thread_state_get_blockingIPCBadge,
-        thread_state_get_tsType, thread_state_set_blockingIPCBadge,
-        thread_state_set_blockingIPCCanGrant, thread_state_set_blockingIPCCanGrantReply,
-        thread_state_set_blockingIPCIsCall, thread_state_set_blockingObject,
-        thread_state_set_tsType,
+        seL4_Fault_NullFault_new
     },
-    tcb::{tcbEPAppend, tcbSchedEnqueue},
 };
 
 use common::structures::exception_t;

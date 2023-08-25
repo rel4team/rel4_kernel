@@ -7,15 +7,15 @@ use common::structures::exception_t;
 use cspace::interface::*;
 use log::debug;
 use crate::kernel::boot::ksDomSchedule;
-use crate::kernel::thread::{ksDomScheduleIdx, Arch_initContext, capRegister, setRegister, setNextPC, setThreadState,
-    ksCurDomain, ksDomainTime, getCSpaceRef};
+use crate::kernel::thread::{Arch_initContext, setRegister, setNextPC, setThreadState};
 use crate::object::cnode::setupReplyMaster;
 use crate::object::interrupt::setIRQState;
-use crate::structures::{region_t, rootserver_mem_t, v_region_t, tcb_t, seL4_SlotRegion, create_frames_of_region_ret_t,
+use crate::structures::{region_t, rootserver_mem_t, v_region_t, seL4_SlotRegion, create_frames_of_region_ret_t,
     seL4_BootInfo, seL4_IPCBuffer};
 
 use crate::config::*;
 
+use crate::task_manager::*;
 use vspace::*;
 #[no_mangle]
 #[link_section = ".boot.bss"]

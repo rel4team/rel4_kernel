@@ -13,31 +13,31 @@ use crate::{
         objecttype::decodeInvocation,
         structure_gen::{
             notification_ptr_get_ntfnBoundTCB,
-            seL4_Fault_CapFault_new, seL4_Fault_UserException_new, thread_state_get_tsType,
+            seL4_Fault_CapFault_new, seL4_Fault_UserException_new,
         },
-        tcb::{deleteCallerCap, lookupExtraCaps, tcbSchedAppend, tcbSchedDequeue},
+        tcb::{deleteCallerCap, lookupExtraCaps},
     },
     riscv::read_sip,
-    structures::{notification_t, seL4_MessageInfo_t, tcb_t},
+    structures::{notification_t, seL4_MessageInfo_t},
 };
 
 use super::{
     boot::{active_irq, current_fault, current_lookup_fault},
-    cspace::{lookupCap, lookupCapAndSlot},
     faulthandler::handleFault,
     thread::{
-        activateThread, capRegister, doReplyTransfer, getCSpace, getRegister, ksCurThread,
+        activateThread, doReplyTransfer, getRegister,
         rescheduleRequired, schedule, setThreadState,
     },
     transfermsg::{
         messageInfoFromWord, seL4_MessageInfo_ptr_get_label, seL4_MessageInfo_ptr_get_length,
     },
-    vspace::{handleVMFault, lookupIPCBuffer},
+    vspace::{handleVMFault, lookupIPCBuffer}, cspace::{lookupCap, lookupCapAndSlot},
 };
 
 use common::{structures::{exception_t, lookup_fault_missing_capability_new}, BIT};
 use cspace::interface::*;
 use log::debug;
+use crate::task_manager::*;
 
 #[no_mangle]
 pub fn handleInterruptEntry() -> exception_t {

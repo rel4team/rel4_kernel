@@ -9,10 +9,10 @@ use crate::{
         boot::{current_extra_caps, current_lookup_fault, current_syscall_error},
         cspace::{rust_lookupPivotSlot, rust_lookupSourceSlot, rust_lookupTargetSlot},
         preemption::preemptionPoint,
-        thread::{getCSpace, ksCurThread, setThreadState},
+        thread::setThreadState,
     },
     object::objecttype::finaliseCap,
-    structures::{endpoint_t, finaliseCap_ret, finaliseSlot_ret, tcb_t},
+    structures::{endpoint_t, finaliseCap_ret, finaliseSlot_ret},
     syscall::getSyscallArg,
 };
 
@@ -23,7 +23,7 @@ use super::{
         updateCapData,
     },
 };
-
+use crate::task_manager::*;
 use common::structures::{exception_t, lookup_fault_missing_capability_new};
 use cspace::interface::*;
 use log::debug;

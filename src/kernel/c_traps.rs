@@ -5,10 +5,10 @@ use crate::{
         RISCVInstructionAccessFault, RISCVInstructionPageFault, RISCVLoadAccessFault,
         RISCVLoadPageFault, RISCVStoreAccessFault, RISCVStorePageFault,
     },
-    kernel::thread::ksCurThread,
     riscv::read_scause,
-    structures::tcb_t,
 };
+
+use crate::task_manager::*;
 
 use super::syscall::{
     handleInterruptEntry, handleSyscall, handleUserLevelFault, handleVMFaultEvent,

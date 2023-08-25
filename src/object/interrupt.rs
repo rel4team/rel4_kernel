@@ -11,7 +11,7 @@ use crate::{
     kernel::{
         boot::{active_irq, current_extra_caps, current_syscall_error},
         cspace::rust_lookupTargetSlot,
-        thread::{getExtraCPtr, ksCurThread, setThreadState, timerTick},
+        thread::{getExtraCPtr, setThreadState, timerTick},
     },
     riscv::{read_sip, resetTimer},
     structures::notification_t,
@@ -25,6 +25,7 @@ use super::{
 
 use common::{structures::exception_t, BIT};
 use cspace::interface::*;
+use crate::task_manager::*;
 use log::debug;
 
 #[no_mangle]

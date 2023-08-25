@@ -8,10 +8,11 @@ use crate::{
         ksDomScheduleLength, seL4_MsgMaxExtraCaps
     },
     structures::{
-        dschedule_t, extra_caps_t, seL4_Fault_t, syscall_error_t, tcb_t, 
+        dschedule_t, extra_caps_t, seL4_Fault_t, syscall_error_t, 
     },
 };
 
+use crate::task_manager::*;
 
 #[link(name = "kernel_all.c")]
 extern "C" {

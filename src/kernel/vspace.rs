@@ -23,19 +23,20 @@ use crate::{
         structure_gen::seL4_Fault_VMFault_new
     },
     riscv::read_stval,
-    structures::tcb_t,
     syscall::getSyscallArg,
     utils::MAX_FREE_INDEX,
     boot::clearMemory,
 
 };
 
+use crate::task_manager::*;
+
 use super::{
     boot::{
         current_extra_caps, current_fault, current_lookup_fault,
     },
     cspace::rust_lookupTargetSlot,
-    thread::{getCSpace, ksCurThread, setMR, setRegister, setThreadState},
+    thread::{setMR, setRegister, setThreadState},
     transfermsg::{
         seL4_MessageInfo_new, vmAttributesFromWord, vm_attributes_get_riscvExecuteNever,
         wordFromMessageInfo,

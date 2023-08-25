@@ -10,16 +10,14 @@ use crate::{
         TCBBindNotification, TCBConfigure, TCBCopyRegisters, TCBReadRegisters, TCBResume,
         TCBSetIPCBuffer, TCBSetMCPriority, TCBSetPriority, TCBSetSchedParams, TCBSetSpace,
         TCBSetTLSBase, TCBSuspend, TCBUnbindNotification, TCBWriteRegisters,
-        ThreadStateBlockedOnReply, ThreadStateRestart, ThreadStateRunning, CONFIG_NUM_PRIORITIES,
-        L2_BITMAP_SIZE,
+        ThreadStateBlockedOnReply, ThreadStateRestart, ThreadStateRunning,
     },
     kernel::{
         boot::{current_extra_caps, current_syscall_error},
         cspace::lookupSlot,
         thread::{
-            getCSpace, getExtraCPtr, getReStartPC, getRegister, ksCurThread, ksReadyQueues,
-            ksReadyQueuesL1Bitmap, ksReadyQueuesL2Bitmap, rescheduleRequired, restart,
-            setMCPriority, setNextPC, setPriority, setRegister, setThreadState, suspend, TLS_BASE,
+            getExtraCPtr, getReStartPC, getRegister, rescheduleRequired, restart,
+            setMCPriority, setNextPC, setPriority, setRegister, setThreadState, suspend,
         },
         transfermsg::{
             seL4_MessageInfo_new, seL4_MessageInfo_ptr_get_extraCaps, wordFromMessageInfo,
@@ -28,46 +26,23 @@ use crate::{
     },
     object::objecttype::updateCapData,
     structures::{
-        notification_t, seL4_MessageInfo_t, tcb_queue_t, tcb_t,
+        notification_t, seL4_MessageInfo_t,
     },
     syscall::getSyscallArg,
 };
+
+use crate::task_manager::*;
 
 use super::{
     cap::{cteDelete, cteDeleteOne},
     // cap::cteDelete,
     notification::{bindNotification, unbindNotification},
-    structure_gen::{notification_ptr_get_ntfnQueue_head, notification_ptr_get_ntfnQueue_tail,
-        thread_state_get_tcbQueued, thread_state_set_tcbQueued,
-    },
+    structure_gen::{notification_ptr_get_ntfnQueue_head, notification_ptr_get_ntfnQueue_tail},
 };
 
 use common::{structures::exception_t, sel4_config::*, BIT, MASK};
 use cspace::interface::*;
 use log::debug;
-
-type prio_t = usize;
-
-#[inline]
-pub fn ready_queues_index(dom: usize, prio: usize) -> usize {
-    dom * CONFIG_NUM_PRIORITIES + prio
-}
-
-#[inline]
-pub fn prio_to_l1index(prio: usize) -> usize {
-    prio >> wordRadix
-}
-
-#[inline]
-pub fn l1index_to_prio(l1index: usize) -> usize {
-    l1index << wordRadix
-}
-
-#[inline]
-pub fn invert_l1index(l1index: usize) -> usize {
-    let inverted = L2_BITMAP_SIZE - 1 - l1index;
-    inverted
-}
 
 #[no_mangle]
 pub fn checkPrio(prio: usize, auth: *mut tcb_t) -> exception_t {
@@ -80,157 +55,6 @@ pub fn checkPrio(prio: usize, auth: *mut tcb_t) -> exception_t {
             return exception_t::EXCEPTION_SYSCALL_ERROR;
         }
         exception_t::EXCEPTION_NONE
-    }
-}
-
-#[inline]
-pub fn getHighestPrio(dom: usize) -> prio_t {
-    unsafe {
-        let l1index = wordBits - 1 - ksReadyQueuesL1Bitmap[dom].leading_zeros() as usize;
-        let l1index_inverted = invert_l1index(l1index);
-        let l2index =
-            wordBits - 1 - ksReadyQueuesL2Bitmap[dom][l1index_inverted].leading_zeros() as usize;
-        l1index_to_prio(l1index) | l2index
-    }
-}
-
-#[inline]
-pub fn isHighestPrio(dom: usize, prio: prio_t) -> bool {
-    unsafe { ksReadyQueuesL1Bitmap[dom] == 0 || prio >= getHighestPrio(dom) }
-}
-
-#[inline]
-pub fn addToBitmap(dom: usize, prio: usize) {
-    unsafe {
-        let l1index = prio_to_l1index(prio);
-        let l1index_inverted = invert_l1index(l1index);
-        ksReadyQueuesL1Bitmap[dom] |= BIT!(l1index);
-        ksReadyQueuesL2Bitmap[dom][l1index_inverted] |= BIT!(prio & MASK!(wordRadix));
-    }
-}
-
-#[inline]
-pub fn removeFromBitmap(dom: usize, prio: usize) {
-    unsafe {
-        let l1index = prio_to_l1index(prio);
-        let l1index_inverted = invert_l1index(l1index);
-        ksReadyQueuesL2Bitmap[dom][l1index_inverted] &= !BIT!(prio & MASK!(wordRadix));
-        if ksReadyQueuesL2Bitmap[dom][l1index_inverted] == 0 {
-            ksReadyQueuesL1Bitmap[dom] &= !(BIT!((l1index)));
-        }
-    }
-}
-
-#[no_mangle]
-pub fn tcbSchedEnqueue(_tcb: *mut tcb_t) {
-    unsafe {
-        let tcb = &mut (*_tcb);
-        if thread_state_get_tcbQueued(&tcb.tcbState) == 0 {
-            let dom = tcb.domain;
-            let prio = tcb.tcbPriority;
-            let idx = ready_queues_index(dom, prio);
-            let mut queue = ksReadyQueues[idx];
-            if queue.tail as usize == 0 {
-                queue.head = _tcb;
-                addToBitmap(dom, prio);
-            } else {
-                (*(queue.tail as *mut tcb_t)).tcbSchedNext = _tcb as usize;
-            }
-            (*_tcb).tcbSchedPrev = queue.tail as usize;
-            (*_tcb).tcbSchedNext = 0;
-            queue.tail = _tcb;
-            ksReadyQueues[idx] = queue;
-
-            thread_state_set_tcbQueued(&mut tcb.tcbState, 1);
-        }
-    }
-}
-
-#[inline]
-#[no_mangle]
-pub fn tcbSchedDequeue(_tcb: *mut tcb_t) {
-    unsafe {
-        let tcb = &mut (*_tcb);
-        if thread_state_get_tcbQueued(&tcb.tcbState) != 0 {
-            let dom = tcb.domain;
-            let prio = tcb.tcbPriority;
-            let idx = ready_queues_index(dom, prio);
-            let mut queue = ksReadyQueues[idx];
-            if tcb.tcbSchedPrev != 0 {
-                (*(tcb.tcbSchedPrev as *mut tcb_t)).tcbSchedNext = tcb.tcbSchedNext;
-            } else {
-                queue.head = tcb.tcbSchedNext as *mut tcb_t;
-                if tcb.tcbSchedNext == 0 {
-                    removeFromBitmap(dom, prio);
-                }
-            }
-            if tcb.tcbSchedNext != 0 {
-                (*(tcb.tcbSchedNext as *mut tcb_t)).tcbSchedPrev = tcb.tcbSchedPrev;
-            } else {
-                queue.tail = tcb.tcbSchedPrev as *mut tcb_t;
-            }
-
-            ksReadyQueues[idx] = queue;
-            thread_state_set_tcbQueued(&mut tcb.tcbState, 0);
-        }
-    }
-}
-
-#[no_mangle]
-pub fn tcbSchedAppend(tcb: *mut tcb_t) {
-    unsafe {
-        if thread_state_get_tcbQueued(&(*tcb).tcbState) == 0 {
-            let dom = (*tcb).domain;
-            let prio = (*tcb).tcbPriority;
-            let idx = ready_queues_index(dom, prio);
-            let mut queue = ksReadyQueues[idx];
-
-            if queue.head as usize == 0 {
-                queue.head = tcb;
-                addToBitmap(dom, prio);
-            } else {
-                let next = queue.tail;
-                (*next).tcbSchedNext = tcb as usize;
-            }
-            (*tcb).tcbSchedPrev = queue.tail as usize;
-            (*tcb).tcbSchedNext = 0;
-            queue.tail = tcb;
-            ksReadyQueues[idx] = queue;
-
-            thread_state_set_tcbQueued(&mut (*tcb).tcbState, 1);
-        }
-    }
-}
-
-#[no_mangle]
-pub fn tcbEPAppend(tcb: *mut tcb_t, mut queue: tcb_queue_t) -> tcb_queue_t {
-    unsafe {
-        if queue.head as usize == 0 {
-            queue.head = tcb;
-        } else {
-            (*(queue.tail as *mut tcb_t)).tcbEPNext = tcb as usize;
-        }
-        (*tcb).tcbEPPrev = queue.tail as usize;
-        (*tcb).tcbEPNext = 0;
-        queue.tail = tcb as *mut tcb_t;
-        queue
-    }
-}
-
-#[no_mangle]
-pub fn tcbEPDequeue(tcb: *mut tcb_t, mut queue: tcb_queue_t) -> tcb_queue_t {
-    unsafe {
-        if (*tcb).tcbEPPrev != 0 {
-            (*((*tcb).tcbEPPrev as *mut tcb_t)).tcbEPNext = (*tcb).tcbEPNext;
-        } else {
-            queue.head = (*tcb).tcbEPNext as *mut tcb_t;
-        }
-        if (*tcb).tcbEPNext != 0 {
-            (*((*tcb).tcbEPNext as *mut tcb_t)).tcbEPPrev = (*tcb).tcbEPPrev;
-        } else {
-            queue.tail = (*tcb).tcbEPPrev as *mut tcb_t;
-        }
-        queue
     }
 }
 
