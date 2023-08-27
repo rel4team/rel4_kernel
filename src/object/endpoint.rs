@@ -1,6 +1,6 @@
 use crate::{
     config::{
-        badgeRegister, msgInfoRegister, tcbReply, EPState_Idle, EPState_Recv, EPState_Send,
+        badgeRegister, msgInfoRegister, EPState_Idle, EPState_Recv, EPState_Send,
         NtfnState_Active,
     },
     kernel::{
@@ -17,10 +17,10 @@ use crate::{
         structure_gen::notification_ptr_get_state,
         tcb::setupCallerCap,
     },
-    structures::{endpoint_t, notification_t},
+    structures::endpoint_t,
 };
 
-use crate::task_manager::*;
+use task_manager::*;
 
 use super::{
     cap::cteDeleteOne,
@@ -32,7 +32,7 @@ use super::{
     },
 };
 
-use common::structures::exception_t;
+use common::{structures::{exception_t, notification_t}, sel4_config::tcbReply};
 use cspace::interface::*;
 
 #[inline]

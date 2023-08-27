@@ -4,8 +4,8 @@ use crate::{
     config::{
         seL4_CapTableObject, seL4_EndpointObject, seL4_HugePageBits,
         seL4_InvalidCapability, seL4_LargePageBits, seL4_NotificationObject,
-        seL4_TCBBits, seL4_TCBObject, seL4_UntypedObject,
-        tcbCNodeEntries, tcbCTable, IRQInactive, CONFIG_TIME_SLICE, TCB_OFFSET,
+        seL4_TCBObject, seL4_UntypedObject,
+        tcbCNodeEntries, IRQInactive,
     },
     kernel::{
         boot::{current_syscall_error, current_lookup_fault},
@@ -21,12 +21,12 @@ use crate::{
         },
     },
     structures::{
-        endpoint_t, finaliseCap_ret,
-        notification_t, seL4_CNode_CapData_t,
+        endpoint_t,
+        seL4_CNode_CapData_t,
     },
 };
 
-use crate::task_manager::*;
+use task_manager::*;
 use log::debug;
 use vspace::*;
 
@@ -44,7 +44,7 @@ use super::{
     untyped::decodeUntypedInvocation,
 };
 
-use common::{structures::exception_t, sel4_config::*, MASK};
+use common::{structures::{exception_t, notification_t}, sel4_config::*, MASK};
 use cspace::interface::*;
 
 
@@ -259,7 +259,8 @@ pub fn updateCapData(preserve: bool, newData: usize, _cap: &cap_t) -> cap_t {
     }
 }
 
-pub fn postCapDeletion(cap: &cap_t) {
+#[no_mangle]
+pub fn post_cap_deletion(cap: &cap_t) {
     if cap_get_capType(cap) == cap_irq_handler_cap {
         let irq = cap_irq_handler_cap_get_capIRQ(cap);
         setIRQState(IRQInactive, irq);

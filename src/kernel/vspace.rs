@@ -11,7 +11,7 @@ use crate::{
         n_msgRegisters, seL4_ASIDPoolBits, seL4_AlignmentError,
         seL4_DeleteFirst, seL4_FailedLookup, seL4_IPCBufferSizeBits, seL4_IllegalOperation,
         seL4_InvalidArgument, seL4_InvalidCapability,
-        seL4_RevokeFirst, seL4_TruncatedMessage, tcbBuffer, tcbVTable, RISCVASIDControlMakePool,
+        seL4_RevokeFirst, seL4_TruncatedMessage, RISCVASIDControlMakePool,
         RISCVASIDPoolAssign, RISCVInstructionAccessFault,
         RISCVInstructionPageFault, RISCVLoadAccessFault, RISCVLoadPageFault,
         RISCVPageGetAddress, RISCVPageMap, RISCVPageTableMap, RISCVPageTableUnmap,
@@ -29,7 +29,7 @@ use crate::{
 
 };
 
-use crate::task_manager::*;
+use task_manager::*;
 
 use super::thread::setMR;
 use super::{

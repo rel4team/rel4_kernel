@@ -125,43 +125,6 @@ pub enum cap_tag_t {
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub struct finaliseSlot_ret {
-    pub status: exception_t,
-    pub success: bool,
-    pub cleanupInfo: cap_t,
-}
-
-impl Default for finaliseSlot_ret {
-    fn default() -> Self {
-        finaliseSlot_ret {
-            status: exception_t::EXCEPTION_NONE,
-            success: true,
-            cleanupInfo: cap_t::default(),
-        }
-    }
-}
-
-
-
-
-#[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct finaliseCap_ret {
-    pub remainder: cap_t,
-    pub cleanupInfo: cap_t,
-}
-
-impl Default for finaliseCap_ret {
-    fn default() -> Self {
-        finaliseCap_ret {
-            remainder: cap_t::default(),
-            cleanupInfo: cap_t::default(),
-        }
-    }
-}
-
-#[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct endpoint_t {
     pub words: [usize; 2],
 }
@@ -171,19 +134,6 @@ pub struct endpoint_t {
 pub struct create_frames_of_region_ret_t {
     pub region: seL4_SlotRegion,
     pub success: bool,
-}
-
-
-#[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct seL4_Fault_t {
-    pub words: [usize; 2],
-}
-
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
-pub struct notification_t {
-    pub words: [usize; 4],
 }
 
 #[repr(C)]
@@ -223,39 +173,6 @@ impl Default for lookupCapAndSlot_ret_t {
         lookupCapAndSlot_ret_t {
             status: exception_t::EXCEPTION_NONE,
             cap: cap_t::default(),
-            slot: 0 as *mut cte_t,
-        }
-    }
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-
-pub struct lookupSlot_raw_ret_t {
-    pub status: exception_t,
-    pub slot: *mut cte_t,
-}
-
-impl Default for lookupSlot_raw_ret_t {
-    fn default() -> Self {
-        lookupSlot_raw_ret_t {
-            status: exception_t::EXCEPTION_NONE,
-            slot: 0 as *mut cte_t,
-        }
-    }
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct lookupSlot_ret_t {
-    pub status: exception_t,
-    pub slot: *mut cte_t,
-}
-
-impl Default for lookupSlot_ret_t {
-    fn default() -> Self {
-        lookupSlot_ret_t {
-            status: exception_t::EXCEPTION_NONE,
             slot: 0 as *mut cte_t,
         }
     }

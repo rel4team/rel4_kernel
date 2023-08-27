@@ -1,6 +1,6 @@
-use common::{BIT, sel4_config::{wordRadix, wordBits}, MASK, utils::convert_to_mut_type_ref};
+use common::{BIT, sel4_config::{wordRadix, wordBits, NUM_READY_QUEUES, L2_BITMAP_SIZE, CONFIG_NUM_DOMAINS, seL4_TCBBits,
+    CONFIG_MAX_NUM_NODES, CONFIG_NUM_PRIORITIES, CONFIG_TIME_SLICE}, MASK, utils::convert_to_mut_type_ref};
 
-use crate::config::{NUM_READY_QUEUES, L2_BITMAP_SIZE, CONFIG_NUM_DOMAINS, CONFIG_MAX_NUM_NODES, seL4_TCBBits, CONFIG_NUM_PRIORITIES, CONFIG_TIME_SLICE};
 
 use super::{tcb::tcb_t, tcb_queue_t, get_idle_thread, get_currenct_thread, ThreadState};
 
@@ -230,12 +230,7 @@ fn schedule_tcb(tcb_ref: &tcb_t) {
 #[no_mangle]
 pub fn scheduleTCB(tptr: *const tcb_t) {
     unsafe {
-        // if tptr as usize == ksCurThread as usize
-        //     && ksSchedulerAction as usize == SchedulerAction_ResumeCurrentThread
-        //     && !isRunnable(tptr)
-        // {
-        //     rescheduleRequired();
-        // }
+
         schedule_tcb(&(*tptr));
     }
 }

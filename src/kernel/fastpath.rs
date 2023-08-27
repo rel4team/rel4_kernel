@@ -1,7 +1,6 @@
 use crate::{
     config::{
-        msgRegister, seL4_Fault_NullFault, tcbCTable,
-        tcbCaller, tcbReply, tcbVTable, EPState_Idle, EPState_Recv, EPState_Send,
+        msgRegister, seL4_Fault_NullFault, EPState_Idle, EPState_Recv, EPState_Send,
         NtfnState_Active, SysCall, SysReplyRecv, seL4_MsgLengthBits, seL4_MsgExtraCapBits,
     },
     object::structure_gen::{
@@ -14,12 +13,12 @@ use crate::{
     },
 };
 
-use crate::task_manager::*;
+use task_manager::*;
 
 use log::error;
 use vspace::*;
 use core::intrinsics::{likely, unlikely};
-use common::{sel4_config::wordBits, MASK};
+use common::{sel4_config::{wordBits, tcbCTable, tcbVTable, tcbReply, tcbCaller}, MASK};
 use cspace::interface::*;
 use super::{
     c_traps::slowpath,

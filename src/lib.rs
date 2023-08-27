@@ -32,7 +32,6 @@ mod riscv;
 mod syscall;
 mod boot;
 mod logging;
-mod task_manager;
 
 #[no_mangle]
 pub extern "C" fn idle_thread() {

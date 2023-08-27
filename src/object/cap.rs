@@ -1,7 +1,7 @@
 use crate::{
     config::{
         seL4_DeleteFirst, seL4_FailedLookup, seL4_IllegalOperation,
-        seL4_TruncatedMessage, tcbCaller, CNodeCancelBadgedSends, CNodeCopy, CNodeDelete,
+        seL4_TruncatedMessage, CNodeCancelBadgedSends, CNodeCopy, CNodeDelete,
         CNodeMint, CNodeMove, CNodeMutate, CNodeRevoke, CNodeRotate, CNodeSaveCaller,
     },
     kernel::{
@@ -10,19 +10,19 @@ use crate::{
         preemption::preemptionPoint,
     },
     object::objecttype::finaliseCap,
-    structures::{endpoint_t, finaliseCap_ret, finaliseSlot_ret},
+    structures::endpoint_t,
     syscall::getSyscallArg,
 };
 
 use super::{
     endpoint::cancelBadgedSends,
     interrupt::intStateIRQNode,
-    objecttype::{hasCancelSendRight, maskCapRights, postCapDeletion,
+    objecttype::{hasCancelSendRight, maskCapRights,
         updateCapData,
     },
 };
-use crate::task_manager::*;
-use common::structures::{exception_t, lookup_fault_missing_capability_new};
+use task_manager::*;
+use common::{structures::{exception_t, lookup_fault_missing_capability_new}, sel4_config::tcbCaller};
 use cspace::interface::*;
 use log::debug;
 
@@ -51,42 +51,7 @@ pub fn cteDelete(slot: *mut cte_t, exposed: bool) -> exception_t {
     return exception_t::EXCEPTION_NONE;
 }
 
-#[no_mangle]
-pub fn emptySlot(slot: *mut cte_t, _cleanupInfo: &cap_t) {
-    unsafe {
-        if cap_get_capType(&(*slot).cap) != cap_null_cap {
-            let mdbNode = &(*slot).cteMDBNode;
-            let prev = mdb_node_get_mdbPrev(mdbNode);
-            let next = mdb_node_get_mdbNext(mdbNode);
-            if prev != 0 {
-                let prev_ptr = mdb_node_get_mdbPrev(mdbNode) as *mut cte_t;
-                mdb_node_ptr_set_mdbNext(&mut (*prev_ptr).cteMDBNode, next);
-            }
-            if next != 0 {
-                let next_ptr = mdb_node_get_mdbNext(mdbNode) as *mut cte_t;
-                mdb_node_ptr_set_mdbPrev(&mut (*next_ptr).cteMDBNode, prev);
-                mdb_node_set_mdbFirstBadged(
-                    &mut (*next_ptr).cteMDBNode,
-                    ((mdb_node_get_mdbFirstBadged(&(*next_ptr).cteMDBNode) != 0)
-                        || (mdb_node_get_mdbFirstBadged(mdbNode) != 0))
-                        as usize,
-                );
-            }
-            (*slot).cap = cap_null_cap_new();
-            (*slot).cteMDBNode = mdb_node_new(0, 0, 0, 0);
 
-            postCapDeletion(_cleanupInfo);
-        }
-    }
-}
-
-
-#[inline]
-#[no_mangle]
-pub fn capCyclicZombie(cap: &cap_t, slot: *mut cte_t) -> bool {
-    let ptr = cap_zombie_cap_get_capZombiePtr(cap) as *mut cte_t;
-    (cap_get_capType(cap) == cap_zombie_cap) && (ptr == slot)
-}
 
 #[no_mangle]
 pub fn finaliseSlot(slot: *mut cte_t, immediate: bool) -> finaliseSlot_ret {

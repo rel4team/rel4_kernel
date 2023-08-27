@@ -2,7 +2,7 @@ use core::intrinsics::unlikely;
 
 use crate::{
     config::{
-        irqInvalid, maxIRQ, msgInfoRegister, n_msgRegisters, tcbCaller, SysCall, SysNBRecv,
+        irqInvalid, maxIRQ, msgInfoRegister, n_msgRegisters, SysCall, SysNBRecv,
         SysNBSend, SysRecv, SysReply, SysReplyRecv, SysSend, SysYield, KERNEL_TIMER_IRQ, SIP_SEIP, SIP_STIP,
     },
     object::{
@@ -17,7 +17,7 @@ use crate::{
         tcb::{deleteCallerCap, lookupExtraCaps},
     },
     riscv::read_sip,
-    structures::{notification_t, seL4_MessageInfo_t},
+    structures::seL4_MessageInfo_t,
 };
 
 use super::{
@@ -32,10 +32,10 @@ use super::{
     vspace::{handleVMFault, lookupIPCBuffer}, cspace::{lookupCap, lookupCapAndSlot},
 };
 
-use common::{structures::{exception_t, lookup_fault_missing_capability_new}, BIT};
+use common::{structures::{exception_t, lookup_fault_missing_capability_new, notification_t}, BIT, sel4_config::tcbCaller};
 use cspace::interface::*;
 use log::debug;
-use crate::task_manager::*;
+use task_manager::*;
 
 #[no_mangle]
 pub fn handleInterruptEntry() -> exception_t {

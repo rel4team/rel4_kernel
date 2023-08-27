@@ -1,8 +1,11 @@
 use common::{structures::lookup_fault_t, MASK, utils::convert_to_mut_type_ref};
-use cspace::interface::cte_t;
+use cspace::interface::{cte_t, rust_resolveAddressBits, resolve_address_bits};
 use vspace::{set_vm_root, pptr_t};
 
-use crate::{structures::{notification_t, seL4_Fault_t}, config::{seL4_TCBBits, tcbVTable}};
+// use crate::{structures::{notification_t, seL4_Fault_t}, config::{seL4_TCBBits, tcbVTable}};
+use common::sel4_config::{seL4_TCBBits, tcbVTable, tcbCTable, wordBits};
+use common::structures::{notification_t, seL4_Fault_t};
+use crate::structures::lookupSlot_raw_ret_t;
 
 use super::{registers::n_contextRegisters, ready_queues_index, ksReadyQueues, addToBitmap, removeFromBitmap, NextIP, FaultIP, ksIdleThread, ksCurThread,
     rescheduleRequired, possibleSwitchTo, scheduleTCB};
@@ -201,8 +204,16 @@ impl tcb_t {
         }
     }
 
+    #[inline]
     pub fn get_ptr(&self) -> pptr_t {
         self as *const tcb_t as usize
+    }
+
+    #[inline]
+    pub fn lookup_slot(&self, cap_ptr: usize) -> lookupSlot_raw_ret_t {
+        let thread_root = self.get_cspace(tcbCTable).cap;
+        let res_ret = resolve_address_bits(&thread_root, cap_ptr, wordBits);
+        lookupSlot_raw_ret_t { status: res_ret.status, slot: res_ret.slot }
     }
 
 }
@@ -353,5 +364,18 @@ pub fn setPriority(tptr: *mut tcb_t, prio: usize) {
 pub fn setDomain(tptr: *mut tcb_t, _dom: usize) {
     unsafe {
         (*tptr).set_domain(_dom)
+    }
+}
+
+pub fn lookupSlot(thread: *const tcb_t, capptr: usize) -> lookupSlot_raw_ret_t {
+    unsafe {
+        // let threadRoot = &(*getCSpace(thread as usize, tcbCTable)).cap;
+        // let res_ret = rust_resolveAddressBits(threadRoot, capptr, wordBits);
+        // let ret = lookupSlot_raw_ret_t {
+        //     status: res_ret.status,
+        //     slot: res_ret.slot,
+        // };
+        // return ret;
+        (*thread).lookup_slot(capptr)
     }
 }

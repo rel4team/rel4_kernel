@@ -1,16 +1,16 @@
 extern crate core;
 
-use common::structures::lookup_fault_t;
+use common::structures::{lookup_fault_t, seL4_Fault_t};
 use cspace::interface::cte_t;
 
 use crate::{
     config::seL4_MsgMaxExtraCaps,
     structures::{
-        extra_caps_t, seL4_Fault_t, syscall_error_t, 
+        extra_caps_t, syscall_error_t, 
     },
 };
 
-use crate::task_manager::*;
+use task_manager::*;
 
 #[link(name = "kernel_all.c")]
 extern "C" {

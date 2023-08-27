@@ -1,6 +1,6 @@
 use crate::config::{n_msgRegisters, msgRegister};
 
-use crate::task_manager::*;
+use task_manager::*;
 
 #[inline]
 #[no_mangle]

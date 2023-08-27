@@ -1,32 +1,18 @@
 use core::intrinsics::unlikely;
 
 use crate::{
-    config::{seL4_FailedLookup, seL4_RangeError, tcbCTable},
+    config::{seL4_FailedLookup, seL4_RangeError},
     structures::{
-        lookupCapAndSlot_ret_t, lookupCap_ret_t, lookupSlot_raw_ret_t,
-        lookupSlot_ret_t,
+        lookupCapAndSlot_ret_t, lookupCap_ret_t
     },
 };
 
-use crate::task_manager::*;
+use task_manager::*;
 
-use common::{structures::{exception_t, lookup_fault_invalid_root_new, lookup_fault_depth_mismatch_new}, sel4_config::wordBits};
+use common::{structures::{exception_t, lookup_fault_invalid_root_new, lookup_fault_depth_mismatch_new}, sel4_config::{wordBits, tcbCTable}};
 use cspace::interface::*;
-use log::debug;
-
 use super::boot::{current_lookup_fault, current_syscall_error};
 
-pub fn lookupSlot(thread: *const tcb_t, capptr: usize) -> lookupSlot_raw_ret_t {
-    unsafe {
-        let threadRoot = &(*getCSpace(thread as usize, tcbCTable)).cap;
-        let res_ret = rust_resolveAddressBits(threadRoot, capptr, wordBits);
-        let ret = lookupSlot_raw_ret_t {
-            status: res_ret.status,
-            slot: res_ret.slot,
-        };
-        return ret;
-    }
-}
 
 #[no_mangle]
 pub extern "C" fn lookupCapAndSlot(thread: *const tcb_t, cPtr: usize) -> lookupCapAndSlot_ret_t {
@@ -62,7 +48,6 @@ pub fn lookupSlotForCNodeOp(
             current_syscall_error.failedLookupWasSource = isSource as usize;
             current_lookup_fault = lookup_fault_invalid_root_new();
         }
-        debug!("in here1");
         ret.status = exception_t::EXCEPTION_SYSCALL_ERROR;
         return ret;
     }
@@ -72,7 +57,6 @@ pub fn lookupSlotForCNodeOp(
             current_syscall_error.rangeErrorMin = 1;
             current_syscall_error.rangeErrorMax = wordBits;
         }
-        debug!("in here2");
         ret.status = exception_t::EXCEPTION_SYSCALL_ERROR;
         return ret;
     }
@@ -85,7 +69,6 @@ pub fn lookupSlotForCNodeOp(
             current_syscall_error.failedLookupWasSource = isSource as usize;
         }
         ret.status = exception_t::EXCEPTION_SYSCALL_ERROR;
-        debug!("in here3");
         return ret;
     }
 
@@ -96,7 +79,6 @@ pub fn lookupSlotForCNodeOp(
             current_lookup_fault = lookup_fault_depth_mismatch_new(0, res_ret.bitsRemaining);
         }
         ret.status = exception_t::EXCEPTION_SYSCALL_ERROR;
-        debug!("in here4");
         return ret;
     }
     ret.slot = res_ret.slot;

@@ -2,8 +2,7 @@ use crate::{
     config::{
         badgeRegister, frameRegisters, gpRegisters, msgInfoRegister, msgRegister, n_frameRegisters,
         n_gpRegisters, n_msgRegisters, seL4_IllegalOperation, seL4_InvalidCapability, seL4_MinPrio,
-        seL4_MsgMaxExtraCaps, seL4_RangeError, seL4_TruncatedMessage, tcbBuffer, tcbCTable,
-        tcbCaller, tcbReply, tcbVTable, thread_control_update_ipc_buffer,
+        seL4_MsgMaxExtraCaps, seL4_RangeError, seL4_TruncatedMessage, thread_control_update_ipc_buffer,
         thread_control_update_mcp, thread_control_update_priority, thread_control_update_space,
         CopyRegisters_resumeTarget, CopyRegisters_suspendSource,
         CopyRegisters_transferFrame, CopyRegisters_transferInteger, ReadRegisters_suspend,
@@ -13,7 +12,6 @@ use crate::{
     },
     kernel::{
         boot::{current_extra_caps, current_syscall_error},
-        cspace::lookupSlot,
         thread::{
             getExtraCPtr, restart, suspend,
         },
@@ -23,13 +21,11 @@ use crate::{
         vspace::{checkValidIPCBuffer, isValidVTableRoot, lookupIPCBuffer},
     },
     object::objecttype::updateCapData,
-    structures::{
-        notification_t, seL4_MessageInfo_t,
-    },
+    structures::seL4_MessageInfo_t,
     syscall::getSyscallArg,
 };
 
-use crate::task_manager::*;
+use task_manager::*;
 
 use super::{
     cap::{cteDelete, cteDeleteOne},
@@ -38,7 +34,7 @@ use super::{
     structure_gen::{notification_ptr_get_ntfnQueue_head, notification_ptr_get_ntfnQueue_tail},
 };
 
-use common::{structures::exception_t, BIT};
+use common::{structures::{exception_t, notification_t}, BIT, sel4_config::{tcbCTable, tcbVTable, tcbReply, tcbCaller, tcbBuffer}};
 use cspace::interface::*;
 use log::debug;
 

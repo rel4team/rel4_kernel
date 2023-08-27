@@ -3,10 +3,9 @@ use crate::config::{
     seL4_Fault_VMFault,
 };
 
+use common::structures::{notification_t, seL4_Fault_t};
 use cspace::interface::*;
-use crate::structures::{
-    endpoint_t, notification_t, seL4_Fault_t,
-};
+use crate::structures::endpoint_t;
 
 
 //cap relevant

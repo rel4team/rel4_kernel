@@ -51,3 +51,24 @@ pub const lookup_fault_invalid_root: usize = 0;
 pub const lookup_fault_missing_capability: usize = 1;
 pub const lookup_fault_depth_mismatch: usize = 2;
 pub const lookup_fault_guard_mismatch: usize = 3;
+
+// scheduler relevant
+pub const CONFIG_NUM_DOMAINS: usize = 1;
+pub const CONFIG_NUM_PRIORITIES: usize = 256;
+pub const L2_BITMAP_SIZE: usize = (CONFIG_NUM_PRIORITIES + wordBits - 1) / wordBits;
+pub const NUM_READY_QUEUES: usize = CONFIG_NUM_DOMAINS * CONFIG_NUM_PRIORITIES;
+pub const CONFIG_TIME_SLICE: usize = 5;
+
+// TCB relevant
+pub const seL4_TCBBits: usize = 10;
+pub const TCB_SIZE_BITS: usize = seL4_TCBBits - 1;
+pub const TCB_OFFSET: usize = BIT!(TCB_SIZE_BITS);
+pub const tcbCTable: usize = 0;
+pub const tcbVTable: usize = 1;
+pub const tcbReply: usize = 2;
+pub const tcbCaller: usize = 3;
+pub const tcbBuffer: usize = 4;
+pub const tcbCNodeEntries: usize = 5;
+
+// 多核相关
+pub const CONFIG_MAX_NUM_NODES: usize = 1;

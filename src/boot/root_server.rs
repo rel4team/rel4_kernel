@@ -2,7 +2,8 @@ use super::calculate_extra_bi_size_bits;
 use super::utils::{arch_get_n_paging, write_slot, provide_cap, clearMemory, create_it_pt_cap, map_it_frame_cap};
 use super::{ndks_boot, utils::is_reg_empty};
 use common::{BIT, ROUND_DOWN};
-use common::sel4_config::{wordBits, seL4_SlotBits, IT_ASID, asidLowBits, seL4_PageBits, seL4_PageTableBits, CONFIG_PT_LEVELS, PAGE_BITS};
+use common::sel4_config::{wordBits, seL4_SlotBits, IT_ASID, asidLowBits, seL4_PageBits, seL4_PageTableBits, CONFIG_PT_LEVELS,
+    PAGE_BITS, CONFIG_MAX_NUM_NODES, TCB_OFFSET, CONFIG_TIME_SLICE, tcbCTable, tcbVTable, tcbBuffer, CONFIG_NUM_DOMAINS, seL4_TCBBits};
 use common::structures::exception_t;
 use cspace::interface::*;
 use log::debug;
@@ -14,7 +15,7 @@ use crate::structures::{region_t, rootserver_mem_t, v_region_t, seL4_SlotRegion,
 
 use crate::config::*;
 
-use crate::task_manager::*;
+use task_manager::*;
 use vspace::*;
 #[no_mangle]
 #[link_section = ".boot.bss"]

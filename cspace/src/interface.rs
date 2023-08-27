@@ -1,7 +1,8 @@
 
 use common::structures::exception_t;
 
-use crate::cte::{cte_insert, cte_move, cte_swap, cap_removable, insert_new_cap, resolve_address_bits};
+use crate::cte::{cte_insert, cte_move, cte_swap, cap_removable, insert_new_cap};
+use crate::deps::post_cap_deletion;
 use crate::utils::resolveAddressBits_ret_t;
 
 use super::cap::{is_cap_revocable, same_object_as};
@@ -12,7 +13,8 @@ pub use crate::mdb::mdb_node_t;
 pub use crate::cap::cap_t;
 pub use crate::cap::CapTag;
 
-pub use super::cte::deriveCap_ret;
+pub use super::structures::{finaliseCap_ret, finaliseSlot_ret};
+pub use super::cte::{deriveCap_ret, resolve_address_bits};
 pub use super::cap::null::cap_null_cap_new;
 
 pub use crate::cap_rights::{seL4_CapRightsBits, seL4_CapRights_get_capAllowGrant, seL4_CapRights_get_capAllowGrantReply,
@@ -33,7 +35,7 @@ pub use super::cap::endpoint::{
 pub use super::cap::zombie::{
     cap_zombie_cap_get_capZombieID, cap_zombie_cap_get_capZombieType, cap_zombie_cap_new, cap_zombie_cap_set_capZombieID,
     cap_zombie_cap_get_capZombieBits, cap_zombie_cap_get_capZombieNumber, cap_zombie_cap_get_capZombiePtr, Zombie_new,
-    cap_zombie_cap_set_capZombieNumber, ZombieType_ZombieTCB
+    cap_zombie_cap_set_capZombieNumber, capCyclicZombie, ZombieType_ZombieTCB
 };
 
 pub use super::cap::page_table::{
@@ -253,4 +255,34 @@ pub fn cap_capType_equals(cap: &cap_t, cap_type_tag: usize) -> bool {
 #[inline]
 pub fn rust_resolveAddressBits(node_cap: &cap_t, cap_ptr: usize, _n_bits: usize) -> resolveAddressBits_ret_t {
     resolve_address_bits(node_cap, cap_ptr, _n_bits)
+}
+
+
+#[no_mangle]
+pub fn emptySlot(slot: *mut cte_t, _cleanupInfo: &cap_t) {
+    unsafe {
+        if cap_get_capType(&(*slot).cap) != cap_null_cap {
+            let mdbNode = &(*slot).cteMDBNode;
+            let prev = mdb_node_get_mdbPrev(mdbNode);
+            let next = mdb_node_get_mdbNext(mdbNode);
+            if prev != 0 {
+                let prev_ptr = mdb_node_get_mdbPrev(mdbNode) as *mut cte_t;
+                mdb_node_ptr_set_mdbNext(&mut (*prev_ptr).cteMDBNode, next);
+            }
+            if next != 0 {
+                let next_ptr = mdb_node_get_mdbNext(mdbNode) as *mut cte_t;
+                mdb_node_ptr_set_mdbPrev(&mut (*next_ptr).cteMDBNode, prev);
+                mdb_node_set_mdbFirstBadged(
+                    &mut (*next_ptr).cteMDBNode,
+                    ((mdb_node_get_mdbFirstBadged(&(*next_ptr).cteMDBNode) != 0)
+                        || (mdb_node_get_mdbFirstBadged(mdbNode) != 0))
+                        as usize,
+                );
+            }
+            (*slot).cap = cap_null_cap_new();
+            (*slot).cteMDBNode = mdb_node_new(0, 0, 0, 0);
+
+            post_cap_deletion(_cleanupInfo);
+        }
+    }
 }

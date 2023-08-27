@@ -19,7 +19,7 @@ use super::{
         createNewObjects, getObjectSize, Arch_isFrameType,
     },
 };
-use crate::task_manager::*;
+use task_manager::*;
 use common::{structures::{exception_t, lookup_fault_missing_capability_new}, sel4_config::*, BIT, MASK, ROUND_DOWN};
 use cspace::interface::*;
 use log::debug;

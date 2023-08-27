@@ -1,6 +1,8 @@
 use common::{sel4_config::wordRadix, MASK};
 
 
+use crate::interface::cte_t;
+
 use super::{cap_t, CapTag};
 
 pub const ZombieType_ZombieTCB: usize = 1usize << wordRadix;
@@ -128,4 +130,11 @@ pub fn cap_zombie_cap_set_capZombieNumber(cap: &mut cap_t, n: usize) {
 
 pub fn ZombieType_ZombieCNode(n: usize) -> usize {
     return n & MASK!(wordRadix);
+}
+
+#[inline]
+#[no_mangle]
+pub fn capCyclicZombie(cap: &cap_t, slot: *mut cte_t) -> bool {
+    let ptr = cap_zombie_cap_get_capZombiePtr(cap) as *mut cte_t;
+    (cap.get_cap_type() == CapTag::CapZombieCap) && (ptr == slot)
 }

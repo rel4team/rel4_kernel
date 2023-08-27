@@ -110,3 +110,16 @@ pub fn lookup_fault_guard_mismatch_get_bitsLeft(lookup_fault: &lookup_fault_t) -
     let ret = (lookup_fault.words[0] & 0x1fcusize) >> 2;
     ret
 }
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug)]
+pub struct notification_t {
+    pub words: [usize; 4],
+}
+
+#[repr(C)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub struct seL4_Fault_t {
+    pub words: [usize; 2],
+}
+

@@ -4,7 +4,7 @@ use crate::{
         seL4_DeleteFirst, seL4_FailedLookup, seL4_Fault_NullFault, seL4_IllegalOperation,
         seL4_InvalidArgument, seL4_InvalidCapability, seL4_MsgMaxExtraCaps, seL4_MsgMaxLength,
         seL4_NotEnoughMemory, seL4_RangeError, seL4_RevokeFirst,
-        seL4_TruncatedMessage, DomainSetSet, CONFIG_KERNEL_STACK_BITS, CONFIG_MAX_NUM_NODES, SSTATUS_SPIE, SSTATUS_SPP, TCB_OFFSET, n_msgRegisters, msgRegister,
+        seL4_TruncatedMessage, DomainSetSet, CONFIG_KERNEL_STACK_BITS, SSTATUS_SPIE, SSTATUS_SPP, n_msgRegisters, msgRegister,
     },
     object::{
         cap::cteDeleteOne,
@@ -18,7 +18,7 @@ use crate::{
     structures::{cap_transfer_t, endpoint_t, seL4_MessageInfo_t}, syscall::getSyscallArg,
 };
 
-use crate::task_manager::*;
+use task_manager::*;
 use core::{
     arch::asm,
     intrinsics::{likely, unlikely},
@@ -39,7 +39,7 @@ use super::{
     vspace::lookupIPCBuffer,
 };
 
-use common::{structures::exception_t, BIT};
+use common::{structures::exception_t, BIT, sel4_config::{CONFIG_MAX_NUM_NODES, TCB_OFFSET}};
 use cspace::interface::*;
 use log::debug;
 

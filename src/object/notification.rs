@@ -3,10 +3,9 @@ use crate::{
         badgeRegister, NtfnState_Active, NtfnState_Idle, NtfnState_Waiting,
     },
     kernel::thread::doNBRecvFailedTransfer,
-    structures::notification_t,
 };
 
-use crate::task_manager::*;
+use task_manager::*;
 
 use super::{
     endpoint::cancelIPC,
@@ -19,7 +18,7 @@ use super::{
     },
 };
 
-use common::structures::exception_t;
+use common::structures::{exception_t, notification_t};
 use cspace::interface::*;
 
 #[no_mangle]

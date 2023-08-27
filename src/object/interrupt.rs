@@ -14,7 +14,6 @@ use crate::{
         thread::getExtraCPtr,
     },
     riscv::{read_sip, resetTimer},
-    structures::notification_t,
     syscall::getSyscallArg,
 };
 
@@ -23,9 +22,9 @@ use super::{
     notification::sendSignal,
 };
 
-use common::{structures::exception_t, BIT};
+use common::{structures::{exception_t, notification_t}, BIT};
 use cspace::interface::*;
-use crate::task_manager::*;
+use task_manager::*;
 use log::debug;
 
 #[no_mangle]

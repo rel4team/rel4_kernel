@@ -8,7 +8,7 @@ use crate::{
     riscv::read_scause,
 };
 
-use crate::task_manager::*;
+use task_manager::*;
 
 use super::syscall::{
     handleInterruptEntry, handleSyscall, handleUserLevelFault, handleVMFaultEvent,
