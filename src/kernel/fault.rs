@@ -31,11 +31,10 @@ pub const fault_messages: [[usize; MAX_MSG_SIZE]; 2] = [
 ];
 
 use super::{
-    thread::{getReStartPC, getRegister, setMR, setRegister},
     transfermsg::{
         messageInfoFromWord, seL4_MessageInfo_ptr_get_label, seL4_MessageInfo_ptr_get_length,
     },
-    vspace::lookupIPCBuffer,
+    vspace::lookupIPCBuffer, thread::setMR,
 };
 
 #[no_mangle]

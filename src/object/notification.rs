@@ -1,13 +1,8 @@
 use crate::{
     config::{
         badgeRegister, NtfnState_Active, NtfnState_Idle, NtfnState_Waiting,
-        ThreadStateBlockedOnNotification, ThreadStateBlockedOnReceive, ThreadStateInactive,
-        ThreadStateRestart, ThreadStateRunning,
     },
-    kernel::thread::{
-        doNBRecvFailedTransfer, possibleSwitchTo, rescheduleRequired, scheduleTCB, setRegister,
-        setThreadState,
-    },
+    kernel::thread::doNBRecvFailedTransfer,
     structures::notification_t,
 };
 

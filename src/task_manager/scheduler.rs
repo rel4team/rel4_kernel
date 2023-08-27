@@ -1,8 +1,20 @@
-use common::{BIT, sel4_config::{wordRadix, wordBits}, MASK};
+use common::{BIT, sel4_config::{wordRadix, wordBits}, MASK, utils::convert_to_mut_type_ref};
 
-use crate::config::{NUM_READY_QUEUES, L2_BITMAP_SIZE, CONFIG_NUM_DOMAINS, CONFIG_MAX_NUM_NODES, seL4_TCBBits, CONFIG_NUM_PRIORITIES};
+use crate::config::{NUM_READY_QUEUES, L2_BITMAP_SIZE, CONFIG_NUM_DOMAINS, CONFIG_MAX_NUM_NODES, seL4_TCBBits, CONFIG_NUM_PRIORITIES, CONFIG_TIME_SLICE};
 
-use super::{tcb::tcb_t, tcb_queue_t};
+use super::{tcb::tcb_t, tcb_queue_t, get_idle_thread, get_currenct_thread, ThreadState};
+
+
+#[repr(C)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub struct dschedule_t {
+    pub domain: usize,
+    pub length: usize,
+}
+
+pub const SchedulerAction_ResumeCurrentThread: usize = 0;
+pub const SchedulerAction_ChooseNewThread: usize = 1;
+pub const ksDomScheduleLength: usize = 1;
 
 #[no_mangle]
 pub static mut ksDomainTime: usize = 0;
@@ -39,6 +51,16 @@ pub static mut ksReadyQueuesL1Bitmap: [usize; CONFIG_NUM_DOMAINS] = [0; CONFIG_N
 #[link_section = "._idle_thread"]
 pub static mut ksIdleThreadTCB: [[u8; BIT!(seL4_TCBBits)]; CONFIG_MAX_NUM_NODES] =
     [[0; BIT!(seL4_TCBBits)]; CONFIG_MAX_NUM_NODES];
+
+#[no_mangle]
+#[link_section = ".boot.bss"]
+pub static mut ksWorkUnitsCompleted: usize = 0;
+
+#[link_section = ".boot.bss"]
+pub static mut ksDomSchedule: [dschedule_t; ksDomScheduleLength] = [dschedule_t {
+    domain: 0,
+    length: 60,
+}; ksDomScheduleLength];
 
 type prio_t = usize;
 
@@ -98,6 +120,156 @@ pub fn removeFromBitmap(dom: usize, prio: usize) {
         ksReadyQueuesL2Bitmap[dom][l1index_inverted] &= !BIT!(prio & MASK!(wordRadix));
         if ksReadyQueuesL2Bitmap[dom][l1index_inverted] == 0 {
             ksReadyQueuesL1Bitmap[dom] &= !(BIT!((l1index)));
+        }
+    }
+}
+
+#[no_mangle]
+pub fn nextDomain() {
+    unsafe {
+        ksDomScheduleIdx += 1;
+        if ksDomScheduleIdx >= ksDomScheduleLength {
+            ksDomScheduleIdx = 0;
+        }
+        ksWorkUnitsCompleted = 0;
+        ksCurDomain = ksDomSchedule[ksDomScheduleIdx].domain;
+        ksDomainTime = ksDomSchedule[ksDomScheduleIdx].length;
+        //FIXME ksWorkUnits not used;
+        // ksWorkUnits
+    }
+}
+
+
+#[no_mangle]
+pub fn scheduleChooseNewThread() {
+    unsafe {
+        if ksDomainTime == 0 {
+            nextDomain();
+        }
+    }
+    chooseThread();
+}
+
+#[no_mangle]
+pub fn chooseThread() {
+    unsafe {
+        let dom = 0;
+        if ksReadyQueuesL1Bitmap[dom] != 0 {
+            let prio = getHighestPrio(dom);
+            let thread = ksReadyQueues[ready_queues_index(dom, prio)].head;
+            assert!(thread as usize != 0);
+            (*thread).switch_to_this();
+        } else {
+            get_idle_thread().switch_to_this();
+        }
+    }
+}
+
+#[no_mangle]
+pub fn rescheduleRequired() {
+    unsafe {
+        if ksSchedulerAction as usize != SchedulerAction_ResumeCurrentThread
+            && ksSchedulerAction as usize != SchedulerAction_ChooseNewThread
+        {
+            convert_to_mut_type_ref::<tcb_t>(ksSchedulerAction as usize).sched_enqueue();
+        }
+        ksSchedulerAction = SchedulerAction_ChooseNewThread as *mut tcb_t;
+    }
+}
+
+#[no_mangle]
+pub fn schedule() {
+    unsafe {
+        if ksSchedulerAction as usize != SchedulerAction_ResumeCurrentThread {
+            let was_runnable: bool;
+            let current_tcb = get_currenct_thread();
+            if current_tcb.is_runnable() {
+                was_runnable = true;
+                current_tcb.sched_enqueue();
+            } else {
+                was_runnable = false;
+            }
+
+            if ksSchedulerAction as usize == SchedulerAction_ChooseNewThread {
+                scheduleChooseNewThread();
+            } else {
+                // let candidate = ksSchedulerAction as *mut tcb_t;
+                let candidate = convert_to_mut_type_ref::<tcb_t>(ksSchedulerAction as usize);
+                let fastfail = ksCurThread == ksIdleThread
+                    || (*candidate).tcbPriority < (*(ksCurThread as *const tcb_t)).tcbPriority;
+                if fastfail && !isHighestPrio(ksCurDomain, candidate.tcbPriority) {
+                    candidate.sched_enqueue();
+                    ksSchedulerAction = SchedulerAction_ChooseNewThread as *mut tcb_t;
+                    scheduleChooseNewThread();
+                } else if was_runnable
+                    && candidate.tcbPriority == (*(ksCurThread as *const tcb_t)).tcbPriority
+                {
+                    candidate.sched_append();
+                    ksSchedulerAction = SchedulerAction_ChooseNewThread as *mut tcb_t;
+                    scheduleChooseNewThread();
+                } else {
+                    candidate.switch_to_this();
+                }
+            }
+        }
+        ksSchedulerAction = SchedulerAction_ResumeCurrentThread as *mut tcb_t;
+    }
+}
+
+
+fn schedule_tcb(tcb_ref: &tcb_t) {
+    unsafe {
+        if tcb_ref.get_ptr() == ksCurThread as usize
+            && ksSchedulerAction as usize == SchedulerAction_ResumeCurrentThread
+            && !tcb_ref.is_runnable()
+        {
+            rescheduleRequired();
+        }
+    }
+}
+#[no_mangle]
+pub fn scheduleTCB(tptr: *const tcb_t) {
+    unsafe {
+        // if tptr as usize == ksCurThread as usize
+        //     && ksSchedulerAction as usize == SchedulerAction_ResumeCurrentThread
+        //     && !isRunnable(tptr)
+        // {
+        //     rescheduleRequired();
+        // }
+        schedule_tcb(&(*tptr));
+    }
+}
+
+
+fn possible_switch_to(target: &mut tcb_t) {
+    if unsafe { ksCurDomain != target.domain } {
+        target.sched_enqueue();
+    } else if unsafe { ksSchedulerAction as usize != SchedulerAction_ResumeCurrentThread } {
+        rescheduleRequired();
+        target.sched_enqueue();
+    } else {
+        unsafe { ksSchedulerAction = target as *mut tcb_t; }
+    }
+}
+
+#[no_mangle]
+pub fn possibleSwitchTo(target: *mut tcb_t) {
+    unsafe {
+        possible_switch_to(&mut( *target));
+    }
+}
+
+#[no_mangle]
+pub fn timerTick() {
+    let current = get_currenct_thread();
+    
+    if current.get_state() == ThreadState::ThreadStateRunning {
+        if current.tcbTimeSlice > 1 {
+            current.tcbTimeSlice -= 1;
+        } else {
+            current.tcbTimeSlice = CONFIG_TIME_SLICE;
+            current.sched_append();
+            rescheduleRequired();
         }
     }
 }

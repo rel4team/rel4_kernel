@@ -1,5 +1,5 @@
 
-use common::structures::{exception_t, lookup_fault_t};
+use common::structures::exception_t;
 
 use crate::cte::{cte_insert, cte_move, cte_swap, cap_removable, insert_new_cap, resolve_address_bits};
 use crate::utils::resolveAddressBits_ret_t;
@@ -164,14 +164,14 @@ pub fn isArchCap(cap: &cap_t) -> bool {
     cap.isArchCap()
 }
 
-
-#[no_mangle]
+#[inline]
 pub fn ensureNoChildren(slot: *mut cte_t) -> exception_t {
     unsafe {
         (& *slot).ensure_no_children()
     }
 }
 
+#[inline]
 #[no_mangle]
 pub fn isMDBParentOf(cte1: *mut cte_t, cte2: *mut cte_t) -> bool {
     unsafe {
@@ -179,33 +179,33 @@ pub fn isMDBParentOf(cte1: *mut cte_t, cte2: *mut cte_t) -> bool {
     }
 }
 
-#[no_mangle]
+#[inline]
 pub fn isFinalCapability(cte: *mut cte_t) -> bool {
     unsafe {
         (& *cte).is_final_cap()
     }
 }
 
-
-#[no_mangle]
+#[inline]
 pub fn slotCapLongRunningDelete(slot: *mut cte_t) -> bool {
     unsafe {
         (& *slot).is_long_running_delete()
     }
 }
 
+#[inline]
 pub fn isCapRevocable(_derivedCap: &cap_t, _srcCap: &cap_t) -> bool {
     is_cap_revocable(_derivedCap, _srcCap)
 }
 
-
-#[no_mangle]
+#[inline]
 pub fn cteInsert(newCap: &cap_t, srcSlot: *mut cte_t, destSlot: *mut cte_t) {
     unsafe {
         cte_insert(newCap, &mut *srcSlot, &mut *destSlot)
     }
 }
 
+#[inline]
 #[no_mangle]
 pub fn deriveCap(slot: *mut cte_t, cap: &cap_t) -> deriveCap_ret {
     unsafe {
@@ -213,14 +213,14 @@ pub fn deriveCap(slot: *mut cte_t, cap: &cap_t) -> deriveCap_ret {
     }
 }
 
-#[no_mangle]
+#[inline]
 pub fn cteMove(_newCap: &cap_t, srcSlot: *mut cte_t, destSlot: *mut cte_t) {
     unsafe {
         cte_move(_newCap, &mut *srcSlot, &mut *destSlot)
     }
 }
 
-#[no_mangle]
+#[inline]
 pub fn cteSwap(cap1: &cap_t, slot1: *mut cte_t, cap2: &cap_t, slot2: *mut cte_t) {
     unsafe {
         cte_swap(cap1, &mut *slot1, cap2, &mut *slot2)
@@ -229,19 +229,18 @@ pub fn cteSwap(cap1: &cap_t, slot1: *mut cte_t, cap2: &cap_t, slot2: *mut cte_t)
 
 
 #[inline]
-#[no_mangle]
 pub fn capRemovable(cap: &cap_t, slot: *mut cte_t) -> bool {
     cap_removable(cap, slot)
 }
 
-
-#[no_mangle]
+#[inline]
 pub fn insertNewCap(parent: *mut cte_t, slot: *mut cte_t, cap: &cap_t) {
     unsafe {
         insert_new_cap(&mut *parent, &mut *slot, cap)
     }
 }
 
+#[inline]
 pub fn sameObjectAs(cap_a: &cap_t, cap_b: &cap_t) -> bool {
     same_object_as(cap_a, cap_b)
 }

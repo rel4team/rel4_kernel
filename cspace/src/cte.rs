@@ -1,6 +1,6 @@
 use core::intrinsics::{unlikely, likely};
 
-use common::{structures::{exception_t, lookup_fault_t, lookup_fault_invalid_root_new, lookup_fault_guard_mismatch_new, lookup_fault_depth_mismatch_new}, utils::{convert_to_type_ref, convert_to_mut_type_ref}, MASK, sel4_config::wordRadix};
+use common::{structures::exception_t, utils::{convert_to_type_ref, convert_to_mut_type_ref}, MASK, sel4_config::wordRadix};
 
 use crate::{cap::{cap_t, CapTag, same_region_as, same_object_as, is_cap_revocable}, mdb::mdb_node_t, utils::{MAX_FREE_INDEX, resolveAddressBits_ret_t}};
 
@@ -186,7 +186,6 @@ pub fn cte_insert(newCap: &cap_t, srcSlot: &mut cte_t, destSlot: &mut cte_t) {
     }
 }
 
-#[no_mangle]
 pub fn cte_move(newCap: &cap_t, srcSlot: &mut cte_t, destSlot: &mut cte_t) {
     /* Haskell error: "cteInsert to non-empty destination" */
     assert_eq!(destSlot.cap.get_cap_type(), CapTag::CapNullCap);
@@ -214,7 +213,7 @@ pub fn cte_move(newCap: &cap_t, srcSlot: &mut cte_t, destSlot: &mut cte_t) {
 }
 
 
-#[no_mangle]
+
 pub fn cte_swap(cap1: &cap_t, slot1: &mut cte_t, cap2: &cap_t, slot2: &mut cte_t) {
     let mdb1 = slot1.cteMDBNode;
     let mdb2 = slot2.cteMDBNode;
@@ -270,7 +269,6 @@ pub fn cap_removable(cap: &cap_t, slot: *mut cte_t) -> bool {
 }
 
 
-#[no_mangle]
 pub fn insert_new_cap(parent: &mut cte_t, slot: &mut cte_t, cap: &cap_t) {
     let next = parent.cteMDBNode.get_next();
     slot.cap = cap.clone();
@@ -299,6 +297,7 @@ fn setUntypedCapAsFull(srcCap: &cap_t, newCap: &cap_t, srcSlot: &mut cte_t) {
     }
 }
 
+#[allow(unreachable_code)]
 pub fn resolve_address_bits(node_cap: &cap_t, cap_ptr: usize, _n_bits: usize) -> resolveAddressBits_ret_t {
     let mut ret = resolveAddressBits_ret_t::default();
     let mut n_bits = _n_bits;

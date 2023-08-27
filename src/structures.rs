@@ -125,13 +125,6 @@ pub enum cap_tag_t {
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub struct dschedule_t {
-    pub domain: usize,
-    pub length: usize,
-}
-
-#[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct finaliseSlot_ret {
     pub status: exception_t,
     pub success: bool,

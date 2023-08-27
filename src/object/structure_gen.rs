@@ -8,7 +8,6 @@ use crate::structures::{
     endpoint_t, notification_t, seL4_Fault_t,
 };
 
-use crate::task_manager::*;
 
 //cap relevant
 

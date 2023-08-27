@@ -2,8 +2,7 @@ use crate::{
     config::{
         msgRegister, seL4_Fault_NullFault, tcbCTable,
         tcbCaller, tcbReply, tcbVTable, EPState_Idle, EPState_Recv, EPState_Send,
-        NtfnState_Active, SysCall, SysReplyRecv, ThreadStateBlockedOnReceive,
-        ThreadStateBlockedOnReply, ThreadStateRunning, seL4_MsgLengthBits, seL4_MsgExtraCapBits,
+        NtfnState_Active, SysCall, SysReplyRecv, seL4_MsgLengthBits, seL4_MsgExtraCapBits,
     },
     object::structure_gen::{
         endpoint_ptr_get_epQueue_head,
@@ -24,7 +23,6 @@ use common::{sel4_config::wordBits, MASK};
 use cspace::interface::*;
 use super::{
     c_traps::slowpath,
-    thread::{getRegister, setRegister},
     transfermsg::{
         messageInfoFromWord_raw, seL4_MessageInfo_ptr_get_length,
         seL4_MessageInfo_ptr_set_capsUnwrapped, wordFromMessageInfo,

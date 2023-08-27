@@ -4,6 +4,19 @@ pub struct thread_state_t {
     pub words: [usize; 3],
 }
 
+#[derive(PartialEq, PartialOrd)]
+pub enum ThreadState {
+    ThreadStateInactive = 0,
+    ThreadStateRunning = 1,
+    ThreadStateRestart = 2,
+    ThreadStateBlockedOnReceive = 3,
+    ThreadStateBlockedOnSend = 4,
+    ThreadStateBlockedOnReply = 5,
+    ThreadStateBlockedOnNotification = 6,
+    ThreadStateIdleThreadState = 7,
+    ThreadStateExited = 8,
+}
+
 impl thread_state_t {
     #[inline]
     pub fn state_new() -> Self {
@@ -180,3 +193,14 @@ pub fn thread_state_set_blockingIPCCanGrantReply(
 ) {
     thread_state_ptr.set_blocking_ipc_can_grant_reply(v64)
 }
+
+//thread state
+pub const ThreadStateInactive: usize = ThreadState::ThreadStateInactive as usize;
+pub const ThreadStateRunning: usize = ThreadState::ThreadStateRunning as usize;
+pub const ThreadStateRestart: usize = ThreadState::ThreadStateRestart as usize;
+pub const ThreadStateBlockedOnReceive: usize = ThreadState::ThreadStateBlockedOnReceive as usize;
+pub const ThreadStateBlockedOnSend: usize = ThreadState::ThreadStateBlockedOnSend as usize;
+pub const ThreadStateBlockedOnReply: usize = ThreadState::ThreadStateBlockedOnReply as usize;
+pub const ThreadStateBlockedOnNotification: usize = ThreadState::ThreadStateBlockedOnNotification as usize;
+pub const ThreadStateIdleThreadState: usize = ThreadState::ThreadStateIdleThreadState as usize;
+pub const ThreadStateExited: usize = ThreadState::ThreadStateExited as usize;

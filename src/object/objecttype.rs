@@ -5,13 +5,12 @@ use crate::{
         seL4_CapTableObject, seL4_EndpointObject, seL4_HugePageBits,
         seL4_InvalidCapability, seL4_LargePageBits, seL4_NotificationObject,
         seL4_TCBBits, seL4_TCBObject, seL4_UntypedObject,
-        tcbCNodeEntries, tcbCTable, IRQInactive, ThreadStateRestart, CONFIG_TIME_SLICE, TCB_OFFSET,
+        tcbCNodeEntries, tcbCTable, IRQInactive, CONFIG_TIME_SLICE, TCB_OFFSET,
     },
     kernel::{
         boot::{current_syscall_error, current_lookup_fault},
         thread::{
-            decodeDomainInvocation, doReplyTransfer,
-            setThreadState, suspend, Arch_initContext,
+            decodeDomainInvocation, doReplyTransfer, suspend, Arch_initContext,
         },
         transfermsg::{
             seL4_CNode_capData_get_guard, seL4_CNode_capData_get_guardSize, vmRighsFromWord,

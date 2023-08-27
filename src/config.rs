@@ -47,10 +47,6 @@ pub const CONFIG_KERNEL_STACK_BITS: usize = 12;
 //FIXME:this constant is generated , maybe need to transfer from C code
 pub const CONFIG_PADDR_USER_DEVICE_TOP: usize = 549755813888;
 
-pub const ksDomScheduleLength: usize = 1;
-
-pub const SchedulerAction_ResumeCurrentThread: usize = 0;
-pub const SchedulerAction_ChooseNewThread: usize = 1;
 
 pub const MAX_NUM_FREEMEM_REG: usize = 16;
 pub const NUM_RESERVED_REGIONS: usize = 3;
@@ -202,18 +198,6 @@ pub const IRQReserved: usize = 3;
 pub const SEL4_BOOTINFO_HEADER_FDT: usize = 6;
 pub const SEL4_BOOTINFO_HEADER_PADDING: usize = 0;
 pub const CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS: usize = 230;
-
-
-//thread state
-pub const ThreadStateInactive: usize = 0;
-pub const ThreadStateRunning: usize = 1;
-pub const ThreadStateRestart: usize = 2;
-pub const ThreadStateBlockedOnReceive: usize = 3;
-pub const ThreadStateBlockedOnSend: usize = 4;
-pub const ThreadStateBlockedOnReply: usize = 5;
-pub const ThreadStateBlockedOnNotification: usize = 6;
-pub const ThreadStateIdleThreadState: usize = 7;
-pub const ThreadStateExited: usize = 8;
 
 pub const seL4_MaxPrio: usize = 255;
 

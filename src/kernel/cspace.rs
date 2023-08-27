@@ -1,4 +1,4 @@
-use core::intrinsics::{likely, unlikely};
+use core::intrinsics::unlikely;
 
 use crate::{
     config::{seL4_FailedLookup, seL4_RangeError, tcbCTable},
@@ -10,7 +10,7 @@ use crate::{
 
 use crate::task_manager::*;
 
-use common::{structures::{exception_t, lookup_fault_invalid_root_new, lookup_fault_guard_mismatch_new, lookup_fault_depth_mismatch_new}, sel4_config::{wordRadix, wordBits}, MASK};
+use common::{structures::{exception_t, lookup_fault_invalid_root_new, lookup_fault_depth_mismatch_new}, sel4_config::wordBits};
 use cspace::interface::*;
 use log::debug;
 

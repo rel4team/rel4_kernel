@@ -1,5 +1,5 @@
 use crate::{
-    config::{seL4_Fault_CapFault, ThreadStateInactive},
+    config::seL4_Fault_CapFault,
     object::{
         endpoint::sendIPC,
         structure_gen::{
@@ -14,7 +14,6 @@ use crate::task_manager::*;
 use super::{
     boot::{current_fault, current_lookup_fault},
     cspace::lookupCap,
-    thread::setThreadState,
 };
 
 use common::structures::{exception_t, lookup_fault_missing_capability_new};

@@ -3,13 +3,11 @@ use crate::{
         seL4_DeleteFirst, seL4_FailedLookup, seL4_IllegalOperation,
         seL4_TruncatedMessage, tcbCaller, CNodeCancelBadgedSends, CNodeCopy, CNodeDelete,
         CNodeMint, CNodeMove, CNodeMutate, CNodeRevoke, CNodeRotate, CNodeSaveCaller,
-        ThreadStateRestart,
     },
     kernel::{
         boot::{current_extra_caps, current_lookup_fault, current_syscall_error},
         cspace::{rust_lookupPivotSlot, rust_lookupSourceSlot, rust_lookupTargetSlot},
         preemption::preemptionPoint,
-        thread::setThreadState,
     },
     object::objecttype::finaliseCap,
     structures::{endpoint_t, finaliseCap_ret, finaliseSlot_ret},

@@ -1,15 +1,13 @@
 use crate::{
     config::{
         badgeRegister, msgInfoRegister, tcbReply, EPState_Idle, EPState_Recv, EPState_Send,
-        NtfnState_Active, ThreadStateBlockedOnNotification, ThreadStateBlockedOnReceive,
-        ThreadStateBlockedOnReply, ThreadStateBlockedOnSend, ThreadStateInactive,
-        ThreadStateRestart, ThreadStateRunning,
+        NtfnState_Active,
     },
     kernel::{
         boot::current_syscall_error,
         thread::{
-            doIPCTransfer, doNBRecvFailedTransfer, possibleSwitchTo,
-            rescheduleRequired, scheduleTCB, setMRs_syscall_error, setRegister, setThreadState,
+            doIPCTransfer, doNBRecvFailedTransfer,
+            setMRs_syscall_error,
         },
         transfermsg::{seL4_MessageInfo_new, wordFromMessageInfo},
         vspace::lookupIPCBuffer,

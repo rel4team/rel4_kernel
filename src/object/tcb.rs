@@ -10,14 +10,12 @@ use crate::{
         TCBBindNotification, TCBConfigure, TCBCopyRegisters, TCBReadRegisters, TCBResume,
         TCBSetIPCBuffer, TCBSetMCPriority, TCBSetPriority, TCBSetSchedParams, TCBSetSpace,
         TCBSetTLSBase, TCBSuspend, TCBUnbindNotification, TCBWriteRegisters,
-        ThreadStateBlockedOnReply, ThreadStateRestart, ThreadStateRunning,
     },
     kernel::{
         boot::{current_extra_caps, current_syscall_error},
         cspace::lookupSlot,
         thread::{
-            getExtraCPtr, getReStartPC, getRegister, rescheduleRequired, restart,
-            setMCPriority, setNextPC, setPriority, setRegister, setThreadState, suspend,
+            getExtraCPtr, restart, suspend,
         },
         transfermsg::{
             seL4_MessageInfo_new, seL4_MessageInfo_ptr_get_extraCaps, wordFromMessageInfo,
@@ -40,7 +38,7 @@ use super::{
     structure_gen::{notification_ptr_get_ntfnQueue_head, notification_ptr_get_ntfnQueue_tail},
 };
 
-use common::{structures::exception_t, sel4_config::*, BIT, MASK};
+use common::{structures::exception_t, BIT};
 use cspace::interface::*;
 use log::debug;
 

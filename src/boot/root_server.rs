@@ -6,8 +6,7 @@ use common::sel4_config::{wordBits, seL4_SlotBits, IT_ASID, asidLowBits, seL4_Pa
 use common::structures::exception_t;
 use cspace::interface::*;
 use log::debug;
-use crate::kernel::boot::ksDomSchedule;
-use crate::kernel::thread::{Arch_initContext, setRegister, setNextPC, setThreadState};
+use crate::kernel::thread::Arch_initContext;
 use crate::object::cnode::setupReplyMaster;
 use crate::object::interrupt::setIRQState;
 use crate::structures::{region_t, rootserver_mem_t, v_region_t, seL4_SlotRegion, create_frames_of_region_ret_t,
@@ -134,17 +133,17 @@ unsafe fn create_initial_thread(
     cteInsert(
         &root_cnode_cap.clone(),
         unsafe { &mut *(ptr.add(seL4_CapInitThreadCNode)) },
-        getCSpaceRef(rootserver.tcb, tcbCTable),
+        getCSpaceMutRef(rootserver.tcb, tcbCTable),
     );
     cteInsert(
         &it_pd_cap.clone(),
         unsafe { &mut *(ptr.add(seL4_CapInitThreadVspace)) },
-        getCSpaceRef(rootserver.tcb, tcbVTable),
+        getCSpaceMutRef(rootserver.tcb, tcbVTable),
     );
     cteInsert(
         &dc_ret.cap.clone(),
         unsafe { &mut *(ptr.add(seL4_CapInitThreadIPCBuffer)) },
-        getCSpaceRef(rootserver.tcb, tcbBuffer),
+        getCSpaceMutRef(rootserver.tcb, tcbBuffer),
     );
     (*tcb).tcbIPCBuffer = ipcbuf_vptr;
 

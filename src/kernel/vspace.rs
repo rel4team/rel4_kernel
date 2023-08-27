@@ -15,7 +15,7 @@ use crate::{
         RISCVASIDPoolAssign, RISCVInstructionAccessFault,
         RISCVInstructionPageFault, RISCVLoadAccessFault, RISCVLoadPageFault,
         RISCVPageGetAddress, RISCVPageMap, RISCVPageTableMap, RISCVPageTableUnmap,
-        RISCVPageUnmap, RISCVStoreAccessFault, RISCVStorePageFault, ThreadStateRestart, USER_TOP,
+        RISCVPageUnmap, RISCVStoreAccessFault, RISCVStorePageFault, USER_TOP,
     },
     kernel::boot::current_syscall_error,
     object::{
@@ -31,12 +31,12 @@ use crate::{
 
 use crate::task_manager::*;
 
+use super::thread::setMR;
 use super::{
     boot::{
         current_extra_caps, current_fault, current_lookup_fault,
     },
     cspace::rust_lookupTargetSlot,
-    thread::{setMR, setRegister, setThreadState},
     transfermsg::{
         seL4_MessageInfo_new, vmAttributesFromWord, vm_attributes_get_riscvExecuteNever,
         wordFromMessageInfo,
@@ -44,16 +44,6 @@ use super::{
 };
 
 use cspace::interface::*;
-
-#[no_mangle]
-pub fn setVMRoot(thread: *mut tcb_t) {
-    unsafe {
-        let threadRoot = &(*getCSpace(thread as usize, tcbVTable)).cap;
-        if let Err(lookup_fault) = set_vm_root(threadRoot) {
-            current_lookup_fault = lookup_fault;
-        }
-    }
-}
 
 
 #[no_mangle]
@@ -328,9 +318,7 @@ pub fn decodeRISCVFrameInvocation(
             let find_ret = findVSpaceForASID(asid);
             if find_ret.status != exception_t::EXCEPTION_NONE {
                 debug!("RISCVPageMap: No PageTable for ASID");
-                unsafe {
-                    current_lookup_fault = find_ret.lookup_fault.unwrap();
-                }
+                current_lookup_fault = find_ret.lookup_fault.unwrap();
                 current_syscall_error._type = seL4_FailedLookup;
                 current_syscall_error.failedLookupWasSource = false as usize;
                 return exception_t::EXCEPTION_SYSCALL_ERROR;

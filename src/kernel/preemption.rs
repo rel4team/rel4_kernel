@@ -4,7 +4,7 @@ use crate::{
     config::CONFIG_MAX_NUM_WORK_UNITS_PER_PREEMPTION, object::interrupt::isIRQPending,
 };
 
-use super::boot::ksWorkUnitsCompleted;
+use crate::task_manager::*;
 
 #[no_mangle]
 pub fn preemptionPoint() -> exception_t {

@@ -3,8 +3,7 @@ use core::intrinsics::unlikely;
 use crate::{
     config::{
         irqInvalid, maxIRQ, msgInfoRegister, n_msgRegisters, tcbCaller, SysCall, SysNBRecv,
-        SysNBSend, SysRecv, SysReply, SysReplyRecv, SysSend, SysYield, ThreadStateRestart,
-        ThreadStateRunning, KERNEL_TIMER_IRQ, SIP_SEIP, SIP_STIP,
+        SysNBSend, SysRecv, SysReply, SysReplyRecv, SysSend, SysYield, KERNEL_TIMER_IRQ, SIP_SEIP, SIP_STIP,
     },
     object::{
         endpoint::{receiveIPC, replyFromKernel_error, replyFromKernel_success_empty},
@@ -25,8 +24,7 @@ use super::{
     boot::{active_irq, current_fault, current_lookup_fault},
     faulthandler::handleFault,
     thread::{
-        activateThread, doReplyTransfer, getRegister,
-        rescheduleRequired, schedule, setThreadState,
+        activateThread, doReplyTransfer,
     },
     transfermsg::{
         messageInfoFromWord, seL4_MessageInfo_ptr_get_label, seL4_MessageInfo_ptr_get_length,
