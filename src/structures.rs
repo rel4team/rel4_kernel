@@ -125,12 +125,6 @@ pub enum cap_tag_t {
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub struct endpoint_t {
-    pub words: [usize; 2],
-}
-
-#[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct create_frames_of_region_ret_t {
     pub region: seL4_SlotRegion,
     pub success: bool,

@@ -10,10 +10,6 @@ use crate::{
         interrupt::handleInterrupt,
         notification::receiveSignal,
         objecttype::decodeInvocation,
-        structure_gen::{
-            notification_ptr_get_ntfnBoundTCB,
-            seL4_Fault_CapFault_new, seL4_Fault_UserException_new,
-        },
         tcb::{deleteCallerCap, lookupExtraCaps},
     },
     riscv::read_sip,
@@ -23,19 +19,19 @@ use crate::{
 use super::{
     boot::{active_irq, current_fault, current_lookup_fault},
     faulthandler::handleFault,
-    thread::{
-        activateThread, doReplyTransfer,
-    },
+    thread::doReplyTransfer,
     transfermsg::{
         messageInfoFromWord, seL4_MessageInfo_ptr_get_label, seL4_MessageInfo_ptr_get_length,
     },
     vspace::{handleVMFault, lookupIPCBuffer}, cspace::{lookupCap, lookupCapAndSlot},
 };
 
-use common::{structures::{exception_t, lookup_fault_missing_capability_new, notification_t}, BIT, sel4_config::tcbCaller};
+use common::{structures::{exception_t, lookup_fault_missing_capability_new, seL4_Fault_UserException_new,
+    seL4_Fault_CapFault_new}, BIT, sel4_config::tcbCaller};
 use cspace::interface::*;
 use log::debug;
 use task_manager::*;
+use ipc::*;
 
 #[no_mangle]
 pub fn handleInterruptEntry() -> exception_t {

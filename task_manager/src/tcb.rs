@@ -1,10 +1,11 @@
 use common::{structures::lookup_fault_t, MASK, utils::convert_to_mut_type_ref};
-use cspace::interface::{cte_t, rust_resolveAddressBits, resolve_address_bits};
+use cspace::interface::{cte_t, resolve_address_bits, CapTag, cap_t, mdb_node_t};
 use vspace::{set_vm_root, pptr_t};
 
 // use crate::{structures::{notification_t, seL4_Fault_t}, config::{seL4_TCBBits, tcbVTable}};
-use common::sel4_config::{seL4_TCBBits, tcbVTable, tcbCTable, wordBits};
-use common::structures::{notification_t, seL4_Fault_t};
+use common::sel4_config::{seL4_TCBBits, tcbVTable, tcbCTable, wordBits, tcbReply};
+use common::structures::seL4_Fault_t;
+use crate::SSTATUS;
 use crate::structures::lookupSlot_raw_ret_t;
 
 use super::{registers::n_contextRegisters, ready_queues_index, ksReadyQueues, addToBitmap, removeFromBitmap, NextIP, FaultIP, ksIdleThread, ksCurThread,
@@ -18,12 +19,20 @@ pub struct arch_tcb_t {
     pub registers: [usize; n_contextRegisters],
 }
 
+impl Default for arch_tcb_t {
+    fn default() -> Self {
+        let mut registers = [0; n_contextRegisters];
+        registers[SSTATUS] = 0x00040020;
+        Self {registers }
+    }
+}
+
 #[repr(C)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct tcb_t {
     pub tcbArch: arch_tcb_t,
     pub tcbState: thread_state_t,
-    pub tcbBoundNotification: *mut notification_t,
+    pub tcbBoundNotification: usize,
     pub tcbFault: seL4_Fault_t,
     pub tcbLookupFailure: lookup_fault_t,
     pub domain: usize,
@@ -216,6 +225,21 @@ impl tcb_t {
         lookupSlot_raw_ret_t { status: res_ret.status, slot: res_ret.slot }
     }
 
+    #[inline]
+    pub fn setup_reply_master(&mut self) {
+        let slot = self.get_cspace_mut_ref(tcbReply);
+        // if cap_get_capType(&(*slot).cap) == cap_null_cap  {
+        //     (*slot).cap = cap_reply_cap_new(1, 1, thread as usize);
+        //     (*slot).cteMDBNode = mdb_node_new(0, 0, 0, 0);
+        //     mdb_node_set_mdbRevocable(&mut (*slot).cteMDBNode, 1);
+        //     mdb_node_set_mdbFirstBadged(&mut (*slot).cteMDBNode, 1);
+        // }
+        if slot.cap.get_cap_type() == CapTag::CapNullCap {
+            slot.cap = cap_t::new_reply_cap(1, 1, self.get_ptr());
+            slot.cteMDBNode = mdb_node_t::new(0, 1, 1, 0);
+        }
+    }
+
 }
 
 #[inline]
@@ -369,13 +393,22 @@ pub fn setDomain(tptr: *mut tcb_t, _dom: usize) {
 
 pub fn lookupSlot(thread: *const tcb_t, capptr: usize) -> lookupSlot_raw_ret_t {
     unsafe {
-        // let threadRoot = &(*getCSpace(thread as usize, tcbCTable)).cap;
-        // let res_ret = rust_resolveAddressBits(threadRoot, capptr, wordBits);
-        // let ret = lookupSlot_raw_ret_t {
-        //     status: res_ret.status,
-        //     slot: res_ret.slot,
-        // };
-        // return ret;
         (*thread).lookup_slot(capptr)
+    }
+}
+
+#[no_mangle]
+pub fn setupReplyMaster(thread: *mut tcb_t) {
+    // let slot = getCSpace(thread as usize, tcbReply);
+    // unsafe {
+    //     if cap_get_capType(&(*slot).cap) == cap_null_cap  {
+    //         (*slot).cap = cap_reply_cap_new(1, 1, thread as usize);
+    //         (*slot).cteMDBNode = mdb_node_new(0, 0, 0, 0);
+    //         mdb_node_set_mdbRevocable(&mut (*slot).cteMDBNode, 1);
+    //         mdb_node_set_mdbFirstBadged(&mut (*slot).cteMDBNode, 1);
+    //     }
+    // }
+    unsafe {
+        (*thread).setup_reply_master()
     }
 }

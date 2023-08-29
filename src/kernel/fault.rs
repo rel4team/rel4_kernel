@@ -5,25 +5,16 @@ use crate::{
         n_msgRegisters, n_syscallMessage, seL4_CapFault_Addr, seL4_CapFault_BitsLeft,
         seL4_CapFault_DepthMismatch_BitsFound, seL4_CapFault_GuardMismatch_BitsFound,
         seL4_CapFault_GuardMismatch_GuardFound, seL4_CapFault_IP, seL4_CapFault_InRecvPhase,
-        seL4_CapFault_LookupFailureType, seL4_Fault_CapFault, seL4_Fault_UnknownSyscall,
-        seL4_Fault_UserException, seL4_Fault_VMFault, seL4_VMFault_Addr, seL4_VMFault_FSR,
+        seL4_CapFault_LookupFailureType, seL4_VMFault_Addr, seL4_VMFault_FSR,
         seL4_VMFault_IP, seL4_VMFault_PrefetchFault, MessageID_Exception, MessageID_Syscall,
         MAX_MSG_SIZE,
-    },
-    object::structure_gen::{
-        seL4_Fault_CapFault_get_address,
-        seL4_Fault_CapFault_get_inReceivePhase, seL4_Fault_UnknownSyscall_get_syscallNumber,
-        seL4_Fault_UserException_get_code, seL4_Fault_UserException_get_number,
-        seL4_Fault_VMFault_get_FSR, seL4_Fault_VMFault_get_address,
-        seL4_Fault_VMFault_get_instructionFault, seL4_Fault_get_seL4_FaultType,
     },
     structures::seL4_MessageInfo_t,
 };
 
 use task_manager::*;
 
-use common::{sel4_config::{lookup_fault_depth_mismatch, lookup_fault_guard_mismatch, lookup_fault_invalid_root,
-    lookup_fault_missing_capability}, structures::{lookup_fault_t, lookup_fault_get_lufType, lookup_fault_missing_capability_get_bitsLeft, lookup_fault_depth_mismatch_get_bitsLeft, lookup_fault_depth_mismatch_get_bitsFound, lookup_fault_guard_mismatch_get_bitsLeft, lookup_fault_guard_mismatch_get_guardFound, lookup_fault_guard_mismatch_get_bitsFound}};
+use common::{sel4_config::*, structures::{lookup_fault_t, lookup_fault_get_lufType, lookup_fault_missing_capability_get_bitsLeft, lookup_fault_depth_mismatch_get_bitsLeft, lookup_fault_depth_mismatch_get_bitsFound, lookup_fault_guard_mismatch_get_bitsLeft, lookup_fault_guard_mismatch_get_guardFound, lookup_fault_guard_mismatch_get_bitsFound, seL4_Fault_get_seL4_FaultType, seL4_Fault_CapFault_get_address, seL4_Fault_CapFault_get_inReceivePhase, seL4_Fault_UnknownSyscall_get_syscallNumber, seL4_Fault_VMFault_get_address, seL4_Fault_UserException_get_code, seL4_Fault_UserException_get_number, seL4_Fault_VMFault_get_FSR, seL4_Fault_VMFault_get_instructionFault}};
 
 pub const fault_messages: [[usize; MAX_MSG_SIZE]; 2] = [
     [33, 1, 0, 9, 10, 11, 12, 13, 14, 15],

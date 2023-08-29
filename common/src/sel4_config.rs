@@ -72,3 +72,24 @@ pub const tcbCNodeEntries: usize = 5;
 
 // 多核相关
 pub const CONFIG_MAX_NUM_NODES: usize = 1;
+
+
+// 错误码
+pub const seL4_NoError: usize = 0;
+pub const seL4_InvalidArgument: usize = 1;
+pub const seL4_InvalidCapability: usize = 2;
+pub const seL4_IllegalOperation: usize = 3;
+pub const seL4_RangeError: usize = 4;
+pub const seL4_AlignmentError: usize = 5;
+pub const seL4_FailedLookup: usize = 6;
+pub const seL4_TruncatedMessage: usize = 7;
+pub const seL4_DeleteFirst: usize = 8;
+pub const seL4_RevokeFirst: usize = 9;
+pub const seL4_NotEnoughMemory: usize = 10;
+pub const seL4_NumErrors: usize = 11;
+
+pub const seL4_Fault_NullFault: usize = 0;
+pub const seL4_Fault_CapFault: usize = 1;
+pub const seL4_Fault_UnknownSyscall: usize = 2;
+pub const seL4_Fault_UserException: usize = 3;
+pub const seL4_Fault_VMFault: usize = 5;

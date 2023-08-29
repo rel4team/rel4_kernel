@@ -2,6 +2,8 @@ use common::{BIT, sel4_config::{wordRadix, wordBits, NUM_READY_QUEUES, L2_BITMAP
     CONFIG_MAX_NUM_NODES, CONFIG_NUM_PRIORITIES, CONFIG_TIME_SLICE}, MASK, utils::convert_to_mut_type_ref};
 
 
+use crate::{getReStartPC, setNextPC, setThreadState, ThreadStateRunning};
+
 use super::{tcb::tcb_t, tcb_queue_t, get_idle_thread, get_currenct_thread, ThreadState};
 
 
@@ -266,5 +268,29 @@ pub fn timerTick() {
             current.sched_append();
             rescheduleRequired();
         }
+    }
+}
+
+
+#[no_mangle]
+pub fn activateThread() {
+    unsafe {
+        assert!(ksCurThread as usize != 0 && ksCurThread as usize != 1);
+    }
+    let thread = get_currenct_thread();
+    match thread.get_state() {
+        ThreadState::ThreadStateRunning => {
+            return;
+        }
+        ThreadState::ThreadStateRestart => {
+            let pc = getReStartPC(thread);
+            setNextPC(thread, pc);
+            setThreadState(thread, ThreadStateRunning);
+        }
+        ThreadState::ThreadStateIdleThreadState => return,
+        _ => panic!(
+            "current thread is blocked , state id :{}",
+            thread.get_state() as usize
+        ),
     }
 }

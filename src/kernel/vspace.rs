@@ -1,5 +1,5 @@
 use core::intrinsics::unlikely;
-use common::structures::{lookup_fault_missing_capability_new, lookup_fault_invalid_root_new};
+use common::structures::{lookup_fault_missing_capability_new, lookup_fault_invalid_root_new, seL4_Fault_VMFault_new};
 use common::utils::pageBitsForSize;
 use common::{BIT, MASK, IS_ALIGNED};
 use common::{structures::exception_t, sel4_config::*};
@@ -8,20 +8,14 @@ use vspace::*;
 use crate::{
     config::{
         badgeRegister, msgInfoRegister,
-        n_msgRegisters, seL4_ASIDPoolBits, seL4_AlignmentError,
-        seL4_DeleteFirst, seL4_FailedLookup, seL4_IPCBufferSizeBits, seL4_IllegalOperation,
-        seL4_InvalidArgument, seL4_InvalidCapability,
-        seL4_RevokeFirst, seL4_TruncatedMessage, RISCVASIDControlMakePool,
+        n_msgRegisters, seL4_ASIDPoolBits, seL4_IPCBufferSizeBits, RISCVASIDControlMakePool,
         RISCVASIDPoolAssign, RISCVInstructionAccessFault,
         RISCVInstructionPageFault, RISCVLoadAccessFault, RISCVLoadPageFault,
         RISCVPageGetAddress, RISCVPageMap, RISCVPageTableMap, RISCVPageTableUnmap,
         RISCVPageUnmap, RISCVStoreAccessFault, RISCVStorePageFault, USER_TOP,
     },
     kernel::boot::current_syscall_error,
-    object::{
-        cap::ensureEmptySlot,
-        structure_gen::seL4_Fault_VMFault_new
-    },
+    object::cap::ensureEmptySlot,
     riscv::read_stval,
     syscall::getSyscallArg,
     utils::MAX_FREE_INDEX,

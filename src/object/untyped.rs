@@ -1,9 +1,8 @@
 use crate::{
     config::{
-        seL4_CapTableObject, seL4_FailedLookup, seL4_IllegalOperation, seL4_InvalidArgument,
-        seL4_NotEnoughMemory, seL4_ObjectTypeCount, seL4_RangeError, seL4_TruncatedMessage,
+        seL4_CapTableObject, seL4_ObjectTypeCount,
         seL4_UntypedObject, UntypedRetype, CONFIG_RESET_CHUNK_BITS,
-        CONFIG_RETYPE_FAN_OUT_LIMIT, seL4_RevokeFirst,
+        CONFIG_RETYPE_FAN_OUT_LIMIT, 
     },
     kernel::{
         boot::{current_extra_caps, current_lookup_fault, current_syscall_error},

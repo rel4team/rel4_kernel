@@ -1,7 +1,6 @@
 use crate::{
     config::{
         badgeRegister, msgInfoRegister, EPState_Idle, EPState_Recv, EPState_Send,
-        NtfnState_Active,
     },
     kernel::{
         boot::current_syscall_error,
@@ -14,25 +13,15 @@ use crate::{
     },
     object::{
         notification::completeSignal,
-        structure_gen::notification_ptr_get_state,
         tcb::setupCallerCap,
     },
-    structures::endpoint_t,
 };
 
 use task_manager::*;
+use ipc::*;
+use super::notification::cancelSignal;
 
-use super::{
-    cap::cteDeleteOne,
-    notification::cancelSignal,
-    structure_gen::{
-        endpoint_ptr_get_epQueue_head, endpoint_ptr_get_epQueue_tail, endpoint_ptr_get_state,
-        endpoint_ptr_set_epQueue_head, endpoint_ptr_set_epQueue_tail, endpoint_ptr_set_state,
-        seL4_Fault_NullFault_new
-    },
-};
-
-use common::{structures::{exception_t, notification_t}, sel4_config::tcbReply};
+use common::{structures::{exception_t, seL4_Fault_NullFault_new}, sel4_config::tcbReply};
 use cspace::interface::*;
 
 #[inline]
@@ -130,7 +119,7 @@ pub fn receiveIPC(thread: *mut tcb_t, cap: &cap_t, isBlocking: bool) {
     unsafe {
         assert!(cap_get_capType(cap) == cap_endpoint_cap);
         let epptr = cap_endpoint_cap_get_capEPPtr(cap) as *const endpoint_t;
-        let ntfnPtr = (*thread).tcbBoundNotification;
+        let ntfnPtr = (*thread).tcbBoundNotification as *mut notification_t;
         if ntfnPtr as usize != 0 && notification_ptr_get_state(ntfnPtr) == NtfnState_Active {
             completeSignal(ntfnPtr, thread);
             return;

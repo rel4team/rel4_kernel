@@ -191,25 +191,6 @@ pub const TIMER_CLOCK_HZ: usize = 10000000;
 pub const MS_IN_S: usize = 1000;
 pub const RESET_CYCLES: usize = (TIMER_CLOCK_HZ / MS_IN_S) * 2;
 
-pub const seL4_NoError: usize = 0;
-pub const seL4_InvalidArgument: usize = 1;
-pub const seL4_InvalidCapability: usize = 2;
-pub const seL4_IllegalOperation: usize = 3;
-pub const seL4_RangeError: usize = 4;
-pub const seL4_AlignmentError: usize = 5;
-pub const seL4_FailedLookup: usize = 6;
-pub const seL4_TruncatedMessage: usize = 7;
-pub const seL4_DeleteFirst: usize = 8;
-pub const seL4_RevokeFirst: usize = 9;
-pub const seL4_NotEnoughMemory: usize = 10;
-pub const seL4_NumErrors: usize = 11;
-
-pub const seL4_Fault_NullFault: usize = 0;
-pub const seL4_Fault_CapFault: usize = 1;
-pub const seL4_Fault_UnknownSyscall: usize = 2;
-pub const seL4_Fault_UserException: usize = 3;
-pub const seL4_Fault_VMFault: usize = 5;
-
 pub const EPState_Idle: usize = 0;
 pub const EPState_Send: usize = 1;
 pub const EPState_Recv: usize = 2;
@@ -225,10 +206,6 @@ pub const seL4_CapFault_GuardMismatch_BitsFound: usize = 6;
 
 pub const MessageID_Syscall: usize = 0;
 pub const MessageID_Exception: usize = 1;
-
-pub const NtfnState_Idle: usize = 0;
-pub const NtfnState_Waiting: usize = 1;
-pub const NtfnState_Active: usize = 2;
 
 pub const seL4_MinPrio: usize = 0;
 

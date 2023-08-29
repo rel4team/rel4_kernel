@@ -3,7 +3,7 @@ use core::intrinsics::unlikely;
 use crate::{
     config::{
         seL4_CapTableObject, seL4_EndpointObject, seL4_HugePageBits,
-        seL4_InvalidCapability, seL4_LargePageBits, seL4_NotificationObject,
+        seL4_LargePageBits, seL4_NotificationObject,
         seL4_TCBObject, seL4_UntypedObject,
         tcbCNodeEntries, IRQInactive,
     },
@@ -20,13 +20,11 @@ use crate::{
             decodeRISCVMMUInvocation, deleteASID, deleteASIDPool,
         },
     },
-    structures::{
-        endpoint_t,
-        seL4_CNode_CapData_t,
-    },
+    structures::seL4_CNode_CapData_t
 };
 
 use task_manager::*;
+use ipc::*;
 use log::debug;
 use vspace::*;
 
@@ -44,7 +42,7 @@ use super::{
     untyped::decodeUntypedInvocation,
 };
 
-use common::{structures::{exception_t, notification_t}, sel4_config::*, MASK};
+use common::{structures::exception_t, sel4_config::*, MASK};
 use cspace::interface::*;
 
 

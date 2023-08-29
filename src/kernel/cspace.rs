@@ -1,15 +1,12 @@
 use core::intrinsics::unlikely;
 
-use crate::{
-    config::{seL4_FailedLookup, seL4_RangeError},
-    structures::{
-        lookupCapAndSlot_ret_t, lookupCap_ret_t
-    },
+use crate::structures::{
+    lookupCapAndSlot_ret_t, lookupCap_ret_t
 };
 
 use task_manager::*;
 
-use common::{structures::{exception_t, lookup_fault_invalid_root_new, lookup_fault_depth_mismatch_new}, sel4_config::{wordBits, tcbCTable}};
+use common::{structures::{exception_t, lookup_fault_invalid_root_new, lookup_fault_depth_mismatch_new}, sel4_config::*};
 use cspace::interface::*;
 use super::boot::{current_lookup_fault, current_syscall_error};
 

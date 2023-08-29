@@ -1,22 +1,13 @@
-use crate::{
-    config::seL4_Fault_CapFault,
-    object::{
-        endpoint::sendIPC,
-        structure_gen::{
-            seL4_Fault_CapFault_new, seL4_Fault_get_seL4_FaultType,
-        },
-    },
-    structures::endpoint_t,
-};
+use crate::object::endpoint::sendIPC;
 
 use task_manager::*;
-
+use ipc::*;
 use super::{
     boot::{current_fault, current_lookup_fault},
     cspace::lookupCap,
 };
 
-use common::structures::{exception_t, lookup_fault_missing_capability_new, seL4_Fault_t};
+use common::{structures::{exception_t, lookup_fault_missing_capability_new, seL4_Fault_t, seL4_Fault_CapFault_new, seL4_Fault_get_seL4_FaultType}, sel4_config::seL4_Fault_CapFault};
 use cspace::interface::*;
 
 #[no_mangle]

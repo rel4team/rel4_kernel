@@ -1,11 +1,10 @@
 
 use common::structures::exception_t;
 
-use crate::cte::{cte_insert, cte_move, cte_swap, cap_removable, insert_new_cap};
-use crate::deps::post_cap_deletion;
+use crate::cte::{cte_insert, cte_move, cte_swap, insert_new_cap};
 use crate::utils::resolveAddressBits_ret_t;
 
-use super::cap::{is_cap_revocable, same_object_as};
+use super::cap::same_object_as;
 
 pub use crate::cap_rights::seL4_CapRights_t;
 pub use crate::cte::cte_t;
@@ -14,7 +13,7 @@ pub use crate::cap::cap_t;
 pub use crate::cap::CapTag;
 
 pub use super::structures::{finaliseCap_ret, finaliseSlot_ret};
-pub use super::cte::{deriveCap_ret, resolve_address_bits};
+pub use super::cte::{deriveCap_ret, resolve_address_bits, cteDelete, cteDeleteOne, cteRevoke};
 pub use super::cap::null::cap_null_cap_new;
 
 pub use crate::cap_rights::{seL4_CapRightsBits, seL4_CapRights_get_capAllowGrant, seL4_CapRights_get_capAllowGrantReply,
@@ -196,11 +195,6 @@ pub fn slotCapLongRunningDelete(slot: *mut cte_t) -> bool {
 }
 
 #[inline]
-pub fn isCapRevocable(_derivedCap: &cap_t, _srcCap: &cap_t) -> bool {
-    is_cap_revocable(_derivedCap, _srcCap)
-}
-
-#[inline]
 pub fn cteInsert(newCap: &cap_t, srcSlot: *mut cte_t, destSlot: *mut cte_t) {
     unsafe {
         cte_insert(newCap, &mut *srcSlot, &mut *destSlot)
@@ -229,12 +223,6 @@ pub fn cteSwap(cap1: &cap_t, slot1: *mut cte_t, cap2: &cap_t, slot2: *mut cte_t)
     }
 }
 
-
-#[inline]
-pub fn capRemovable(cap: &cap_t, slot: *mut cte_t) -> bool {
-    cap_removable(cap, slot)
-}
-
 #[inline]
 pub fn insertNewCap(parent: *mut cte_t, slot: *mut cte_t, cap: &cap_t) {
     unsafe {
@@ -255,34 +243,4 @@ pub fn cap_capType_equals(cap: &cap_t, cap_type_tag: usize) -> bool {
 #[inline]
 pub fn rust_resolveAddressBits(node_cap: &cap_t, cap_ptr: usize, _n_bits: usize) -> resolveAddressBits_ret_t {
     resolve_address_bits(node_cap, cap_ptr, _n_bits)
-}
-
-
-#[no_mangle]
-pub fn emptySlot(slot: *mut cte_t, _cleanupInfo: &cap_t) {
-    unsafe {
-        if cap_get_capType(&(*slot).cap) != cap_null_cap {
-            let mdbNode = &(*slot).cteMDBNode;
-            let prev = mdb_node_get_mdbPrev(mdbNode);
-            let next = mdb_node_get_mdbNext(mdbNode);
-            if prev != 0 {
-                let prev_ptr = mdb_node_get_mdbPrev(mdbNode) as *mut cte_t;
-                mdb_node_ptr_set_mdbNext(&mut (*prev_ptr).cteMDBNode, next);
-            }
-            if next != 0 {
-                let next_ptr = mdb_node_get_mdbNext(mdbNode) as *mut cte_t;
-                mdb_node_ptr_set_mdbPrev(&mut (*next_ptr).cteMDBNode, prev);
-                mdb_node_set_mdbFirstBadged(
-                    &mut (*next_ptr).cteMDBNode,
-                    ((mdb_node_get_mdbFirstBadged(&(*next_ptr).cteMDBNode) != 0)
-                        || (mdb_node_get_mdbFirstBadged(mdbNode) != 0))
-                        as usize,
-                );
-            }
-            (*slot).cap = cap_null_cap_new();
-            (*slot).cteMDBNode = mdb_node_new(0, 0, 0, 0);
-
-            post_cap_deletion(_cleanupInfo);
-        }
-    }
 }

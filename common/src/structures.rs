@@ -1,4 +1,4 @@
-use crate::sel4_config::{lookup_fault_invalid_root, lookup_fault_missing_capability, lookup_fault_depth_mismatch};
+use crate::sel4_config::{lookup_fault_invalid_root, lookup_fault_missing_capability, lookup_fault_depth_mismatch, seL4_Fault_UnknownSyscall, seL4_Fault_UserException, seL4_Fault_CapFault, seL4_Fault_NullFault, seL4_Fault_VMFault};
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -112,14 +112,104 @@ pub fn lookup_fault_guard_mismatch_get_bitsLeft(lookup_fault: &lookup_fault_t) -
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug)]
-pub struct notification_t {
-    pub words: [usize; 4],
-}
-
-#[repr(C)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct seL4_Fault_t {
     pub words: [usize; 2],
 }
 
+#[inline]
+pub fn seL4_Fault_get_seL4_FaultType(seL4_Fault: &seL4_Fault_t) -> usize {
+    (seL4_Fault.words[0] >> 0) & 0xfusize
+}
+
+#[inline]
+pub fn seL4_Fault_NullFault_new() -> seL4_Fault_t {
+    seL4_Fault_t {
+        words: [0 | (seL4_Fault_NullFault & 0xfusize) << 0, 0],
+    }
+}
+
+#[inline]
+pub fn seL4_Fault_CapFault_new(address: usize, inReceivePhase: usize) -> seL4_Fault_t {
+    seL4_Fault_t {
+        words: [
+            0 | (inReceivePhase & 0x1usize) << 63 | (seL4_Fault_CapFault & 0xfusize) << 0,
+            0 | address << 0,
+        ],
+    }
+}
+
+#[inline]
+pub fn seL4_Fault_CapFault_get_address(seL4_Fault: &seL4_Fault_t) -> usize {
+    (seL4_Fault.words[1] & 0xffffffffffffffffusize) >> 0
+}
+
+#[inline]
+pub fn seL4_Fault_CapFault_get_inReceivePhase(seL4_Fault: &seL4_Fault_t) -> usize {
+    (seL4_Fault.words[0] & 0x8000000000000000usize) >> 63
+}
+
+#[inline]
+pub fn seL4_Fault_UnknownSyscall_new(syscallNumber: usize) -> seL4_Fault_t {
+    seL4_Fault_t {
+        words: [
+            0 | (seL4_Fault_UnknownSyscall & 0xfusize) << 0,
+            0 | syscallNumber << 0,
+        ],
+    }
+}
+
+#[inline]
+pub fn seL4_Fault_UnknownSyscall_get_syscallNumber(seL4_Fault: &seL4_Fault_t) -> usize {
+    let ret = (seL4_Fault.words[1] & 0xffffffffffffffffusize) >> 0;
+    ret
+}
+
+#[inline]
+pub fn seL4_Fault_UserException_new(number: usize, code: usize) -> seL4_Fault_t {
+    seL4_Fault_t {
+        words: [
+            0 | (number & 0xffffffffusize) << 32
+                | (code & 0xfffffffusize) << 4
+                | (seL4_Fault_UserException & 0xfusize) << 0,
+            0,
+        ],
+    }
+}
+
+#[inline]
+pub fn seL4_Fault_UserException_get_number(seL4_Fault: &seL4_Fault_t) -> usize {
+    (seL4_Fault.words[0] & 0xffffffff00000000usize) >> 32
+}
+
+#[inline]
+pub fn seL4_Fault_UserException_get_code(seL4_Fault: &seL4_Fault_t) -> usize {
+    (seL4_Fault.words[0] & 0xfffffff0usize) >> 4
+}
+
+#[inline]
+pub fn seL4_Fault_VMFault_new(address: usize, FSR: usize, instructionFault: bool) -> seL4_Fault_t {
+    seL4_Fault_t {
+        words: [
+            0 | (FSR & 0x1fusize) << 27
+                | (instructionFault as usize & 0x1usize) << 19
+                | (seL4_Fault_VMFault & 0xfusize) << 0,
+            0 | address << 0,
+        ],
+    }
+}
+
+#[inline]
+pub fn seL4_Fault_VMFault_get_address(seL4_Fault: &seL4_Fault_t) -> usize {
+    (seL4_Fault.words[1] & 0xffffffffffffffffusize) >> 0
+}
+
+#[inline]
+pub fn seL4_Fault_VMFault_get_FSR(seL4_Fault: &seL4_Fault_t) -> usize {
+    (seL4_Fault.words[0] & 0xf8000000usize) >> 27
+}
+
+#[inline]
+pub fn seL4_Fault_VMFault_get_instructionFault(seL4_Fault: &seL4_Fault_t) -> usize {
+    (seL4_Fault.words[0] & 0x80000usize) >> 19
+}

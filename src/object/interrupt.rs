@@ -2,8 +2,7 @@ use core::{arch::asm, intrinsics::unlikely};
 
 use crate::{
     config::{
-        irqInvalid, maxIRQ, seL4_IllegalOperation, seL4_InvalidCapability, seL4_RangeError,
-        seL4_RevokeFirst, seL4_TruncatedMessage, IRQAckIRQ, IRQClearIRQHandler, IRQInactive,
+        irqInvalid, maxIRQ, IRQAckIRQ, IRQClearIRQHandler, IRQInactive,
         IRQIssueIRQHandler, IRQReserved, IRQSetIRQHandler, IRQSignal, IRQTimer,
         RISCVIRQIssueIRQHandlerTrigger, KERNEL_TIMER_IRQ, SIE_STIE, SIP_SEIP,
         SIP_STIP,
@@ -18,12 +17,13 @@ use crate::{
 };
 
 use super::{
-    cap::{cteDeleteOne, ensureEmptySlot},
+    cap::ensureEmptySlot,
     notification::sendSignal,
 };
 
-use common::{structures::{exception_t, notification_t}, BIT};
+use common::{structures::exception_t, BIT, sel4_config::*};
 use cspace::interface::*;
+use ipc::*;
 use task_manager::*;
 use log::debug;
 

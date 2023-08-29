@@ -1,24 +1,20 @@
 use crate::{
     config::{
-        msgRegister, seL4_Fault_NullFault, EPState_Idle, EPState_Recv, EPState_Send,
-        NtfnState_Active, SysCall, SysReplyRecv, seL4_MsgLengthBits, seL4_MsgExtraCapBits,
+        msgRegister, EPState_Idle, EPState_Recv, EPState_Send,
+        SysCall, SysReplyRecv, seL4_MsgLengthBits, seL4_MsgExtraCapBits,
     },
-    object::structure_gen::{
-        endpoint_ptr_get_epQueue_head,
-        endpoint_ptr_get_epQueue_tail, endpoint_ptr_get_state, notification_ptr_get_state, 
-        seL4_Fault_get_seL4_FaultType,
-    },
-    structures::{
-        endpoint_t, seL4_MessageInfo_t,
-    },
+    structures::seL4_MessageInfo_t,
 };
+
+use ipc::*;
 
 use task_manager::*;
 
 use log::error;
 use vspace::*;
 use core::intrinsics::{likely, unlikely};
-use common::{sel4_config::{wordBits, tcbCTable, tcbVTable, tcbReply, tcbCaller}, MASK};
+use common::{sel4_config::{wordBits, tcbCTable, tcbVTable, tcbReply, tcbCaller, seL4_Fault_NullFault}, MASK,
+    structures::seL4_Fault_get_seL4_FaultType};
 use cspace::interface::*;
 use super::{
     c_traps::slowpath,
@@ -299,8 +295,8 @@ pub fn fastpath_reply_recv(cptr: usize, msgInfo: usize) {
 
     unsafe {
         if unlikely(
-            (*ksCurThread).tcbBoundNotification as usize != 0
-                && notification_ptr_get_state((*ksCurThread).tcbBoundNotification)
+            (*ksCurThread).tcbBoundNotification != 0
+                && notification_ptr_get_state((*ksCurThread).tcbBoundNotification as *const notification_t)
                     == NtfnState_Active,
         ) {
             slowpath(SysReplyRecv as usize);

@@ -1,16 +1,11 @@
 use crate::{
-    config::{
-        seL4_DeleteFirst, seL4_FailedLookup, seL4_IllegalOperation,
-        seL4_TruncatedMessage, CNodeCancelBadgedSends, CNodeCopy, CNodeDelete,
+    config::{CNodeCancelBadgedSends, CNodeCopy, CNodeDelete,
         CNodeMint, CNodeMove, CNodeMutate, CNodeRevoke, CNodeRotate, CNodeSaveCaller,
     },
     kernel::{
         boot::{current_extra_caps, current_lookup_fault, current_syscall_error},
         cspace::{rust_lookupPivotSlot, rust_lookupSourceSlot, rust_lookupTargetSlot},
-        preemption::preemptionPoint,
     },
-    object::objecttype::finaliseCap,
-    structures::endpoint_t,
     syscall::getSyscallArg,
 };
 
@@ -22,177 +17,15 @@ use super::{
     },
 };
 use task_manager::*;
-use common::{structures::{exception_t, lookup_fault_missing_capability_new}, sel4_config::tcbCaller};
+use ipc::*;
+use common::{structures::{exception_t, lookup_fault_missing_capability_new}, sel4_config::*};
 use cspace::interface::*;
 use log::debug;
-
-#[no_mangle]
-pub fn capSwapForDelete(slot1: *mut cte_t, slot2: *mut cte_t) {
-    unsafe {
-        if slot1 == slot2 {
-            return;
-        }
-        let cap1 = &(*slot1).cap;
-        let cap2 = &(*slot2).cap;
-        cteSwap(cap1, slot1, cap2, slot2);
-    }
-}
-
-#[no_mangle]
-pub fn cteDelete(slot: *mut cte_t, exposed: bool) -> exception_t {
-    let fs_ret = finaliseSlot(slot, exposed);
-    if fs_ret.status != exception_t::EXCEPTION_NONE {
-        return fs_ret.status;
-    }
-
-    if exposed || fs_ret.success {
-        emptySlot(slot, &fs_ret.cleanupInfo);
-    }
-    return exception_t::EXCEPTION_NONE;
-}
-
-
-
-#[no_mangle]
-pub fn finaliseSlot(slot: *mut cte_t, immediate: bool) -> finaliseSlot_ret {
-    unsafe {
-        let mut _final: bool;
-        let mut fc_ret: finaliseCap_ret;
-        let mut ret = finaliseSlot_ret::default();
-        let mut status: exception_t;
-
-        while cap_get_capType(&(*slot).cap) != cap_null_cap {
-            _final = isFinalCapability(slot);
-            fc_ret = finaliseCap(&(*slot).cap, _final, false);
-            let flag = capRemovable(&fc_ret.remainder, slot);
-            if flag {
-                ret.status = exception_t::EXCEPTION_NONE;
-                ret.success = true;
-                ret.cleanupInfo = fc_ret.cleanupInfo;
-                return ret;
-            }
-            (*slot).cap = fc_ret.remainder;
-            if !immediate && capCyclicZombie(&(*slot).cap, slot) {
-                ret.status = exception_t::EXCEPTION_NONE;
-                ret.success = false;
-                ret.cleanupInfo = fc_ret.cleanupInfo;
-                return ret;
-            }
-            status = reduceZombie(slot, immediate);
-            if status != exception_t::EXCEPTION_NONE {
-                ret.status = status;
-                ret.success = false;
-                ret.cleanupInfo = cap_null_cap_new();
-                return ret;
-            }
-            //TODO::preemptionPoint();
-            let status = preemptionPoint();
-            if status != exception_t::EXCEPTION_NONE {
-                ret.status = status;
-                ret.success = false;
-                ret.cleanupInfo = cap_null_cap_new();
-                return ret;
-            }
-        }
-        ret.status = exception_t::EXCEPTION_NONE;
-        ret.success = true;
-        ret.cleanupInfo = cap_null_cap_new();
-        return ret;
-    }
-}
-
-#[no_mangle]
-pub fn cteRevoke(slot: *mut cte_t) -> exception_t {
-    unsafe {
-        let mut next = mdb_node_get_mdbNext(&(*slot).cteMDBNode);
-        if next != 0 {
-            let mut nextPtr = mdb_node_get_mdbNext(&(*slot).cteMDBNode) as *mut cte_t;
-            while next != 0 && isMDBParentOf(slot, nextPtr) {
-                let mut status = cteDelete(nextPtr, true);
-                if status != exception_t::EXCEPTION_NONE {
-                    return status;
-                }
-                status = preemptionPoint();
-                if status != exception_t::EXCEPTION_NONE {
-                    return status;
-                }
-
-                next = mdb_node_get_mdbNext(&(*slot).cteMDBNode);
-                if next == 0 {
-                    break;
-                }
-                nextPtr = mdb_node_get_mdbNext(&(*slot).cteMDBNode) as *mut cte_t;
-            }
-        }
-    }
-    return exception_t::EXCEPTION_NONE;
-}
-
-#[no_mangle]
-pub fn reduceZombie(slot: *mut cte_t, immediate: bool) -> exception_t {
-    unsafe {
-        assert!(cap_get_capType(&(*slot).cap) == cap_zombie_cap);
-        let status: exception_t;
-        let ptr = cap_zombie_cap_get_capZombiePtr(&(*slot).cap) as *mut cte_t;
-        let n = cap_zombie_cap_get_capZombieNumber(&(*slot).cap);
-        let _type = cap_zombie_cap_get_capZombieType(&(*slot).cap);
-        assert!(n > 0);
-        if immediate {
-            let endSlot = (cap_zombie_cap_get_capZombiePtr(&(*slot).cap) as *mut cte_t).add(n - 1);
-            status = cteDelete(endSlot, false);
-            if status != exception_t::EXCEPTION_NONE {
-                return status;
-            }
-            match cap_get_capType(&(*slot).cap) {
-                cap_null_cap => {
-                    return exception_t::EXCEPTION_NONE;
-                }
-                cap_zombie_cap => {
-                    let ptr2 = cap_zombie_cap_get_capZombiePtr(&(*slot).cap) as *mut cte_t;
-                    if ptr == ptr2
-                        && cap_zombie_cap_get_capZombieNumber(&(*slot).cap) == n
-                        && cap_zombie_cap_get_capZombieType(&(*slot).cap) == _type
-                    {
-                        assert!(cap_get_capType(&(*endSlot).cap) == cap_null_cap);
-                        cap_zombie_cap_set_capZombieNumber(&mut (*slot).cap, n - 1);
-                    } else {
-                        assert!(ptr2 == slot && ptr != slot);
-                    }
-                }
-                _ => panic!("Expected recursion to result in Zombie."),
-            }
-        } else {
-            assert!(ptr != slot);
-            if cap_get_capType(&(*ptr).cap) == cap_zombie_cap {
-                let ptr1 = cap_zombie_cap_get_capZombiePtr(&(*ptr).cap) as *mut cte_t;
-                assert!(ptr != ptr1);
-            }
-            capSwapForDelete(ptr, slot);
-        }
-    }
-    return exception_t::EXCEPTION_NONE;
-}
 
 pub fn deletingIRQHandler(irq: usize) {
     unsafe {
         let slot = (intStateIRQNode + irq) as *mut cte_t;
         cteDeleteOne(slot);
-    }
-}
-
-#[no_mangle]
-pub fn cteDeleteOne(slot: *mut cte_t) {
-    unsafe {
-        let cap_type = cap_get_capType(&(*slot).cap);
-        if cap_type != cap_null_cap {
-            let _final = isFinalCapability(slot);
-            let fc_ret = finaliseCap(&(*slot).cap, _final, true);
-            assert!(
-                capRemovable(&fc_ret.remainder, slot)
-                    && cap_get_capType(&fc_ret.cleanupInfo) == cap_null_cap
-            );
-            emptySlot(slot, &cap_null_cap_new());
-        }
     }
 }
 

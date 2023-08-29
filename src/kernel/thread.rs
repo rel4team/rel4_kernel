@@ -1,24 +1,18 @@
 use crate::{
     config::{
-        msgInfoRegister, seL4_AlignmentError,
-        seL4_DeleteFirst, seL4_FailedLookup, seL4_Fault_NullFault, seL4_IllegalOperation,
-        seL4_InvalidArgument, seL4_InvalidCapability, seL4_MsgMaxExtraCaps, seL4_MsgMaxLength,
-        seL4_NotEnoughMemory, seL4_RangeError, seL4_RevokeFirst,
-        seL4_TruncatedMessage, DomainSetSet, CONFIG_KERNEL_STACK_BITS, SSTATUS_SPIE, SSTATUS_SPP, n_msgRegisters, msgRegister,
+        msgInfoRegister, DomainSetSet, CONFIG_KERNEL_STACK_BITS, SSTATUS_SPIE, SSTATUS_SPP, n_msgRegisters, msgRegister, seL4_MsgMaxExtraCaps, seL4_MsgMaxLength,
     },
     object::{
-        cap::cteDeleteOne,
-        cnode::setupReplyMaster,
         endpoint::cancelIPC,
-        structure_gen::seL4_Fault_get_seL4_FaultType,
         tcb::{
             copyMRs, lookupExtraCaps
         },
     },
-    structures::{cap_transfer_t, endpoint_t, seL4_MessageInfo_t}, syscall::getSyscallArg,
+    structures::{cap_transfer_t, seL4_MessageInfo_t}, syscall::getSyscallArg,
 };
 
 use task_manager::*;
+use ipc::*;
 use core::{
     arch::asm,
     intrinsics::{likely, unlikely},
@@ -39,7 +33,7 @@ use super::{
     vspace::lookupIPCBuffer,
 };
 
-use common::{structures::exception_t, BIT, sel4_config::{CONFIG_MAX_NUM_NODES, TCB_OFFSET}};
+use common::{structures::{exception_t, seL4_Fault_get_seL4_FaultType}, BIT, sel4_config::*};
 use cspace::interface::*;
 use log::debug;
 
@@ -126,7 +120,7 @@ pub fn decodeDomainInvocation(invLabel: usize, length: usize, buffer: *mut usize
 
 
 #[no_mangle]
-pub fn configureIdleThread(tcb: *const tcb_t) {
+pub fn configureIdleThread(_tcb: *const tcb_t) {
     
 }
 
@@ -276,9 +270,8 @@ pub fn setMR(receiver: *mut tcb_t, receivedBuffer: *mut usize, offset: usize, re
     }
 }
 
-pub fn Arch_initContext(mut context: arch_tcb_t) -> arch_tcb_t {
-    (context).registers[SSTATUS] = 0x00040020;
-    context
+pub fn Arch_initContext(context: arch_tcb_t) -> arch_tcb_t {
+   arch_tcb_t::default()
 }
 
 #[no_mangle]
@@ -444,29 +437,6 @@ pub fn setMRs_syscall_error(thread: *mut tcb_t, receivedIPCBuffer: *mut usize) -
                 current_syscall_error.memoryLeft,
             ),
             _ => panic!("invalid syscall error"),
-        }
-    }
-}
-
-#[no_mangle]
-pub fn activateThread() {
-    unsafe {
-        assert!(ksCurThread as usize != 0 && ksCurThread as usize != 1);
-        let thread = ksCurThread;
-        match thread_state_get_tsType(&(*thread).tcbState) {
-            ThreadStateRunning => {
-                return;
-            }
-            ThreadStateRestart => {
-                let pc = getReStartPC(thread);
-                setNextPC(thread, pc);
-                setThreadState(thread, ThreadStateRunning);
-            }
-            ThreadStateIdleThreadState => return,
-            _ => panic!(
-                "current thread is blocked , state id :{}",
-                thread_state_get_tsType(&(*thread).tcbState)
-            ),
         }
     }
 }

@@ -1,24 +1,13 @@
 use crate::{
-    config::{
-        badgeRegister, NtfnState_Active, NtfnState_Idle, NtfnState_Waiting,
-    },
+    config::badgeRegister,
     kernel::thread::doNBRecvFailedTransfer,
 };
 
 use task_manager::*;
+use ipc::*;
+use super::endpoint::cancelIPC;
 
-use super::{
-    endpoint::cancelIPC,
-    structure_gen::{ notification_ptr_get_ntfnBoundTCB,
-        notification_ptr_get_ntfnMsgIdentifier, notification_ptr_get_ntfnQueue_head,
-        notification_ptr_get_ntfnQueue_tail, notification_ptr_get_state,
-        notification_ptr_set_ntfnBoundTCB, notification_ptr_set_ntfnMsgIdentifier,
-        notification_ptr_set_ntfnQueue_head, notification_ptr_set_ntfnQueue_tail,
-        notification_ptr_set_state
-    },
-};
-
-use common::structures::{exception_t, notification_t};
+use common::structures::exception_t;
 use cspace::interface::*;
 
 #[no_mangle]
@@ -32,30 +21,9 @@ pub fn completeSignal(ptr: *mut notification_t, tcb: *mut tcb_t) {
     }
 }
 
-#[inline]
-#[no_mangle]
-pub fn ntfn_ptr_get_queue(ptr: *const notification_t) -> tcb_queue_t {
-    // debug!("not val :{:#x} {:#x}",notification_ptr_get_ntfnQueue_head(ptr),notification_ptr_get_ntfnQueue_tail(ptr));
-    tcb_queue_t {
-        head: notification_ptr_get_ntfnQueue_head(ptr) as *mut tcb_t,
-        tail: notification_ptr_get_ntfnQueue_tail(ptr) as *mut tcb_t,
-    }
-}
-
-#[inline]
-pub fn ntfn_ptr_set_queue(ptr: *const notification_t, ntfn_queue: tcb_queue_t) {
-    notification_ptr_set_ntfnQueue_head(ptr as *mut notification_t, ntfn_queue.head as usize);
-    notification_ptr_set_ntfnQueue_tail(ptr as *mut notification_t, ntfn_queue.tail as usize);
-}
-
-#[inline]
-pub fn ntfn_ptr_set_active(ntfnPtr: *const notification_t, badge: usize) {
-    notification_ptr_set_state(ntfnPtr as *mut notification_t, NtfnState_Active);
-    notification_ptr_set_ntfnMsgIdentifier(ntfnPtr as *mut notification_t, badge);
-}
 
 #[no_mangle]
-pub fn sendSignal(ntfnPtr: *const notification_t, badge: usize) {
+pub fn sendSignal(ntfnPtr: *mut notification_t, badge: usize) {
     match notification_ptr_get_state(ntfnPtr) {
         NtfnState_Idle => unsafe {
             let tcb = notification_ptr_get_ntfnBoundTCB(ntfnPtr) as *mut tcb_t;
@@ -134,7 +102,7 @@ pub fn receiveSignal(thread: *mut tcb_t, cap: &cap_t, isBlocking: bool) {
 pub fn bindNotification(tcb: *mut tcb_t, ptr: *mut notification_t) {
     notification_ptr_set_ntfnBoundTCB(ptr, tcb as usize);
     unsafe {
-        (*tcb).tcbBoundNotification = ptr as *mut notification_t;
+        (*tcb).tcbBoundNotification = ptr as *mut notification_t as usize;
     }
 }
 
@@ -142,7 +110,7 @@ pub fn bindNotification(tcb: *mut tcb_t, ptr: *mut notification_t) {
 pub fn doUnbindNotification(tcb: *mut tcb_t, ptr: *mut notification_t) {
     notification_ptr_set_ntfnBoundTCB(ptr, 0);
     unsafe {
-        (*tcb).tcbBoundNotification = 0 as *mut notification_t;
+        (*tcb).tcbBoundNotification = 0;
     }
 }
 
@@ -157,9 +125,9 @@ pub fn unbindMaybeNotification(ptr: *const notification_t) {
 #[no_mangle]
 pub fn unbindNotification(tcb: *mut tcb_t) {
     unsafe {
-        let ptr = (*tcb).tcbBoundNotification as *mut notification_t;
-        if ptr as usize != 0 {
-            doUnbindNotification(tcb, ptr);
+        let ptr = (*tcb).tcbBoundNotification;
+        if ptr != 0 {
+            doUnbindNotification(tcb, ptr as *mut notification_t);
         }
     }
 }
@@ -180,7 +148,7 @@ pub fn cancelSignal(threadPtr: *mut tcb_t, ntfnPtr: *mut notification_t) {
 }
 
 #[no_mangle]
-pub fn performInvocation_Notification(ntfn: *const notification_t, badge: usize) -> exception_t {
+pub fn performInvocation_Notification(ntfn: *mut notification_t, badge: usize) -> exception_t {
     sendSignal(ntfn, badge);
     exception_t::EXCEPTION_NONE
 }

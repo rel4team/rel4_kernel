@@ -1,14 +1,13 @@
 use crate::{
     config::{
         badgeRegister, frameRegisters, gpRegisters, msgInfoRegister, msgRegister, n_frameRegisters,
-        n_gpRegisters, n_msgRegisters, seL4_IllegalOperation, seL4_InvalidCapability, seL4_MinPrio,
-        seL4_MsgMaxExtraCaps, seL4_RangeError, seL4_TruncatedMessage, thread_control_update_ipc_buffer,
+        n_gpRegisters, n_msgRegisters, thread_control_update_ipc_buffer,
         thread_control_update_mcp, thread_control_update_priority, thread_control_update_space,
         CopyRegisters_resumeTarget, CopyRegisters_suspendSource,
         CopyRegisters_transferFrame, CopyRegisters_transferInteger, ReadRegisters_suspend,
         TCBBindNotification, TCBConfigure, TCBCopyRegisters, TCBReadRegisters, TCBResume,
         TCBSetIPCBuffer, TCBSetMCPriority, TCBSetPriority, TCBSetSchedParams, TCBSetSpace,
-        TCBSetTLSBase, TCBSuspend, TCBUnbindNotification, TCBWriteRegisters,
+        TCBSetTLSBase, TCBSuspend, TCBUnbindNotification, TCBWriteRegisters, seL4_MsgMaxExtraCaps, seL4_MinPrio,
     },
     kernel::{
         boot::{current_extra_caps, current_syscall_error},
@@ -26,15 +25,10 @@ use crate::{
 };
 
 use task_manager::*;
+use ipc::*;
+use super::notification::{bindNotification, unbindNotification};
 
-use super::{
-    cap::{cteDelete, cteDeleteOne},
-    // cap::cteDelete,
-    notification::{bindNotification, unbindNotification},
-    structure_gen::{notification_ptr_get_ntfnQueue_head, notification_ptr_get_ntfnQueue_tail},
-};
-
-use common::{structures::{exception_t, notification_t}, BIT, sel4_config::{tcbCTable, tcbVTable, tcbReply, tcbCaller, tcbBuffer}};
+use common::{structures::exception_t, BIT, sel4_config::*};
 use cspace::interface::*;
 use log::debug;
 
@@ -913,7 +907,7 @@ pub fn decodeBindNotification(cap: &cap_t) -> exception_t {
     let tcb = cap_thread_cap_get_capTCBPtr(cap) as *mut tcb_t;
     let ntfnPtr: *mut notification_t;
     unsafe {
-        if (*tcb).tcbBoundNotification as usize != 0 {
+        if (*tcb).tcbBoundNotification != 0 {
             debug!("TCB BindNotification: TCB already has a bound notification.");
             current_syscall_error._type = seL4_IllegalOperation;
             return exception_t::EXCEPTION_SYSCALL_ERROR;
@@ -1016,7 +1010,7 @@ pub fn decodeSetPriority(cap: &cap_t, length: usize, buffer: *mut usize) -> exce
 pub fn decodeUnbindNotification(cap: &cap_t) -> exception_t {
     let tcb = cap_thread_cap_get_capTCBPtr(cap) as *mut tcb_t;
     unsafe {
-        if (*tcb).tcbBoundNotification as usize == 0 {
+        if (*tcb).tcbBoundNotification == 0 {
             debug!("TCB BindNotification: TCB already has a bound notification.");
             current_syscall_error._type = seL4_IllegalOperation;
             return exception_t::EXCEPTION_SYSCALL_ERROR;
