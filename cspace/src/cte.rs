@@ -4,7 +4,7 @@ use common::{structures::exception_t, utils::{convert_to_type_ref, convert_to_mu
 
 use crate::{cap::{cap_t, CapTag, same_region_as, same_object_as, is_cap_revocable, zombie::capCyclicZombie}, mdb::mdb_node_t,
     utils::{MAX_FREE_INDEX, resolveAddressBits_ret_t}, structures::finaliseSlot_ret,
-    deps::{finaliseCap, preemptionPoint, post_cap_deletion}, interface::{mdb_node_get_mdbNext, isMDBParentOf}};
+    deps::{finaliseCap, preemptionPoint, post_cap_deletion}};
 
 #[repr(C)]
 #[derive(Clone, Copy)]

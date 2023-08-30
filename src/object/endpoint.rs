@@ -33,8 +33,8 @@ pub fn ep_ptr_set_queue(epptr: *const endpoint_t, queue: tcb_queue_t) {
 #[inline]
 pub fn ep_ptr_get_queue(epptr: *const endpoint_t) -> tcb_queue_t {
     let queue = tcb_queue_t {
-        head: endpoint_ptr_get_epQueue_head(epptr as *mut endpoint_t) as *mut tcb_t,
-        tail: endpoint_ptr_get_epQueue_tail(epptr as *mut endpoint_t) as *mut tcb_t,
+        head: endpoint_ptr_get_epQueue_head(epptr as *mut endpoint_t),
+        tail: endpoint_ptr_get_epQueue_tail(epptr as *mut endpoint_t),
     };
 
     queue
@@ -212,9 +212,9 @@ pub fn cancelBadgedSends(epptr: *mut endpoint_t, badge: usize) {
                 endpoint_ptr_set_epQueue_head(epptr, 0);
                 endpoint_ptr_set_epQueue_tail(epptr, 0);
                 let mut thread = queue.head;
-                while thread as usize != 0 {
+                while thread != 0 {
                     let ptr = thread as *mut tcb_t;
-                    thread = (*ptr).tcbEPNext as *mut tcb_t;
+                    thread = (*ptr).tcbEPNext;
                     let b = thread_state_get_blockingIPCBadge(&(*ptr).tcbState);
 
                     if b == badge {

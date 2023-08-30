@@ -137,14 +137,14 @@ impl tcb_t {
             let idx = ready_queues_index(dom, prio);
             let mut queue = unsafe { ksReadyQueues[idx] };
             if queue.tail as usize == 0 {
-                queue.head = self_ptr;
+                queue.head = self_ptr as usize;
                 addToBitmap(dom, prio);
             } else {
                 convert_to_mut_type_ref::<tcb_t>(queue.tail as usize).tcbSchedNext = self_ptr as usize;
             }
             self.tcbSchedPrev = queue.tail as usize;
             self.tcbSchedNext = 0;
-            queue.tail = self_ptr;
+            queue.tail = self_ptr as usize;
             unsafe { ksReadyQueues[idx] = queue; }
             self.tcbState.set_tcb_queued(1);
         }
@@ -159,7 +159,7 @@ impl tcb_t {
             if self.tcbSchedPrev != 0 {
                 convert_to_mut_type_ref::<tcb_t>(self.tcbSchedPrev).tcbSchedNext = self.tcbSchedNext;
             } else {
-                queue.head = self.tcbSchedNext as *mut tcb_t;
+                queue.head = self.tcbSchedNext as *mut tcb_t as usize;
                 if self.tcbSchedNext == 0 {
                     removeFromBitmap(dom, prio);
                 }
@@ -167,7 +167,7 @@ impl tcb_t {
             if self.tcbSchedNext != 0 {
                 convert_to_mut_type_ref::<tcb_t>(self.tcbSchedNext).tcbSchedPrev = self.tcbSchedPrev;
             } else {
-                queue.tail = self.tcbSchedPrev as *mut tcb_t;
+                queue.tail = self.tcbSchedPrev as *mut tcb_t as usize;
             }
             unsafe { ksReadyQueues[idx] = queue; }
             self.tcbState.set_tcb_queued(0);
@@ -183,15 +183,16 @@ impl tcb_t {
             let mut queue = unsafe { ksReadyQueues[idx] };
 
             if queue.head as usize == 0 {
-                queue.head = self_ptr;
+                queue.head = self_ptr as usize;
                 addToBitmap(dom, prio);
             } else {
                 let next = queue.tail;
-                unsafe { (*next).tcbSchedNext = self_ptr as usize };
+                // unsafe { (*next).tcbSchedNext = self_ptr as usize };
+                convert_to_mut_type_ref::<tcb_t>(next).tcbSchedNext = self_ptr as usize;
             }
             self.tcbSchedPrev = queue.tail as usize;
             self.tcbSchedNext = 0;
-            queue.tail = self_ptr;
+            queue.tail = self_ptr as usize;
             unsafe { ksReadyQueues[idx] = queue; }
 
             self.tcbState.set_tcb_queued(1);

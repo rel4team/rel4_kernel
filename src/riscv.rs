@@ -1,6 +1,7 @@
 use core::arch::asm;
 
-use crate::{config::RESET_CYCLES, sbi::set_timer};
+use crate::config::RESET_CYCLES;
+use common::sbi::set_timer;
 
 pub fn read_stval() -> usize {
     let temp: usize;
@@ -64,10 +65,4 @@ pub fn resetTimer() {
         target = read_time() + RESET_CYCLES;
         set_timer(target);
     }
-}
-
-
-#[inline]
-pub fn hart_id() -> usize {
-    0
 }

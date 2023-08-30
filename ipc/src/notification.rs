@@ -95,7 +95,7 @@ impl notification_t {
 
     #[inline]
     pub fn get_queue(&self) -> tcb_queue_t {
-        tcb_queue_t { head: self.get_queue_head() as *mut tcb_t, tail: self.get_queue_tail() as *mut tcb_t }
+        tcb_queue_t { head: self.get_queue_head(), tail: self.get_queue_tail() }
     }
 
     #[inline]

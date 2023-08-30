@@ -1,6 +1,6 @@
 use common::structures::exception_t;
 
-use crate::{cap::cap_t, structures::finaliseCap_ret, interface::cte_t};
+use crate::{cap::cap_t, structures::finaliseCap_ret};
 
 #[linkage = "weak"]
 #[no_mangle]

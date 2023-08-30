@@ -18,12 +18,11 @@ extern crate core;
 use core::arch::asm;
 
 
-use crate::sbi::shutdown;
+use common::sbi::shutdown;
 
 mod config;
-mod console;
+// mod console;
 mod lang_items;
-mod sbi;
 mod utils;
 mod kernel;
 mod structures;
@@ -31,7 +30,6 @@ mod object;
 mod riscv;
 mod syscall;
 mod boot;
-mod logging;
 
 #[no_mangle]
 pub extern "C" fn idle_thread() {

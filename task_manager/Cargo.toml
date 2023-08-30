@@ -9,3 +9,4 @@ edition = "2021"
 common = { path = "../common" }
 cspace = { path = "../cspace" }
 vspace = { path = "../vspace" }
+log = "0.4"

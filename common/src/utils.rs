@@ -69,3 +69,9 @@ pub fn pageBitsForSize(page_size: usize) -> usize {
         _ => panic!("Invalid page size!"),
     }
 }
+
+
+#[inline]
+pub fn hart_id() -> usize {
+    0
+}

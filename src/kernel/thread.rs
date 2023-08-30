@@ -270,7 +270,7 @@ pub fn setMR(receiver: *mut tcb_t, receivedBuffer: *mut usize, offset: usize, re
     }
 }
 
-pub fn Arch_initContext(context: arch_tcb_t) -> arch_tcb_t {
+pub fn Arch_initContext() -> arch_tcb_t {
    arch_tcb_t::default()
 }
 

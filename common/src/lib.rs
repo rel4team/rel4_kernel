@@ -7,3 +7,6 @@
 pub mod sel4_config;
 pub mod structures;
 pub mod utils;
+pub mod sbi;
+mod console;
+pub mod logging;

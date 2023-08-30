@@ -348,7 +348,7 @@ pub fn createObject(
         seL4_TCBObject => {
             let tcb = (regionBase as usize + TCB_OFFSET) as *mut tcb_t;
             unsafe {
-                (*tcb).tcbArch = Arch_initContext((*tcb).tcbArch);
+                (*tcb).tcbArch = Arch_initContext();
                 (*tcb).tcbTimeSlice = CONFIG_TIME_SLICE;
                 (*tcb).domain = ksCurDomain;
                 tcbDebugAppend(tcb);

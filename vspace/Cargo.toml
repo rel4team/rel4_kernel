@@ -9,3 +9,4 @@ edition = "2021"
 common = { path = "../common" }
 cspace = { path = "../cspace" }
 riscv = { git = "https://gitee.com/rcore-os/riscv", features = ["inline-asm"] }
+log = "0.4"

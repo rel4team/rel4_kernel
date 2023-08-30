@@ -119,7 +119,7 @@ unsafe fn create_initial_thread(
     let tcb = unsafe { (rootserver.tcb + TCB_OFFSET) as *mut tcb_t };
     (*tcb).tcbTimeSlice = CONFIG_TIME_SLICE;
 
-    (*tcb).tcbArch = Arch_initContext((*tcb).tcbArch);
+    (*tcb).tcbArch = Arch_initContext();
 
     let ptr = root_cnode_cap.get_cap_ptr() as *mut cte_t;
     let cte = unsafe {

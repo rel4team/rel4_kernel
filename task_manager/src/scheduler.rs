@@ -38,8 +38,8 @@ pub static mut ksSchedulerAction: *mut tcb_t = 1 as *mut tcb_t;
 
 #[no_mangle]
 pub static mut ksReadyQueues: [tcb_queue_t; NUM_READY_QUEUES] = [tcb_queue_t {
-    head: 0 as *mut tcb_t,
-    tail: 0 as *mut tcb_t,
+    head: 0,
+    tail: 0,
 }; NUM_READY_QUEUES];
 
 #[no_mangle]
@@ -159,8 +159,9 @@ pub fn chooseThread() {
         if ksReadyQueuesL1Bitmap[dom] != 0 {
             let prio = getHighestPrio(dom);
             let thread = ksReadyQueues[ready_queues_index(dom, prio)].head;
-            assert!(thread as usize != 0);
-            (*thread).switch_to_this();
+            assert!(thread != 0);
+            // (*thread).switch_to_this();
+            convert_to_mut_type_ref::<tcb_t>(thread).switch_to_this();
         } else {
             get_idle_thread().switch_to_this();
         }

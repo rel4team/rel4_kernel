@@ -19,9 +19,8 @@ use crate::boot::untyped::create_untypeds;
 use crate::boot::utils::paddr_to_pptr_reg;
 use crate::kernel::thread::create_idle_thread;
 use crate::object::interrupt::set_sie_mask;
-use crate::sbi::{set_timer, get_time};
+use common::sbi::{set_timer, get_time};
 use crate::structures::{ndks_boot_t, region_t, p_region_t, seL4_BootInfo, seL4_BootInfoHeader, seL4_SlotRegion, v_region_t};
-use crate::logging;
 use crate::config::*;
 
 use vspace::*;
@@ -162,7 +161,7 @@ pub fn try_init_kernel(
     dtb_size: usize,
     ki_boot_end: usize
 ) -> bool {
-    logging::init();
+    common::logging::init();
     debug!("hello logging");
     debug!("hello logging");
     let boot_mem_reuse_p_reg = p_region_t {

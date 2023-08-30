@@ -42,12 +42,12 @@ pub fn sendSignal(ntfnPtr: *mut notification_t, badge: usize) {
         },
         NtfnState_Waiting => {
             let mut queue = ntfn_ptr_get_queue(ntfnPtr);
-            let dest = queue.head;
+            let dest = queue.head as *mut tcb_t;
             assert!(dest as usize != 0);
             queue = tcbEPDequeue(dest, queue);
             let temp = queue.head as usize;
             ntfn_ptr_set_queue(ntfnPtr, queue);
-            if temp as usize == 0 {
+            if temp == 0 {
                 notification_ptr_set_state(ntfnPtr as *mut notification_t, NtfnState_Idle);
             }
             setThreadState(dest, ThreadStateRunning);
