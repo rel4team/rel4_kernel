@@ -75,3 +75,8 @@ pub fn pageBitsForSize(page_size: usize) -> usize {
 pub fn hart_id() -> usize {
     0
 }
+
+pub struct ListQueue {
+    pub head: usize,
+    pub tail: usize,
+}

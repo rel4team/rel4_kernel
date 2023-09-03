@@ -125,29 +125,6 @@ pub fn configureIdleThread(_tcb: *const tcb_t) {
 }
 
 #[no_mangle]
-pub fn suspend(target: *mut tcb_t) {
-    cancelIPC(target);
-    unsafe {
-        if thread_state_get_tsType(&(*target).tcbState) == ThreadStateRunning {
-            updateReStartPC(target);
-        }
-        setThreadState(target, ThreadStateInactive);
-        tcbSchedDequeue(target);
-    }
-}
-
-#[no_mangle]
-pub fn restart(target: *mut tcb_t) {
-    if isStopped(target) {
-        cancelIPC(target);
-        setupReplyMaster(target);
-        setThreadState(target, ThreadStateRestart);
-        tcbSchedEnqueue(target);
-        possibleSwitchTo(target);
-    }
-}
-
-#[no_mangle]
 pub fn doReplyTransfer(sender: *mut tcb_t, receiver: *mut tcb_t, slot: *mut cte_t, grant: bool) {
     unsafe {
         assert!(thread_state_get_tsType(&(*receiver).tcbState) == ThreadStateBlockedOnReply);

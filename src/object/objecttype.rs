@@ -10,7 +10,7 @@ use crate::{
     kernel::{
         boot::{current_syscall_error, current_lookup_fault},
         thread::{
-            decodeDomainInvocation, doReplyTransfer, suspend, Arch_initContext,
+            decodeDomainInvocation, doReplyTransfer, Arch_initContext,
         },
         transfermsg::{
             seL4_CNode_capData_get_guard, seL4_CNode_capData_get_guardSize, vmRighsFromWord,
@@ -30,7 +30,7 @@ use vspace::*;
 
 use super::{
     cap::decodeCNodeInvocation,
-    endpoint::{cancelAllIPC, performInvocation_Endpoint},
+    endpoint::{cancelAllIPC, performInvocation_Endpoint, cancelIPC},
     interrupt::{
         decodeIRQControlInvocation, decodeIRQHandlerInvocation, deletingIRQHandler, setIRQState,
     },
@@ -176,6 +176,7 @@ pub fn finaliseCap(cap: &cap_t, _final: bool, _exposed: bool) -> finaliseCap_ret
                 let tcb = cap_thread_cap_get_capTCBPtr(cap) as *mut tcb_t;
                 let cte_ptr = getCSpace(tcb as usize, tcbCTable) as *mut cte_t;
                 unbindNotification(tcb);
+                cancelIPC(tcb);
                 suspend(tcb);
                 unsafe {
                     tcbDebugRemove(tcb);

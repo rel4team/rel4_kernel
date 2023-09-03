@@ -10,7 +10,7 @@ use crate::{
         interrupt::handleInterrupt,
         notification::receiveSignal,
         objecttype::decodeInvocation,
-        tcb::{deleteCallerCap, lookupExtraCaps},
+        tcb::lookupExtraCaps,
     },
     riscv::read_sip,
     structures::seL4_MessageInfo_t,

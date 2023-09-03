@@ -220,7 +220,7 @@ pub fn schedule() {
 }
 
 
-fn schedule_tcb(tcb_ref: &tcb_t) {
+pub fn schedule_tcb(tcb_ref: &tcb_t) {
     unsafe {
         if tcb_ref.get_ptr() == ksCurThread as usize
             && ksSchedulerAction as usize == SchedulerAction_ResumeCurrentThread
@@ -233,13 +233,12 @@ fn schedule_tcb(tcb_ref: &tcb_t) {
 #[no_mangle]
 pub fn scheduleTCB(tptr: *const tcb_t) {
     unsafe {
-
         schedule_tcb(&(*tptr));
     }
 }
 
 
-fn possible_switch_to(target: &mut tcb_t) {
+pub fn possible_switch_to(target: &mut tcb_t) {
     if unsafe { ksCurDomain != target.domain } {
         target.sched_enqueue();
     } else if unsafe { ksSchedulerAction as usize != SchedulerAction_ResumeCurrentThread } {

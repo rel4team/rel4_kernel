@@ -11,9 +11,7 @@ use crate::{
     },
     kernel::{
         boot::{current_extra_caps, current_syscall_error},
-        thread::{
-            getExtraCPtr, restart, suspend,
-        },
+        thread::getExtraCPtr,
         transfermsg::{
             seL4_MessageInfo_new, seL4_MessageInfo_ptr_get_extraCaps, wordFromMessageInfo,
         },
@@ -26,7 +24,7 @@ use crate::{
 
 use task_manager::*;
 use ipc::*;
-use super::notification::{bindNotification, unbindNotification};
+use super::{notification::{bindNotification, unbindNotification}, endpoint::cancelIPC};
 
 use common::{structures::exception_t, BIT, sel4_config::*};
 use cspace::interface::*;
@@ -44,36 +42,6 @@ pub fn checkPrio(prio: usize, auth: *mut tcb_t) -> exception_t {
         }
         exception_t::EXCEPTION_NONE
     }
-}
-
-#[no_mangle]
-pub fn setupCallerCap(sender: *const tcb_t, receiver: *const tcb_t, canGrant: bool) {
-    unsafe {
-        setThreadState(sender as *mut tcb_t, ThreadStateBlockedOnReply);
-        let replySlot = getCSpace(sender as usize, tcbReply);
-        let masterCap = &(*replySlot).cap;
-
-        assert!(cap_get_capType(masterCap) == cap_reply_cap);
-        assert!(cap_reply_cap_get_capReplyMaster(masterCap) == 1);
-        assert!(cap_reply_cap_get_capReplyCanGrant(masterCap) == 1);
-        assert!(cap_reply_cap_get_capTCBPtr(masterCap) == sender as usize);
-
-        let callerSlot = getCSpace(receiver as usize, tcbCaller);
-        let callerCap = &(*callerSlot).cap;
-
-        assert!(cap_get_capType(callerCap) == cap_null_cap);
-        cteInsert(
-            &cap_reply_cap_new(canGrant as usize, 0, sender as usize),
-            replySlot,
-            callerSlot,
-        );
-    }
-}
-
-#[no_mangle]
-pub fn deleteCallerCap(receiver: *mut tcb_t) {
-    let callerSlot = getCSpace(receiver as usize, tcbCaller);
-    cteDeleteOne(callerSlot);
 }
 
 #[no_mangle]
@@ -175,9 +143,11 @@ pub fn invokeTCB_CopyRegisters(
     _transferArch: usize,
 ) -> exception_t {
     if suspendSource != 0 {
+        cancelIPC(src);
         suspend(src);
     }
     if resumeTarget != 0 {
+        cancelIPC(dest);
         restart(dest);
     }
     if transferFrame != 0 {
@@ -258,6 +228,7 @@ pub fn invokeTCB_ReadRegisters(
         thread = ksCurThread as *mut tcb_t;
     }
     if suspendSource != 0 {
+        cancelIPC(src);
         suspend(src);
     }
 
@@ -343,6 +314,7 @@ pub fn invokeTCB_WriteRegisters(
     setNextPC(dest, pc);
 
     if resumeTarget != 0 {
+        cancelIPC(dest);
         restart(dest);
     }
     unsafe {
@@ -1023,12 +995,14 @@ pub fn decodeUnbindNotification(cap: &cap_t) -> exception_t {
 
 #[no_mangle]
 pub fn invokeTCB_Suspend(thread: *mut tcb_t) -> exception_t {
+    cancelIPC(thread);
     suspend(thread);
     exception_t::EXCEPTION_NONE
 }
 
 #[no_mangle]
 pub fn invokeTCB_Resume(thread: *mut tcb_t) -> exception_t {
+    cancelIPC(thread);
     restart(thread);
     exception_t::EXCEPTION_NONE
 }

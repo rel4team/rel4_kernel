@@ -1,11 +1,11 @@
 use common::{structures::lookup_fault_t, MASK, utils::convert_to_mut_type_ref};
-use cspace::interface::{cte_t, resolve_address_bits, CapTag, cap_t, mdb_node_t};
+use cspace::interface::{cte_t, resolve_address_bits, CapTag, cap_t, mdb_node_t, cte_insert};
 use vspace::{set_vm_root, pptr_t};
 
 // use crate::{structures::{notification_t, seL4_Fault_t}, config::{seL4_TCBBits, tcbVTable}};
-use common::sel4_config::{seL4_TCBBits, tcbVTable, tcbCTable, wordBits, tcbReply};
+use common::sel4_config::{seL4_TCBBits, tcbVTable, tcbCTable, wordBits, tcbReply, tcbCaller};
 use common::structures::seL4_Fault_t;
-use crate::SSTATUS;
+use crate::{SSTATUS, possible_switch_to, schedule_tcb};
 use crate::structures::lookupSlot_raw_ret_t;
 
 use super::{registers::n_contextRegisters, ready_queues_index, ksReadyQueues, addToBitmap, removeFromBitmap, NextIP, FaultIP, ksIdleThread, ksCurThread,
@@ -229,16 +229,54 @@ impl tcb_t {
     #[inline]
     pub fn setup_reply_master(&mut self) {
         let slot = self.get_cspace_mut_ref(tcbReply);
-        // if cap_get_capType(&(*slot).cap) == cap_null_cap  {
-        //     (*slot).cap = cap_reply_cap_new(1, 1, thread as usize);
-        //     (*slot).cteMDBNode = mdb_node_new(0, 0, 0, 0);
-        //     mdb_node_set_mdbRevocable(&mut (*slot).cteMDBNode, 1);
-        //     mdb_node_set_mdbFirstBadged(&mut (*slot).cteMDBNode, 1);
-        // }
         if slot.cap.get_cap_type() == CapTag::CapNullCap {
             slot.cap = cap_t::new_reply_cap(1, 1, self.get_ptr());
             slot.cteMDBNode = mdb_node_t::new(0, 1, 1, 0);
         }
+    }
+
+    #[inline]
+    pub fn suspend(&mut self) {
+        if self.get_state() == ThreadState::ThreadStateRunning {
+            self.set_register(FaultIP, self.get_register(NextIP));
+        }
+        setThreadState(self as *mut Self, ThreadStateInactive);
+        self.sched_dequeue();
+    }
+
+    #[inline]
+    pub fn restart(&mut self) {
+        if self.is_stopped() {
+            self.setup_reply_master();
+            setThreadState(self as *mut Self, ThreadStateRestart);
+            self.sched_dequeue();
+            possible_switch_to(self);
+        }
+    }
+
+    #[inline]
+    pub fn setup_caller_cap(&mut self, sender: &mut Self, can_grant: bool) {
+        set_thread_state(sender, ThreadState::ThreadStateBlockedOnReply);
+        let reply_slot = sender.get_cspace_mut_ref(tcbReply);
+        let master_cap = reply_slot.cap;
+
+        assert_eq!(master_cap.get_cap_type(), CapTag::CapReplyCap);
+        assert_eq!(master_cap.get_reply_master(), 1);
+        assert_eq!(master_cap.get_reply_can_grant(), 1);
+        assert_eq!(master_cap.get_reply_tcb_ptr(), sender.get_ptr());
+
+        let caller_slot = self.get_cspace_mut_ref(tcbCaller);
+        assert_eq!(caller_slot.cap.get_cap_type(), CapTag::CapNullCap);
+        cte_insert(&cap_t::new_reply_cap(can_grant as usize, 0, sender.get_ptr()),
+            reply_slot, caller_slot);
+    }
+
+    #[inline]
+    pub fn delete_caller_cap(&mut self) {
+        // let callerSlot = getCSpace(receiver as usize, tcbCaller);
+        // cteDeleteOne(callerSlot);
+        let caller_slot = self.get_cspace_mut_ref(tcbCaller);
+        caller_slot.delete_one();
     }
 
 }
@@ -332,11 +370,18 @@ pub fn getRegister(thread: *const tcb_t, reg: usize) -> usize {
      }
 }
 
+#[inline]
+pub fn set_thread_state(tcb: &mut tcb_t, state: ThreadState) {
+    tcb.tcbState.set_ts_type(state as usize);
+    schedule_tcb(tcb);
+}
+
 #[no_mangle]
 pub fn setThreadState(tptr: *mut tcb_t, ts: usize) {
     unsafe {
-        thread_state_set_tsType(&mut (*tptr).tcbState, ts);
-        scheduleTCB(tptr);
+        // thread_state_set_tsType(&mut (*tptr).tcbState, ts);
+        // scheduleTCB(tptr);
+        set_thread_state(&mut (*tptr), core::mem::transmute::<u8, ThreadState>(ts as u8))
     }
 }
 
@@ -400,16 +445,38 @@ pub fn lookupSlot(thread: *const tcb_t, capptr: usize) -> lookupSlot_raw_ret_t {
 
 #[no_mangle]
 pub fn setupReplyMaster(thread: *mut tcb_t) {
-    // let slot = getCSpace(thread as usize, tcbReply);
-    // unsafe {
-    //     if cap_get_capType(&(*slot).cap) == cap_null_cap  {
-    //         (*slot).cap = cap_reply_cap_new(1, 1, thread as usize);
-    //         (*slot).cteMDBNode = mdb_node_new(0, 0, 0, 0);
-    //         mdb_node_set_mdbRevocable(&mut (*slot).cteMDBNode, 1);
-    //         mdb_node_set_mdbFirstBadged(&mut (*slot).cteMDBNode, 1);
-    //     }
-    // }
     unsafe {
         (*thread).setup_reply_master()
+    }
+}
+
+
+#[no_mangle]
+pub fn suspend(target: *mut tcb_t) {
+    unsafe {
+        (*target).suspend()
+    }
+}
+
+#[no_mangle]
+pub fn restart(target: *mut tcb_t) {
+    unsafe {
+        (*target).restart()
+    }
+}
+
+#[no_mangle]
+pub fn setupCallerCap(sender: *mut tcb_t, receiver: *mut tcb_t, canGrant: bool) {
+    unsafe {
+        (*receiver).setup_caller_cap(&mut (*sender), canGrant)
+    }
+}
+
+#[no_mangle]
+pub fn deleteCallerCap(receiver: *mut tcb_t) {
+    // let callerSlot = getCSpace(receiver as usize, tcbCaller);
+    // cteDeleteOne(callerSlot);
+    unsafe {
+        (*receiver).delete_caller_cap()
     }
 }

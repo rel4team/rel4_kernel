@@ -1,7 +1,7 @@
 
 use common::structures::exception_t;
 
-use crate::cte::{cte_insert, cte_move, cte_swap, insert_new_cap};
+use crate::cte::{cte_move, cte_swap, insert_new_cap};
 use crate::utils::resolveAddressBits_ret_t;
 
 use super::cap::same_object_as;
@@ -13,7 +13,7 @@ pub use crate::cap::cap_t;
 pub use crate::cap::CapTag;
 
 pub use super::structures::{finaliseCap_ret, finaliseSlot_ret};
-pub use super::cte::{deriveCap_ret, resolve_address_bits, cteDelete, cteDeleteOne, cteRevoke};
+pub use super::cte::{deriveCap_ret, resolve_address_bits, cteDelete, cteDeleteOne, cteRevoke, cte_insert};
 pub use super::cap::null::cap_null_cap_new;
 
 pub use crate::cap_rights::{seL4_CapRightsBits, seL4_CapRights_get_capAllowGrant, seL4_CapRights_get_capAllowGrantReply,

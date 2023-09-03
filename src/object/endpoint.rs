@@ -11,10 +11,7 @@ use crate::{
         transfermsg::{seL4_MessageInfo_new, wordFromMessageInfo},
         vspace::lookupIPCBuffer,
     },
-    object::{
-        notification::completeSignal,
-        tcb::setupCallerCap,
-    },
+    object::notification::completeSignal,
 };
 
 use task_manager::*;
