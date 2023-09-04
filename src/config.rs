@@ -1,6 +1,5 @@
 //! Constants used in rCore
 
-use common::BIT;
 
 pub const USER_STACK_SIZE: usize = 4096 * 2;
 pub const KERNEL_STACK_SIZE: usize = 4096 * 10;
@@ -76,12 +75,8 @@ pub const SIE_MTIE: usize = 7;
 pub const SIE_SEIE: usize = 9;
 pub const SIE_MEIE: usize = 11;
 
-pub const seL4_MsgMaxLength: usize = 120;
-pub const msgInfoRegister: usize = 10;
 pub const badgeRegister: usize = 9;
 pub const seL4_MsgLengthBits:usize =7;
-pub const seL4_MsgExtraCapBits: usize = 2;
-pub const seL4_MsgMaxExtraCaps: usize = BIT!(seL4_MsgExtraCapBits) - 1;
 pub const n_msgRegisters: usize = 4;
 
 pub const RISCVInstructionMisaligned: usize = 0;
@@ -96,47 +91,6 @@ pub const RISCVInstructionPageFault: usize = 12;
 pub const RISCVLoadPageFault: usize = 13;
 pub const RISCVStorePageFault: usize = 15;
 pub const RISCVSupervisorTimer: usize = 9223372036854775813;
-
-//invocation
-pub const InvalidInvocation: usize = 0;
-pub const UntypedRetype: usize = 1;
-pub const TCBReadRegisters: usize = 2;
-pub const TCBWriteRegisters: usize = 3;
-pub const TCBCopyRegisters: usize = 4;
-pub const TCBConfigure: usize = 5;
-pub const TCBSetPriority: usize = 6;
-pub const TCBSetMCPriority: usize = 7;
-pub const TCBSetSchedParams: usize = 8;
-pub const TCBSetIPCBuffer: usize = 9;
-pub const TCBSetSpace: usize = 10;
-pub const TCBSuspend: usize = 11;
-pub const TCBResume: usize = 12;
-pub const TCBBindNotification: usize = 13;
-pub const TCBUnbindNotification: usize = 14;
-pub const TCBSetTLSBase: usize = 15;
-pub const CNodeRevoke: usize = 16;
-pub const CNodeDelete: usize = 17;
-pub const CNodeCancelBadgedSends: usize = 18;
-pub const CNodeCopy: usize = 19;
-pub const CNodeMint: usize = 20;
-pub const CNodeMove: usize = 21;
-pub const CNodeMutate: usize = 22;
-pub const CNodeRotate: usize = 23;
-pub const CNodeSaveCaller: usize = 24;
-pub const IRQIssueIRQHandler: usize = 25;
-pub const IRQAckIRQ: usize = 26;
-pub const IRQSetIRQHandler: usize = 27;
-pub const IRQClearIRQHandler: usize = 28;
-pub const DomainSetSet: usize = 29;
-pub const RISCVPageTableMap: usize = 30;
-pub const RISCVPageTableUnmap: usize = 31;
-pub const RISCVPageMap: usize = 32;
-pub const RISCVPageUnmap: usize = 33;
-pub const RISCVPageGetAddress: usize = 34;
-pub const RISCVASIDControlMakePool: usize = 35;
-pub const RISCVASIDPoolAssign: usize = 36;
-pub const RISCVIRQIssueIRQHandlerTrigger: usize = 37;
-pub const nArchInvocationLabels: usize = 38;
 
 pub const n_frameRegisters: usize = 16;
 pub const n_gpRegisters: usize = 16;
@@ -191,9 +145,6 @@ pub const TIMER_CLOCK_HZ: usize = 10000000;
 pub const MS_IN_S: usize = 1000;
 pub const RESET_CYCLES: usize = (TIMER_CLOCK_HZ / MS_IN_S) * 2;
 
-pub const EPState_Idle: usize = 0;
-pub const EPState_Send: usize = 1;
-pub const EPState_Recv: usize = 2;
 
 pub const seL4_CapFault_IP: usize = 0;
 pub const seL4_CapFault_Addr: usize = 1;
@@ -219,15 +170,6 @@ pub const seL4_NotificationObject: usize = 3;
 pub const seL4_CapTableObject: usize = 4;
 pub const seL4_NonArchObjectTypeCount: usize = 5;
 pub const seL4_ObjectTypeCount: usize = 9;
-
-pub const SysCall: isize = -1;
-pub const SysReplyRecv: isize = -2;
-pub const SysSend: isize = -3;
-pub const SysNBSend: isize = -4;
-pub const SysRecv: isize = -5;
-pub const SysReply: isize = -6;
-pub const SysYield: isize = -7;
-pub const SysNBRecv: isize = -8;
 
 //seL4_VMFault_Msg
 pub const seL4_VMFault_IP: usize = 0;

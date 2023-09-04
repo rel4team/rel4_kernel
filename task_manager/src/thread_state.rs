@@ -116,11 +116,6 @@ impl thread_state_t {
 }
 
 #[inline]
-pub fn thread_state_get_blockingObject(thread_state_ptr: &thread_state_t) -> usize {
-    thread_state_ptr.get_blocking_object()
-}
-
-#[inline]
 pub fn thread_state_set_blockingObject(thread_state_ptr: &mut thread_state_t, v64: usize) {
     thread_state_ptr.set_blocking_object(v64)
 }
@@ -144,21 +139,6 @@ pub fn thread_state_get_blockingIPCIsCall(thread_state_ptr: &thread_state_t) -> 
 #[inline]
 pub fn thread_state_set_blockingIPCIsCall(thread_state_ptr: &mut thread_state_t, v64: usize) {
     thread_state_ptr.set_blocking_ipc_is_call(v64)
-}
-
-#[inline]
-pub fn thread_state_get_tcbQueued(thread_state_ptr: &thread_state_t) -> usize {
-    thread_state_ptr.get_tcb_queued()
-}
-
-#[inline]
-pub fn thread_state_set_tcbQueued(thread_state_ptr: &mut thread_state_t, v64: usize) {
-    thread_state_ptr.set_tcb_queued(v64)
-}
-
-#[inline]
-pub fn thread_state_new() -> thread_state_t {
-    thread_state_t::state_new()
 }
 
 #[inline]

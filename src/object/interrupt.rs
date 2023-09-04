@@ -2,9 +2,9 @@ use core::{arch::asm, intrinsics::unlikely};
 
 use crate::{
     config::{
-        irqInvalid, maxIRQ, IRQAckIRQ, IRQClearIRQHandler, IRQInactive,
-        IRQIssueIRQHandler, IRQReserved, IRQSetIRQHandler, IRQSignal, IRQTimer,
-        RISCVIRQIssueIRQHandlerTrigger, KERNEL_TIMER_IRQ, SIE_STIE, SIP_SEIP,
+        irqInvalid, maxIRQ, IRQInactive,
+        IRQReserved, IRQSignal, IRQTimer,
+        KERNEL_TIMER_IRQ, SIE_STIE, SIP_SEIP,
         SIP_STIP,
     },
     kernel::{
@@ -15,6 +15,8 @@ use crate::{
     riscv::{read_sip, resetTimer},
     syscall::getSyscallArg,
 };
+
+use common::message_info::*;
 
 use super::{
     cap::ensureEmptySlot,
@@ -150,12 +152,12 @@ pub fn Arch_checkIRQ(irq: usize) -> exception_t {
 
 #[no_mangle]
 pub fn Arch_decodeIRQControlInvocation(
-    invLabel: usize,
+    invLabel: MessageLabel,
     length: usize,
     srcSlot: *mut cte_t,
     buffer: *mut usize,
 ) -> exception_t {
-    if invLabel == RISCVIRQIssueIRQHandlerTrigger {
+    if invLabel == MessageLabel::RISCVIRQIssueIRQHandlerTrigger {
         unsafe {
             if length < 4 || current_extra_caps.excaprefs[0] as usize == 0 {
                 current_syscall_error._type = seL4_TruncatedMessage;
@@ -217,12 +219,12 @@ pub fn Arch_invokeIRQControl(
 
 #[no_mangle]
 pub fn decodeIRQControlInvocation(
-    invLabel: usize,
+    invLabel: MessageLabel,
     length: usize,
     srcSlot: *mut cte_t,
     buffer: *mut usize,
 ) -> exception_t {
-    if invLabel == IRQIssueIRQHandler {
+    if invLabel == MessageLabel::IRQIssueIRQHandler {
         unsafe {
             if length < 3 || current_extra_caps.excaprefs[0] as usize == 0 {
                 current_syscall_error._type = seL4_TruncatedMessage;
@@ -324,13 +326,13 @@ pub fn handleInterrupt(irq: usize) {
 }
 
 #[no_mangle]
-pub fn decodeIRQHandlerInvocation(invLabel: usize, irq: usize) -> exception_t {
+pub fn decodeIRQHandlerInvocation(invLabel: MessageLabel, irq: usize) -> exception_t {
     match invLabel {
-        IRQAckIRQ => unsafe {
+        MessageLabel::IRQAckIRQ => unsafe {
             setThreadState(ksCurThread, ThreadStateRestart);
             return exception_t::EXCEPTION_NONE;
         },
-        IRQSetIRQHandler => unsafe {
+        MessageLabel::IRQSetIRQHandler => unsafe {
             if current_extra_caps.excaprefs[0] as usize == 0 {
                 current_syscall_error._type = seL4_TruncatedMessage;
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
@@ -355,7 +357,7 @@ pub fn decodeIRQHandlerInvocation(invLabel: usize, irq: usize) -> exception_t {
             invokeIRQHandler_SetIRQHandler(irq, ntfnCap, slot);
             return exception_t::EXCEPTION_NONE;
         },
-        IRQClearIRQHandler => unsafe {
+        MessageLabel::IRQClearIRQHandler => unsafe {
             setThreadState(ksCurThread, ThreadStateRestart);
             invokeIRQHandler_ClearIRQHandler(irq);
             return exception_t::EXCEPTION_NONE;

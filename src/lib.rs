@@ -30,6 +30,7 @@ mod object;
 mod riscv;
 mod syscall;
 mod boot;
+mod sbi;
 
 #[no_mangle]
 pub extern "C" fn idle_thread() {

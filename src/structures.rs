@@ -1,8 +1,8 @@
-use common::structures::exception_t;
+use common::structures::{exception_t, seL4_IPCBuffer};
+use common::sel4_config::seL4_MsgMaxExtraCaps;
 use cspace::interface::{cap_t, cte_t};
-
 use crate::config::{
-    seL4_MsgMaxExtraCaps, seL4_MsgMaxLength, CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS,
+    CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS,
     MAX_NUM_FREEMEM_REG, MAX_NUM_RESV_REG,
 };
 
@@ -38,18 +38,6 @@ pub type seL4_SlotPos = usize;
 pub struct seL4_SlotRegion {
     pub start: seL4_SlotPos,
     pub end: seL4_SlotPos,
-}
-
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct seL4_IPCBuffer {
-    tag: usize,
-    msg: [usize; seL4_MsgMaxLength],
-    userData: usize,
-    caps_or_badges: [usize; seL4_MsgMaxExtraCaps],
-    receiveCNode: usize,
-    receiveIndex: usize,
-    receiveDepth: usize,
 }
 
 #[repr(C)]
@@ -182,13 +170,6 @@ pub struct syscall_error_t {
     pub memoryLeft: usize,
     pub failedLookupWasSource: usize,
     pub _type: usize,
-}
-
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct seL4_MessageInfo_t {
-    pub words: [usize; 1],
 }
 
 #[repr(C)]

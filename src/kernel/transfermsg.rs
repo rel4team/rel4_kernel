@@ -1,7 +1,5 @@
-use crate::{
-    config::seL4_MsgMaxLength,
-    structures::{cap_transfer_t, seL4_MessageInfo_t, vm_attributes_t, seL4_CNode_CapData_t},
-};
+
+use crate::structures::{cap_transfer_t, vm_attributes_t, seL4_CNode_CapData_t};
 
 #[inline]
 pub fn vmRighsFromWord(w: usize) -> usize {
@@ -11,98 +9,6 @@ pub fn vmRighsFromWord(w: usize) -> usize {
 #[inline]
 pub fn wordFromVMRights(rights: usize) -> usize {
     rights
-}
-
-#[inline]
-pub fn wordFromMessageInfo(mi: seL4_MessageInfo_t) -> usize {
-    mi.words[0]
-}
-
-#[inline]
-pub fn seL4_MessageInfo_ptr_get_length(ptr: *const seL4_MessageInfo_t) -> usize {
-    unsafe {
-        let ret = (*ptr).words[0] & 0x7fusize;
-        ret
-    }
-}
-
-#[inline]
-pub fn seL4_MessageInfo_ptr_set_length(ptr: *mut seL4_MessageInfo_t, v64: usize) {
-    unsafe {
-        (*ptr).words[0] &= !0x7fusize;
-        (*ptr).words[0] |= v64 & 0x7f;
-    }
-}
-
-#[inline]
-pub fn seL4_MessageInfo_ptr_get_extraCaps(ptr: *const seL4_MessageInfo_t) -> usize {
-    unsafe {
-        let ret = ((*ptr).words[0] & 0x180usize) >> 7;
-        ret
-    }
-}
-
-#[inline]
-pub fn seL4_MessageInfo_ptr_set_extraCaps(ptr: *mut seL4_MessageInfo_t, v64: usize) {
-    unsafe {
-        (*ptr).words[0] &= !0x180usize;
-        (*ptr).words[0] |= (v64 << 7) & 0x180;
-    }
-}
-
-#[inline]
-pub fn seL4_MessageInfo_ptr_get_capsUnwrapped(ptr: *const seL4_MessageInfo_t) -> usize {
-    unsafe {
-        let ret = ((*ptr).words[0] & 0xe00usize) >> 9;
-        ret
-    }
-}
-
-#[inline]
-pub fn seL4_MessageInfo_ptr_set_capsUnwrapped(ptr: *mut seL4_MessageInfo_t, v64: usize) {
-    unsafe {
-        (*ptr).words[0] &= !0xe00usize;
-        (*ptr).words[0] |= (v64 << 9) & 0xe00;
-    }
-}
-
-#[inline]
-pub fn seL4_MessageInfo_ptr_get_label(ptr: *const seL4_MessageInfo_t) -> usize {
-    unsafe {
-        let ret = ((*ptr).words[0] & 0xfffffffffffff000usize) >> 12;
-        ret
-    }
-}
-
-#[inline]
-pub fn seL4_MessageInfo_ptr_set_label(ptr: *mut seL4_MessageInfo_t, v64: usize) {
-    unsafe {
-        (*ptr).words[0] &= !0xfffffffffffff000usize;
-        (*ptr).words[0] |= (v64 << 12) & 0xfffffffffffff000;
-    }
-}
-
-#[inline]
-pub fn seL4_MessageInfo_new(
-    label: usize,
-    capsUnwrapped: usize,
-    extraCaps: usize,
-    length: usize,
-) -> seL4_MessageInfo_t {
-    let seL4_MessageInfo = seL4_MessageInfo_t {
-        words: [0
-            | (label & 0xfffffffffffffusize) << 12
-            | (capsUnwrapped & 0x7usize) << 9
-            | (extraCaps & 0x3usize) << 7
-            | (length & 0x7fusize) << 0],
-    };
-
-    seL4_MessageInfo
-}
-
-pub fn messageInfoFromWord_raw(w: usize) -> seL4_MessageInfo_t {
-    let mi = seL4_MessageInfo_t { words: [w] };
-    mi
 }
 
 #[inline]
@@ -131,18 +37,6 @@ pub fn vm_attributes_set_riscvExecuteNever(
     vm_attributes.words[0] &= !0x1usize;
     vm_attributes.words[0] |= (v64 << 0) & 0x1usize;
     return vm_attributes;
-}
-
-pub fn messageInfoFromWord(w: usize) -> seL4_MessageInfo_t {
-    let mi = seL4_MessageInfo_t { words: [w] };
-    let len = seL4_MessageInfo_ptr_get_length((&mi) as *const seL4_MessageInfo_t);
-    if len > seL4_MsgMaxLength {
-        seL4_MessageInfo_ptr_set_length(
-            (&mi) as *const seL4_MessageInfo_t as *mut seL4_MessageInfo_t,
-            seL4_MsgMaxLength,
-        );
-    }
-    mi
 }
 
 #[no_mangle]

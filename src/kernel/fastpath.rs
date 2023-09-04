@@ -1,11 +1,7 @@
-use crate::{
-    config::{
-        msgRegister, EPState_Idle, EPState_Recv, EPState_Send,
-        SysCall, SysReplyRecv, seL4_MsgLengthBits, seL4_MsgExtraCapBits,
-    },
-    structures::seL4_MessageInfo_t,
-};
-
+use crate::{config::{
+    msgRegister,
+    seL4_MsgLengthBits,
+}, syscall::{slowpath, SysCall, SysReplyRecv}};
 use ipc::*;
 
 use task_manager::*;
@@ -13,16 +9,10 @@ use task_manager::*;
 use log::error;
 use vspace::*;
 use core::intrinsics::{likely, unlikely};
-use common::{sel4_config::{wordBits, tcbCTable, tcbVTable, tcbReply, tcbCaller, seL4_Fault_NullFault}, MASK,
-    structures::seL4_Fault_get_seL4_FaultType};
+use common::{sel4_config::{wordBits, tcbCTable, tcbVTable, tcbReply, tcbCaller, seL4_Fault_NullFault, seL4_MsgExtraCapBits}, MASK,
+    structures::seL4_Fault_get_seL4_FaultType, message_info::*};
 use cspace::interface::*;
-use super::{
-    c_traps::slowpath,
-    transfermsg::{
-        messageInfoFromWord_raw, seL4_MessageInfo_ptr_get_length,
-        seL4_MessageInfo_ptr_set_capsUnwrapped, wordFromMessageInfo,
-    },
-};
+
 #[inline]
 #[no_mangle]
 pub fn lookup_fp(_cap: &cap_t, cptr: usize) -> cap_t {

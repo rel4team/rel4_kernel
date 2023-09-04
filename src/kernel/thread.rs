@@ -1,14 +1,11 @@
 use crate::{
     config::{
-        msgInfoRegister, DomainSetSet, CONFIG_KERNEL_STACK_BITS, SSTATUS_SPIE, SSTATUS_SPP, n_msgRegisters, msgRegister, seL4_MsgMaxExtraCaps, seL4_MsgMaxLength,
+        CONFIG_KERNEL_STACK_BITS, SSTATUS_SPIE, SSTATUS_SPP, n_msgRegisters, msgRegister,
     },
-    object::{
-        endpoint::cancelIPC,
-        tcb::{
-            copyMRs, lookupExtraCaps
-        },
+    object::tcb::{
+        copyMRs, lookupExtraCaps
     },
-    structures::{cap_transfer_t, seL4_MessageInfo_t}, syscall::getSyscallArg,
+    structures::cap_transfer_t, syscall::getSyscallArg,
 };
 
 use task_manager::*;
@@ -17,6 +14,7 @@ use core::{
     arch::asm,
     intrinsics::{likely, unlikely},
 };
+use common::{message_info::*, utils::convert_to_type_ref, structures::seL4_IPCBuffer};
 
 use super::{
     boot::{
@@ -24,13 +22,7 @@ use super::{
     },
     cspace::{lookupCap, rust_lookupTargetSlot},
     fault::{handleFaultReply, setMRs_fault, setMRs_lookup_failure},
-    transfermsg::{
-        capTransferFromWords, messageInfoFromWord, seL4_MessageInfo_new,
-        seL4_MessageInfo_ptr_get_capsUnwrapped, seL4_MessageInfo_ptr_get_length,
-        seL4_MessageInfo_ptr_set_capsUnwrapped, seL4_MessageInfo_ptr_set_extraCaps,
-        seL4_MessageInfo_ptr_set_length, wordFromMessageInfo,
-    },
-    vspace::lookupIPCBuffer,
+    transfermsg::capTransferFromWords,
 };
 
 use common::{structures::{exception_t, seL4_Fault_get_seL4_FaultType}, BIT, sel4_config::*};
@@ -68,8 +60,8 @@ pub fn idle_thread() {
 }
 
 #[no_mangle]
-pub fn decodeDomainInvocation(invLabel: usize, length: usize, buffer: *mut usize) -> exception_t {
-    if invLabel != DomainSetSet {
+pub fn decodeDomainInvocation(invLabel: MessageLabel, length: usize, buffer: *mut usize) -> exception_t {
+    if invLabel != MessageLabel::DomainSetSet {
         unsafe {
             current_syscall_error._type = seL4_IllegalOperation;
             return exception_t::EXCEPTION_SYSCALL_ERROR;
@@ -357,10 +349,7 @@ pub fn setExtraBadge(bufferPtr: *mut usize, badge: usize, i: usize) {
 
 #[no_mangle]
 pub fn getExtraCPtr(bufferPtr: *mut usize, i: usize) -> usize {
-    unsafe {
-        let ptr = bufferPtr.add(seL4_MsgMaxLength + 2 + i);
-        *ptr
-    }
+    convert_to_type_ref::<seL4_IPCBuffer>(bufferPtr as usize).get_extra_cptr(i)
 }
 
 #[no_mangle]

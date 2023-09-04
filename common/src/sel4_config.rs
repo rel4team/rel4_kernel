@@ -93,3 +93,9 @@ pub const seL4_Fault_CapFault: usize = 1;
 pub const seL4_Fault_UnknownSyscall: usize = 2;
 pub const seL4_Fault_UserException: usize = 3;
 pub const seL4_Fault_VMFault: usize = 5;
+
+
+// msg info
+pub const seL4_MsgMaxLength: usize = 120;
+pub const seL4_MsgExtraCapBits: usize = 2;
+pub const seL4_MsgMaxExtraCaps: usize = BIT!(seL4_MsgExtraCapBits) - 1;

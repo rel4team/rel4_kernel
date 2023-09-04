@@ -2,28 +2,21 @@ use core::intrinsics::unlikely;
 
 use crate::{
     config::{
-        irqInvalid, maxIRQ, msgInfoRegister, n_msgRegisters, SysCall, SysNBRecv,
-        SysNBSend, SysRecv, SysReply, SysReplyRecv, SysSend, SysYield, KERNEL_TIMER_IRQ, SIP_SEIP, SIP_STIP,
+        irqInvalid, maxIRQ, KERNEL_TIMER_IRQ, SIP_SEIP, SIP_STIP,
     },
     object::{
-        endpoint::{receiveIPC, replyFromKernel_error, replyFromKernel_success_empty},
+        endpoint::receiveIPC,
         interrupt::handleInterrupt,
         notification::receiveSignal,
-        objecttype::decodeInvocation,
-        tcb::lookupExtraCaps,
     },
     riscv::read_sip,
-    structures::seL4_MessageInfo_t,
 };
 
 use super::{
     boot::{active_irq, current_fault, current_lookup_fault},
     faulthandler::handleFault,
     thread::doReplyTransfer,
-    transfermsg::{
-        messageInfoFromWord, seL4_MessageInfo_ptr_get_label, seL4_MessageInfo_ptr_get_length,
-    },
-    vspace::{handleVMFault, lookupIPCBuffer}, cspace::{lookupCap, lookupCapAndSlot},
+    vspace::handleVMFault, cspace::lookupCap,
 };
 
 use common::{structures::{exception_t, lookup_fault_missing_capability_new, seL4_Fault_UserException_new,
@@ -98,71 +91,6 @@ pub fn getActiveIRQ() -> usize {
     return irq;
 }
 
-#[no_mangle]
-pub fn handleInvocation(isCall: bool, isBlocking: bool) -> exception_t {
-    let thread = unsafe { ksCurThread };
-    let info = messageInfoFromWord(getRegister(thread, msgInfoRegister));
-    let cptr = getRegister(thread, capRegister);
-    let mut lu_ret = lookupCapAndSlot(thread, cptr);
-
-    if unlikely(lu_ret.status != exception_t::EXCEPTION_NONE) {
-        debug!("Invocation of invalid cap {:#x}.", cptr);
-        unsafe {
-            current_fault = seL4_Fault_CapFault_new(cptr, 0);
-        }
-        if isBlocking {
-            handleFault(thread);
-        }
-        return exception_t::EXCEPTION_NONE;
-    }
-    let buffer = lookupIPCBuffer(false, thread) as *mut usize;
-    let status = lookupExtraCaps(thread, buffer, &info);
-
-    if unlikely(status != exception_t::EXCEPTION_NONE) {
-        debug!("Lookup of extra caps failed.");
-        if isBlocking {
-            handleFault(thread);
-        }
-        return exception_t::EXCEPTION_NONE;
-    }
-
-    let mut length = seL4_MessageInfo_ptr_get_length(&info as *const seL4_MessageInfo_t);
-
-    if unlikely(length > n_msgRegisters && buffer as usize == 0) {
-        length = n_msgRegisters;
-    }
-    let status = decodeInvocation(
-        seL4_MessageInfo_ptr_get_label(&info as *const seL4_MessageInfo_t),
-        length,
-        cptr,
-        lu_ret.slot,
-        &mut lu_ret.cap,
-        isBlocking,
-        isCall,
-        buffer,
-    );
-
-    if status == exception_t::EXCEPTION_PREEMTED {
-        return status;
-    }
-
-    if status == exception_t::EXCEPTION_SYSCALL_ERROR {
-        if isCall {
-            replyFromKernel_error(thread);
-        }
-        return exception_t::EXCEPTION_NONE;
-    }
-
-    unsafe {
-        if unlikely(thread_state_get_tsType(&(*thread).tcbState) == ThreadStateRestart) {
-            if isCall {
-                replyFromKernel_success_empty(thread);
-            }
-            setThreadState(thread, ThreadStateRunning);
-        }
-    }
-    return exception_t::EXCEPTION_NONE;
-}
 
 #[no_mangle]
 pub fn handleReply() {
@@ -250,51 +178,3 @@ pub fn handleRecv(isBlocking: bool) {
     }
 }
 
-#[no_mangle]
-pub fn handleSyscall(_syscall: usize) -> exception_t {
-    let syscall: isize = _syscall as isize;
-    match syscall {
-        SysSend => {
-            let ret = handleInvocation(false, true);
-
-            if unlikely(ret != exception_t::EXCEPTION_NONE) {
-                let irq = getActiveIRQ();
-                if irq != irqInvalid {
-                    handleInterrupt(irq);
-                }
-            }
-        }
-        SysNBSend => {
-            let ret = handleInvocation(false, false);
-            if unlikely(ret != exception_t::EXCEPTION_NONE) {
-                let irq = getActiveIRQ();
-                if irq != irqInvalid {
-                    handleInterrupt(irq);
-                }
-            }
-        }
-        SysCall => {
-            let ret = handleInvocation(true, true);
-            if unlikely(ret != exception_t::EXCEPTION_NONE) {
-                let irq = getActiveIRQ();
-                if irq != irqInvalid {
-                    handleInterrupt(irq);
-                }
-            }
-        }
-        SysRecv => {
-            handleRecv(true);
-        }
-        SysReply => handleReply(),
-        SysReplyRecv => {
-            handleReply();
-            handleRecv(true);
-        }
-        SysNBRecv => handleRecv(false),
-        SysYield => handleYield(),
-        _ => panic!("Invalid syscall"),
-    }
-    schedule();
-    activateThread();
-    exception_t::EXCEPTION_NONE
-}

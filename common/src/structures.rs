@@ -1,4 +1,4 @@
-use crate::sel4_config::{lookup_fault_invalid_root, lookup_fault_missing_capability, lookup_fault_depth_mismatch, seL4_Fault_UnknownSyscall, seL4_Fault_UserException, seL4_Fault_CapFault, seL4_Fault_NullFault, seL4_Fault_VMFault};
+use crate::sel4_config::*;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -212,4 +212,23 @@ pub fn seL4_Fault_VMFault_get_FSR(seL4_Fault: &seL4_Fault_t) -> usize {
 #[inline]
 pub fn seL4_Fault_VMFault_get_instructionFault(seL4_Fault: &seL4_Fault_t) -> usize {
     (seL4_Fault.words[0] & 0x80000usize) >> 19
+}
+
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct seL4_IPCBuffer {
+    pub tag: usize,
+    pub msg: [usize; seL4_MsgMaxLength],
+    pub userData: usize,
+    pub caps_or_badges: [usize; seL4_MsgMaxExtraCaps],
+    pub receiveCNode: usize,
+    pub receiveIndex: usize,
+    pub receiveDepth: usize,
+}
+
+impl seL4_IPCBuffer {
+    pub fn get_extra_cptr(&self, i: usize) -> usize {
+        self.caps_or_badges[i]
+    }
 }

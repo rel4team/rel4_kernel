@@ -1,32 +1,29 @@
+use core::intrinsics::unlikely;
+
 use crate::{
     config::{
-        badgeRegister, frameRegisters, gpRegisters, msgInfoRegister, msgRegister, n_frameRegisters,
+        frameRegisters, gpRegisters, msgRegister, n_frameRegisters,
         n_gpRegisters, n_msgRegisters, thread_control_update_ipc_buffer,
         thread_control_update_mcp, thread_control_update_priority, thread_control_update_space,
         CopyRegisters_resumeTarget, CopyRegisters_suspendSource,
-        CopyRegisters_transferFrame, CopyRegisters_transferInteger, ReadRegisters_suspend,
-        TCBBindNotification, TCBConfigure, TCBCopyRegisters, TCBReadRegisters, TCBResume,
-        TCBSetIPCBuffer, TCBSetMCPriority, TCBSetPriority, TCBSetSchedParams, TCBSetSpace,
-        TCBSetTLSBase, TCBSuspend, TCBUnbindNotification, TCBWriteRegisters, seL4_MsgMaxExtraCaps, seL4_MinPrio,
+        CopyRegisters_transferFrame, CopyRegisters_transferInteger,
+        seL4_MinPrio,
     },
     kernel::{
         boot::{current_extra_caps, current_syscall_error},
         thread::getExtraCPtr,
-        transfermsg::{
-            seL4_MessageInfo_new, seL4_MessageInfo_ptr_get_extraCaps, wordFromMessageInfo,
-        },
-        vspace::{checkValidIPCBuffer, isValidVTableRoot, lookupIPCBuffer},
+        vspace::{checkValidIPCBuffer, isValidVTableRoot},
     },
     object::objecttype::updateCapData,
-    structures::seL4_MessageInfo_t,
     syscall::getSyscallArg,
 };
 
+use common::message_info::*;
 use task_manager::*;
 use ipc::*;
-use super::{notification::{bindNotification, unbindNotification}, endpoint::cancelIPC};
+use super::notification::{bindNotification, unbindNotification};
 
-use common::{structures::exception_t, BIT, sel4_config::*};
+use common::{structures::{exception_t, seL4_IPCBuffer}, BIT, sel4_config::*};
 use cspace::interface::*;
 use log::debug;
 
@@ -71,6 +68,37 @@ pub fn lookupExtraCaps(
         }
         return exception_t::EXCEPTION_NONE;
     }
+}
+
+pub fn lookup_extra_caps(thread: &tcb_t, op_buffer: Option<&seL4_IPCBuffer>, info: &seL4_MessageInfo_t) -> exception_t {
+    match op_buffer {
+        Some(buffer) => {
+            let length = info.get_extra_caps();
+            let mut i = 0;
+            while i < length {
+                let cptr = buffer.get_extra_cptr(i);
+                let lu_ret = thread.lookup_slot(cptr);
+                if unlikely(lu_ret.status != exception_t::EXCEPTION_NONE)  {
+                    panic!(" lookup slot error , found slot :{}", lu_ret.slot as usize);
+                }
+                unsafe {
+                    current_extra_caps.excaprefs[i] = lu_ret.slot;
+                }
+                i += 1;
+            }
+            if i < seL4_MsgMaxExtraCaps {
+                unsafe {
+                    current_extra_caps.excaprefs[i] = 0 as *mut cte_t;
+                }
+            }
+        }
+        _ => {
+            unsafe {
+                current_extra_caps.excaprefs[0] = 0 as *mut cte_t;
+            }
+        }
+    }
+    return exception_t::EXCEPTION_NONE;
 }
 
 #[no_mangle]
@@ -161,123 +189,6 @@ pub fn invokeTCB_CopyRegisters(
             rescheduleRequired();
         }
     }
-    exception_t::EXCEPTION_NONE
-}
-
-#[no_mangle]
-pub fn decodeReadRegisters(
-    cap: &cap_t,
-    length: usize,
-    call: bool,
-    buffer: *mut usize,
-) -> exception_t {
-    if length < 2 {
-        unsafe {
-            debug!("TCB CopyRegisters: Truncated message.");
-            current_syscall_error._type = seL4_TruncatedMessage;
-            return exception_t::EXCEPTION_SYSCALL_ERROR;
-        }
-    }
-    let flags = getSyscallArg(0, buffer);
-    let n = getSyscallArg(1, buffer);
-    if n < 1 || n > n_frameRegisters + n_gpRegisters {
-        debug!(
-            "TCB ReadRegisters: Attempted to read an invalid number of registers:{}",
-            n
-        );
-        unsafe {
-            current_syscall_error._type = seL4_RangeError;
-            current_syscall_error.rangeErrorMin = 1;
-            current_syscall_error.rangeErrorMax = n_frameRegisters + n_gpRegisters;
-            return exception_t::EXCEPTION_SYSCALL_ERROR;
-        }
-    }
-    unsafe {
-        let thread = cap_thread_cap_get_capTCBPtr(cap) as *mut tcb_t;
-        if thread == ksCurThread {
-            debug!("TCB ReadRegisters: Attempted to read our own registers.");
-            current_syscall_error._type = seL4_IllegalOperation;
-            return exception_t::EXCEPTION_SYSCALL_ERROR;
-        }
-
-        // let source_cap = &(*current_extra_caps.excaprefs[0]).cap;
-        // if cap_get_capType(source_cap) != cap_thread_cap {
-        //     panic!("TCB CopyRegisters: Invalid source TCB");
-        // }
-        setThreadState(ksCurThread as *mut tcb_t, ThreadStateRestart);
-        invokeTCB_ReadRegisters(
-            cap_thread_cap_get_capTCBPtr(cap) as *mut tcb_t,
-            flags & BIT!(ReadRegisters_suspend),
-            n,
-            0,
-            call,
-        )
-    }
-}
-
-#[no_mangle]
-pub fn invokeTCB_ReadRegisters(
-    src: *mut tcb_t,
-    suspendSource: usize,
-    n: usize,
-    _arch: usize,
-    call: bool,
-) -> exception_t {
-    let thread: *mut tcb_t;
-    unsafe {
-        thread = ksCurThread as *mut tcb_t;
-    }
-    if suspendSource != 0 {
-        cancelIPC(src);
-        suspend(src);
-    }
-
-    if call {
-        let ipcBuffer = lookupIPCBuffer(true, thread) as *mut usize;
-        setRegister(thread, badgeRegister, 0);
-        let mut i: usize = 0;
-        while i < n && i < n_frameRegisters && i < n_msgRegisters {
-            setRegister(thread, msgRegister[i], getRegister(src, frameRegisters[i]));
-            i += 1;
-        }
-
-        if ipcBuffer as usize != 0 && i < n && i < n_frameRegisters {
-            while i < n && i < n_frameRegisters {
-                unsafe {
-                    let ptr = ipcBuffer.add(i + 1) as *mut usize;
-                    *ptr = getRegister(src, frameRegisters[i]);
-                }
-                i += 1;
-            }
-        }
-
-        let j = i;
-        i = 0;
-        while i < n_gpRegisters && i + n_frameRegisters < n && i + n_frameRegisters < n_msgRegisters
-        {
-            setRegister(
-                thread,
-                msgRegister[i + n_frameRegisters],
-                getRegister(src, gpRegisters[i]),
-            );
-            i += 1;
-        }
-        if ipcBuffer as usize != 0 && i < n_gpRegisters && i + n_frameRegisters < n {
-            while i < n_gpRegisters && i + n_frameRegisters < n {
-                let ptr = unsafe { ipcBuffer.add(i + n_frameRegisters + 1) };
-                unsafe {
-                    *ptr = getRegister(src, gpRegisters[i]);
-                }
-                i += 1;
-            }
-        }
-        setRegister(
-            thread,
-            msgInfoRegister,
-            wordFromMessageInfo(seL4_MessageInfo_new(0, 0, 0, i + j)),
-        );
-    }
-    setThreadState(thread, ThreadStateRunning);
     exception_t::EXCEPTION_NONE
 }
 
@@ -1032,42 +943,4 @@ pub fn decodeSetTLSBase(cap: &cap_t, length: usize, buffer: *mut usize) -> excep
         setThreadState(ksCurThread, ThreadStateRestart);
     }
     invokeSetTLSBase(cap_thread_cap_get_capTCBPtr(cap) as *mut tcb_t, base)
-}
-
-#[no_mangle]
-pub fn decodeTCBInvocation(
-    invLabel: usize,
-    length: usize,
-    cap: &cap_t,
-    slot: *mut cte_t,
-    call: bool,
-    buffer: *mut usize,
-) -> exception_t {
-    match invLabel {
-        TCBReadRegisters => decodeReadRegisters(cap, length, call, buffer),
-        TCBWriteRegisters => decodeWriteRegisters(cap, length, buffer),
-        TCBCopyRegisters => decodeCopyRegisters(cap, length, buffer),
-        TCBSuspend => unsafe {
-            setThreadState(ksCurThread as *mut tcb_t, ThreadStateRestart);
-            invokeTCB_Suspend(cap_thread_cap_get_capTCBPtr(cap) as *mut tcb_t)
-        },
-        TCBResume => unsafe {
-            setThreadState(ksCurThread as *mut tcb_t, ThreadStateRestart);
-            invokeTCB_Resume(cap_thread_cap_get_capTCBPtr(cap) as *mut tcb_t)
-        },
-        TCBConfigure => decodeTCBConfigure(cap, length, slot, buffer),
-        TCBSetPriority => decodeSetPriority(cap, length, buffer),
-        TCBSetMCPriority => decodeSetMCPriority(cap, length, buffer),
-        TCBSetSchedParams => decodeSetSchedParams(cap, length, buffer),
-        TCBSetIPCBuffer => decodeSetIPCBuffer(cap, length, slot as *mut cte_t, buffer),
-        TCBSetSpace => decodeSetSpace(cap, length, slot as *mut cte_t, buffer),
-        TCBBindNotification => decodeBindNotification(cap),
-        TCBUnbindNotification => decodeUnbindNotification(cap),
-        TCBSetTLSBase => decodeSetTLSBase(cap, length, buffer),
-        _ => unsafe {
-            debug!("TCB: Illegal operation invLabel :{}", invLabel);
-            current_syscall_error._type = seL4_IllegalOperation;
-            exception_t::EXCEPTION_SYSCALL_ERROR
-        },
-    }
 }

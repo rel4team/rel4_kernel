@@ -5,7 +5,6 @@ use crate::{
 
 use task_manager::*;
 use ipc::*;
-use super::endpoint::cancelIPC;
 
 use common::structures::exception_t;
 use cspace::interface::*;
@@ -130,21 +129,6 @@ pub fn unbindNotification(tcb: *mut tcb_t) {
             doUnbindNotification(tcb, ptr as *mut notification_t);
         }
     }
-}
-
-#[no_mangle]
-pub fn cancelSignal(threadPtr: *mut tcb_t, ntfnPtr: *mut notification_t) {
-    assert!(notification_ptr_get_state(ntfnPtr) == NtfnState_Waiting);
-    let mut queue = ntfn_ptr_get_queue(ntfnPtr);
-
-    queue = tcbEPDequeue(threadPtr, queue);
-    let temp = queue.head;
-
-    ntfn_ptr_set_queue(ntfnPtr, queue);
-    if temp as usize == 0 {
-        notification_ptr_set_state(ntfnPtr, NtfnState_Idle);
-    }
-    setThreadState(threadPtr, ThreadStateInactive);
 }
 
 #[no_mangle]

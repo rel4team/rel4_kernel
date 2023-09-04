@@ -1,7 +1,7 @@
 use crate::{
     config::{
         seL4_CapTableObject, seL4_ObjectTypeCount,
-        seL4_UntypedObject, UntypedRetype, CONFIG_RESET_CHUNK_BITS,
+        seL4_UntypedObject, CONFIG_RESET_CHUNK_BITS,
         CONFIG_RETYPE_FAN_OUT_LIMIT, 
     },
     kernel::{
@@ -19,7 +19,7 @@ use super::{
     },
 };
 use task_manager::*;
-use common::{structures::{exception_t, lookup_fault_missing_capability_new}, sel4_config::*, BIT, MASK, ROUND_DOWN};
+use common::{structures::{exception_t, lookup_fault_missing_capability_new}, sel4_config::*, BIT, MASK, ROUND_DOWN, message_info::MessageLabel};
 use cspace::interface::*;
 use log::debug;
 
@@ -118,14 +118,14 @@ pub fn invokeUntyped_Retype(
 
 #[no_mangle]
 pub fn decodeUntypedInvocation(
-    invLabel: usize,
+    invLabel: MessageLabel,
     length: usize,
     slot: *mut cte_t,
     cap: &cap_t,
     _call: bool,
     buffer: *mut usize,
 ) -> exception_t {
-    if invLabel != UntypedRetype {
+    if invLabel != MessageLabel::UntypedRetype {
         debug!("Untyped cap: Illegal operation attempted.");
         unsafe {
             current_syscall_error._type = seL4_IllegalOperation;

@@ -1,15 +1,16 @@
+use common::utils::{pageBitsForSize, convert_to_type_ref};
 use common::{structures::lookup_fault_t, MASK, utils::convert_to_mut_type_ref};
 use cspace::interface::{cte_t, resolve_address_bits, CapTag, cap_t, mdb_node_t, cte_insert};
-use vspace::{set_vm_root, pptr_t};
+use vspace::{set_vm_root, pptr_t, VMReadWrite, VMReadOnly};
 
 // use crate::{structures::{notification_t, seL4_Fault_t}, config::{seL4_TCBBits, tcbVTable}};
-use common::sel4_config::{seL4_TCBBits, tcbVTable, tcbCTable, wordBits, tcbReply, tcbCaller};
-use common::structures::seL4_Fault_t;
+use common::sel4_config::{seL4_TCBBits, tcbVTable, tcbCTable, wordBits, tcbReply, tcbCaller, tcbBuffer};
+use common::structures::{seL4_Fault_t, seL4_IPCBuffer};
 use crate::{SSTATUS, possible_switch_to, schedule_tcb};
 use crate::structures::lookupSlot_raw_ret_t;
 
 use super::{registers::n_contextRegisters, ready_queues_index, ksReadyQueues, addToBitmap, removeFromBitmap, NextIP, FaultIP, ksIdleThread, ksCurThread,
-    rescheduleRequired, possibleSwitchTo, scheduleTCB};
+    rescheduleRequired, possibleSwitchTo};
 
 use super::thread_state::*;
 
@@ -85,6 +86,11 @@ impl tcb_t {
             ThreadState::ThreadStateRunning | ThreadState::ThreadStateRestart   => true,
             _                                                                   => false,
         }
+    }
+
+    #[inline]
+    pub fn is_current(&self) -> bool {
+        self.get_ptr() == unsafe {ksCurThread as usize}
     }
 
     #[inline]
@@ -273,10 +279,41 @@ impl tcb_t {
 
     #[inline]
     pub fn delete_caller_cap(&mut self) {
-        // let callerSlot = getCSpace(receiver as usize, tcbCaller);
-        // cteDeleteOne(callerSlot);
         let caller_slot = self.get_cspace_mut_ref(tcbCaller);
         caller_slot.delete_one();
+    }
+
+    #[inline]
+    pub fn lookup_ipc_buffer(&self, is_receiver: bool) -> Option<&'static seL4_IPCBuffer> {
+        let w_buffer_ptr = self.tcbIPCBuffer;
+        let buffer_cap = self.get_cspace(tcbBuffer).cap;
+        if buffer_cap.get_cap_type() != CapTag::CapFrameCap {
+            return None;
+        }
+
+        let vm_rights = buffer_cap.get_frame_vm_rights();
+        if vm_rights == VMReadWrite || (!is_receiver && vm_rights == VMReadOnly) {
+            let base_ptr = buffer_cap.get_frame_base_ptr();
+            let page_bits = pageBitsForSize(buffer_cap.get_frame_size());
+            return Some(convert_to_type_ref::<seL4_IPCBuffer>(base_ptr + (w_buffer_ptr & MASK!(page_bits))));
+        }
+        return None;
+    }
+
+    pub fn lookup_mut_ipc_buffer(&mut self, is_receiver: bool) -> Option<&'static mut seL4_IPCBuffer> {
+        let w_buffer_ptr = self.tcbIPCBuffer;
+        let buffer_cap = self.get_cspace(tcbBuffer).cap;
+        if buffer_cap.get_cap_type() != CapTag::CapFrameCap {
+            return None;
+        }
+
+        let vm_rights = buffer_cap.get_frame_vm_rights();
+        if vm_rights == VMReadWrite || (!is_receiver && vm_rights == VMReadOnly) {
+            let base_ptr = buffer_cap.get_frame_base_ptr();
+            let page_bits = pageBitsForSize(buffer_cap.get_frame_size());
+            return Some(convert_to_mut_type_ref::<seL4_IPCBuffer>(base_ptr + (w_buffer_ptr & MASK!(page_bits))));
+        }
+        return None;
     }
 
 }
@@ -336,25 +373,7 @@ pub fn tcbSchedAppend(tcb: *mut tcb_t) {
     }
 }
 
-#[inline]
-pub fn isStopped(thread: *const tcb_t) -> bool {
-    if thread as usize == 0 || thread as usize == 1 {
-        return true;
-    }
-    unsafe {
-        (*thread).is_stopped()
-    }
-}
 
-#[inline]
-pub fn isRunnable(thread: *const tcb_t) -> bool {
-    if thread as usize == 0 || thread as usize == 1 {
-        return false;
-    }
-    unsafe {
-        (*thread).is_runnable()
-    }
-}
 
 #[inline]
 pub fn setRegister(thread: *mut tcb_t, reg: usize, w: usize) {
@@ -379,8 +398,6 @@ pub fn set_thread_state(tcb: &mut tcb_t, state: ThreadState) {
 #[no_mangle]
 pub fn setThreadState(tptr: *mut tcb_t, ts: usize) {
     unsafe {
-        // thread_state_set_tsType(&mut (*tptr).tcbState, ts);
-        // scheduleTCB(tptr);
         set_thread_state(&mut (*tptr), core::mem::transmute::<u8, ThreadState>(ts as u8))
     }
 }
@@ -390,33 +407,13 @@ pub fn getReStartPC(thread: *const tcb_t) -> usize {
     getRegister(thread, FaultIP)
 }
 
-#[inline]
-pub fn setRestartPC(thread: *mut tcb_t, v: usize) {
-    setRegister(thread, NextIP, v);
-}
 
 #[inline]
 pub fn setNextPC(thread: *mut tcb_t, v: usize) {
     setRegister(thread, NextIP, v);
 }
 
-#[inline]
-pub fn updateReStartPC(tcb: *mut tcb_t) {
-    setRegister(tcb, FaultIP, getRegister(tcb, NextIP));
-}
 
-pub fn setVMRoot(thread: *mut tcb_t) -> Result<(), lookup_fault_t> {
-    unsafe {
-        (*thread).set_vm_root()
-    }
-}
-
-
-pub fn switchToThread(thread: *mut tcb_t) {
-    unsafe {
-        (*thread).switch_to_this()
-    }
-}
 
 pub fn setMCPriority(tptr: *mut tcb_t, mcp: usize) {
     unsafe {
@@ -444,11 +441,7 @@ pub fn lookupSlot(thread: *const tcb_t, capptr: usize) -> lookupSlot_raw_ret_t {
 }
 
 #[no_mangle]
-pub fn setupReplyMaster(thread: *mut tcb_t) {
-    unsafe {
-        (*thread).setup_reply_master()
-    }
-}
+pub fn setupReplyMaster(_thread: *mut tcb_t) {}
 
 
 #[no_mangle]
@@ -474,9 +467,20 @@ pub fn setupCallerCap(sender: *mut tcb_t, receiver: *mut tcb_t, canGrant: bool) 
 
 #[no_mangle]
 pub fn deleteCallerCap(receiver: *mut tcb_t) {
-    // let callerSlot = getCSpace(receiver as usize, tcbCaller);
-    // cteDeleteOne(callerSlot);
     unsafe {
         (*receiver).delete_caller_cap()
+    }
+}
+
+
+#[no_mangle]
+pub fn lookupIPCBuffer(isReceiver: bool, thread: *mut tcb_t) -> usize {
+    unsafe {
+        match (*thread).lookup_ipc_buffer(isReceiver) {
+            Some(ipc_buffer) => {
+                return ipc_buffer as *const seL4_IPCBuffer as usize
+            }
+            _ => 0
+        }
     }
 }

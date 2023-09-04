@@ -126,8 +126,7 @@ pub fn removeFromBitmap(dom: usize, prio: usize) {
     }
 }
 
-#[no_mangle]
-pub fn nextDomain() {
+fn nextDomain() {
     unsafe {
         ksDomScheduleIdx += 1;
         if ksDomScheduleIdx >= ksDomScheduleLength {
@@ -142,8 +141,7 @@ pub fn nextDomain() {
 }
 
 
-#[no_mangle]
-pub fn scheduleChooseNewThread() {
+fn scheduleChooseNewThread() {
     unsafe {
         if ksDomainTime == 0 {
             nextDomain();
@@ -152,8 +150,7 @@ pub fn scheduleChooseNewThread() {
     chooseThread();
 }
 
-#[no_mangle]
-pub fn chooseThread() {
+fn chooseThread() {
     unsafe {
         let dom = 0;
         if ksReadyQueuesL1Bitmap[dom] != 0 {

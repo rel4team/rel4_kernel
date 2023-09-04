@@ -4,13 +4,13 @@ use super::{ndks_boot, utils::is_reg_empty};
 use common::{BIT, ROUND_DOWN};
 use common::sel4_config::{wordBits, seL4_SlotBits, IT_ASID, asidLowBits, seL4_PageBits, seL4_PageTableBits, CONFIG_PT_LEVELS,
     PAGE_BITS, CONFIG_MAX_NUM_NODES, TCB_OFFSET, CONFIG_TIME_SLICE, tcbCTable, tcbVTable, tcbBuffer, CONFIG_NUM_DOMAINS, seL4_TCBBits};
-use common::structures::exception_t;
+use common::structures::{exception_t, seL4_IPCBuffer};
 use cspace::interface::*;
 use log::debug;
 use crate::kernel::thread::Arch_initContext;
 use crate::object::interrupt::setIRQState;
 use crate::structures::{region_t, rootserver_mem_t, v_region_t, seL4_SlotRegion, create_frames_of_region_ret_t,
-    seL4_BootInfo, seL4_IPCBuffer};
+    seL4_BootInfo};
 
 use crate::config::*;
 
@@ -153,7 +153,7 @@ unsafe fn create_initial_thread(
     (*tcb).tcbMCP = seL4_MaxPrio;
     (*tcb).tcbPriority = seL4_MaxPrio;
     setThreadState(tcb, ThreadStateRunning);
-    setupReplyMaster(tcb);
+    (*tcb).setup_reply_master();
     ksCurDomain = ksDomSchedule[ksDomScheduleIdx].domain;
     ksDomainTime = ksDomSchedule[ksDomScheduleIdx].length;
 

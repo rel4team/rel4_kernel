@@ -1,4 +1,5 @@
 use core::intrinsics::unlikely;
+use common::message_info::*;
 use common::structures::{lookup_fault_missing_capability_new, lookup_fault_invalid_root_new, seL4_Fault_VMFault_new};
 use common::utils::pageBitsForSize;
 use common::{BIT, MASK, IS_ALIGNED};
@@ -7,12 +8,10 @@ use log::debug;
 use vspace::*;
 use crate::{
     config::{
-        badgeRegister, msgInfoRegister,
-        n_msgRegisters, seL4_ASIDPoolBits, seL4_IPCBufferSizeBits, RISCVASIDControlMakePool,
-        RISCVASIDPoolAssign, RISCVInstructionAccessFault,
+        badgeRegister,
+        n_msgRegisters, seL4_ASIDPoolBits, seL4_IPCBufferSizeBits, RISCVInstructionAccessFault,
         RISCVInstructionPageFault, RISCVLoadAccessFault, RISCVLoadPageFault,
-        RISCVPageGetAddress, RISCVPageMap, RISCVPageTableMap, RISCVPageTableUnmap,
-        RISCVPageUnmap, RISCVStoreAccessFault, RISCVStorePageFault, USER_TOP,
+        RISCVStoreAccessFault, RISCVStorePageFault, USER_TOP,
     },
     kernel::boot::current_syscall_error,
     object::cap::ensureEmptySlot,
@@ -31,36 +30,10 @@ use super::{
         current_extra_caps, current_fault, current_lookup_fault,
     },
     cspace::rust_lookupTargetSlot,
-    transfermsg::{
-        seL4_MessageInfo_new, vmAttributesFromWord, vm_attributes_get_riscvExecuteNever,
-        wordFromMessageInfo,
-    },
+    transfermsg::{vmAttributesFromWord, vm_attributes_get_riscvExecuteNever},
 };
 
 use cspace::interface::*;
-
-
-#[no_mangle]
-pub extern "C" fn lookupIPCBuffer(isReceiver: bool, thread: *mut tcb_t) -> usize {
-    unsafe {
-        let w_bufferPtr = (*thread).tcbIPCBuffer;
-        let bufferCap = &(*getCSpace(thread as usize, tcbBuffer)).cap;
-        if cap_get_capType(bufferCap) != cap_frame_cap {
-            return 0;
-        }
-        if cap_frame_cap_get_capFIsDevice(bufferCap) != 0 {
-            return 0;
-        }
-
-        let vm_rights = cap_frame_cap_get_capFVMRights(bufferCap);
-        if vm_rights == VMReadWrite || (!isReceiver && vm_rights == VMReadOnly) {
-            let basePtr = cap_frame_cap_get_capFBasePtr(bufferCap);
-            let pageBits = pageBitsForSize(cap_frame_cap_get_capFSize(bufferCap));
-            return basePtr + (w_bufferPtr & MASK!(pageBits));
-        }
-        0
-    }
-}
 
 #[no_mangle]
 pub fn handleVMFault(_thread: *mut tcb_t, _type: usize) -> exception_t {
@@ -275,7 +248,7 @@ pub fn performPageTableInvocationMap(
 
 #[no_mangle]
 pub fn decodeRISCVFrameInvocation(
-    label: usize,
+    label: MessageLabel,
     length: usize,
     cte: *mut cte_t,
     cap: &mut cap_t,
@@ -283,7 +256,7 @@ pub fn decodeRISCVFrameInvocation(
     buffer: *const usize,
 ) -> exception_t {
     match label {
-        RISCVPageMap => unsafe {
+        MessageLabel::RISCVPageMap => unsafe {
             if length < 3 || current_extra_caps.excaprefs[0] as usize == 0 {
                 debug!("RISCVPageMap: Truncated message.");
                 current_syscall_error._type = seL4_TruncatedMessage;
@@ -388,13 +361,13 @@ pub fn decodeRISCVFrameInvocation(
             // debug!(" res {:#x} {:#x} {:#x} {:#x} {:#x} {:#x}",cap.words[0],cap.words[1],cte as usize,pte.words[0],lu_ret.ptSlot as usize ,ksCurThread as usize);
             performPageInvocationMapPTE(cap, cte as *mut cte_t, pte, lu_ret.ptSlot as *mut pte_t)
         },
-        RISCVPageUnmap => {
+        MessageLabel::RISCVPageUnmap => {
             unsafe {
                 setThreadState(ksCurThread, ThreadStateRestart);
             }
             performPageInvocationUnmap(cap, cte)
         }
-        RISCVPageGetAddress => {
+        MessageLabel::RISCVPageGetAddress => {
             assert!(n_msgRegisters >= 1);
             unsafe {
                 setThreadState(ksCurThread, ThreadStateRestart);
@@ -402,7 +375,7 @@ pub fn decodeRISCVFrameInvocation(
             performPageGetAddress(cap_frame_cap_get_capFBasePtr(cap), call)
         }
         _ => {
-            debug!("invalid operation label:{}", label);
+            debug!("invalid operation label:{:?}", label);
             unsafe {
                 current_syscall_error._type = seL4_IllegalOperation;
             }
@@ -413,13 +386,13 @@ pub fn decodeRISCVFrameInvocation(
 
 #[no_mangle]
 pub fn decodeRISCVPageTableInvocation(
-    label: usize,
+    label: MessageLabel,
     length: usize,
     cte: *mut cte_t,
     cap: &mut cap_t,
     buffer: *mut usize,
 ) -> exception_t {
-    if label == RISCVPageTableUnmap {
+    if label == MessageLabel::RISCVPageTableUnmap {
         if !isFinalCapability(cte) {
             debug!("RISCVPageTableUnmap: cannot unmap if more than once cap exists");
             unsafe {
@@ -449,7 +422,7 @@ pub fn decodeRISCVPageTableInvocation(
         return performPageTableInvocationUnmap(cap, cte);
     }
 
-    if unlikely(label != RISCVPageTableMap) {
+    if unlikely(label != MessageLabel::RISCVPageTableMap) {
         debug!("RISCVPageTable: Illegal Operation");
         unsafe {
             current_syscall_error._type = seL4_IllegalOperation;
@@ -550,7 +523,7 @@ pub fn decodeRISCVPageTableInvocation(
 
 #[no_mangle]
 pub fn decodeRISCVMMUInvocation(
-    label: usize,
+    label: MessageLabel,
     length: usize,
     _cptr: usize,
     cte: *mut cte_t,
@@ -563,7 +536,7 @@ pub fn decodeRISCVMMUInvocation(
         cap_frame_cap => decodeRISCVFrameInvocation(label, length, cte, cap, call, buffer),
         cap_asid_control_cap => {
             // debug!("in cap_asid_control_cap");
-            if label != RISCVASIDControlMakePool {
+            if label != MessageLabel::RISCVASIDControlMakePool {
                 unsafe {
                     current_syscall_error._type = seL4_IllegalOperation;
                     return exception_t::EXCEPTION_SYSCALL_ERROR;
@@ -643,7 +616,7 @@ pub fn decodeRISCVMMUInvocation(
 
         cap_asid_pool_cap => {
             // debug!("in cap_asid_pool_cap");
-            if label != RISCVASIDPoolAssign {
+            if label != MessageLabel::RISCVASIDPoolAssign {
                 unsafe {
                     current_syscall_error._type = seL4_IllegalOperation;
                     return exception_t::EXCEPTION_SYSCALL_ERROR;

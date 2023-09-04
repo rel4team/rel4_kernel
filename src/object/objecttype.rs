@@ -1,4 +1,3 @@
-use core::intrinsics::unlikely;
 
 use crate::{
     config::{
@@ -8,16 +7,16 @@ use crate::{
         tcbCNodeEntries, IRQInactive,
     },
     kernel::{
-        boot::{current_syscall_error, current_lookup_fault},
+        boot::current_lookup_fault,
         thread::{
-            decodeDomainInvocation, doReplyTransfer, Arch_initContext,
+            doReplyTransfer, Arch_initContext,
         },
         transfermsg::{
             seL4_CNode_capData_get_guard, seL4_CNode_capData_get_guardSize, vmRighsFromWord,
             wordFromVMRights,
         },
         vspace::{
-            decodeRISCVMMUInvocation, deleteASID, deleteASIDPool,
+            deleteASID, deleteASIDPool,
         },
     },
     structures::seL4_CNode_CapData_t
@@ -25,21 +24,16 @@ use crate::{
 
 use task_manager::*;
 use ipc::*;
-use log::debug;
 use vspace::*;
 
 use super::{
-    cap::decodeCNodeInvocation,
-    endpoint::{cancelAllIPC, performInvocation_Endpoint, cancelIPC},
+    endpoint::cancelAllIPC,
     interrupt::{
-        decodeIRQControlInvocation, decodeIRQHandlerInvocation, deletingIRQHandler, setIRQState,
+        deletingIRQHandler, setIRQState,
     },
     notification::{
-        cancelAllSignals, performInvocation_Notification, unbindMaybeNotification,
-        unbindNotification,
+        cancelAllSignals, unbindMaybeNotification, unbindNotification,
     },
-    tcb::decodeTCBInvocation,
-    untyped::decodeUntypedInvocation,
 };
 
 use common::{structures::exception_t, sel4_config::*, MASK};
@@ -431,107 +425,6 @@ pub fn createNewObjects(
         unsafe {
             insertNewCap(parent, destCNode.add(destOffset + i), &cap);
         }
-    }
-}
-
-#[no_mangle]
-pub fn decodeInvocation(
-    invLabel: usize,
-    length: usize,
-    capIndex: usize,
-    slot: *mut cte_t,
-    cap: &mut cap_t,
-    block: bool,
-    call: bool,
-    buffer: *mut usize,
-) -> exception_t {
-    // debug!("cap :{:#x} {:#x}")
-    // debug!("type:{}", cap_get_capType(cap));
-    match cap_get_capType(cap) {
-        cap_null_cap => {
-            debug!("Attempted to invoke a null cap {:#x}.", capIndex);
-            unsafe {
-                current_syscall_error._type = seL4_InvalidCapability;
-                current_syscall_error.invalidCapNumber = 0;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
-        }
-        cap_zombie_cap => {
-            debug!("Attempted to invoke a zombie cap {:#x}.", capIndex);
-            unsafe {
-                current_syscall_error._type = seL4_InvalidCapability;
-                current_syscall_error.invalidCapNumber = 0;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
-        }
-        cap_endpoint_cap => {
-            if unlikely(cap_endpoint_cap_get_capCanSend(cap) == 0) {
-                debug!("Attempted to invoke a read-only endpoint cap {}.", capIndex);
-                unsafe {
-                    current_syscall_error._type = seL4_InvalidCapability;
-                    current_syscall_error.invalidCapNumber = 0;
-                    return exception_t::EXCEPTION_SYSCALL_ERROR;
-                }
-            }
-            unsafe {
-                setThreadState(ksCurThread, ThreadStateRestart);
-            }
-            return performInvocation_Endpoint(
-                cap_endpoint_cap_get_capEPPtr(cap) as *mut endpoint_t,
-                cap_endpoint_cap_get_capEPBadge(cap),
-                cap_endpoint_cap_get_capCanGrant(cap) != 0,
-                cap_endpoint_cap_get_capCanGrantReply(cap) != 0,
-                block,
-                call,
-            );
-        }
-        cap_notification_cap => {
-            if unlikely(cap_notification_cap_get_capNtfnCanSend(cap) == 0) {
-                debug!(
-                    "Attempted to invoke a read-only notification cap {}.",
-                    capIndex
-                );
-                unsafe {
-                    current_syscall_error._type = seL4_InvalidCapability;
-                    current_syscall_error.invalidCapNumber = 0;
-                    return exception_t::EXCEPTION_SYSCALL_ERROR;
-                }
-            }
-            unsafe {
-                setThreadState(ksCurThread, ThreadStateRestart);
-            }
-            return performInvocation_Notification(
-                cap_notification_cap_get_capNtfnPtr(cap) as *mut notification_t,
-                cap_notification_cap_get_capNtfnBadge(cap),
-            );
-        }
-        cap_reply_cap => {
-            if unlikely(cap_reply_cap_get_capReplyMaster(cap) != 0) {
-                debug!("Attempted to invoke an invalid reply cap {}.", capIndex);
-                unsafe {
-                    current_syscall_error._type = seL4_InvalidCapability;
-                    current_syscall_error.invalidCapNumber = 0;
-                    return exception_t::EXCEPTION_SYSCALL_ERROR;
-                }
-            }
-            unsafe {
-                setThreadState(ksCurThread, ThreadStateRestart);
-            }
-            return performInvocation_Reply(
-                cap_reply_cap_get_capTCBPtr(cap) as *mut tcb_t,
-                slot,
-                cap_reply_cap_get_capReplyCanGrant(cap) != 0,
-            );
-        }
-        cap_thread_cap => decodeTCBInvocation(invLabel, length, cap, slot, call, buffer),
-        cap_domain_cap => decodeDomainInvocation(invLabel, length, buffer),
-        cap_cnode_cap => decodeCNodeInvocation(invLabel, length, cap, buffer),
-        cap_untyped_cap => decodeUntypedInvocation(invLabel, length, slot, cap, call, buffer),
-        cap_irq_control_cap => decodeIRQControlInvocation(invLabel, length, slot, buffer),
-        cap_irq_handler_cap => {
-            decodeIRQHandlerInvocation(invLabel, cap_irq_handler_cap_get_capIRQ(cap))
-        }
-        _ => decodeRISCVMMUInvocation(invLabel, length, capIndex, slot, cap, call, buffer),
     }
 }
 

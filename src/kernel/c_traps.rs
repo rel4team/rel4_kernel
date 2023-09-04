@@ -5,13 +5,13 @@ use crate::{
         RISCVInstructionAccessFault, RISCVInstructionPageFault, RISCVLoadAccessFault,
         RISCVLoadPageFault, RISCVStoreAccessFault, RISCVStorePageFault,
     },
-    riscv::read_scause,
+    riscv::read_scause, syscall::slowpath,
 };
 
 use task_manager::*;
 
 use super::syscall::{
-    handleInterruptEntry, handleSyscall, handleUserLevelFault, handleVMFaultEvent,
+    handleInterruptEntry, handleUserLevelFault, handleVMFaultEvent,
 };
 
 #[no_mangle]
@@ -66,11 +66,6 @@ pub fn c_handle_interrupt() {
     restore_user_context();
 }
 
-#[link(name = "kernel_all.c")]
-extern "C" {
-    pub fn handleUnknownSyscall(w: usize);
-}
-
 #[no_mangle]
 pub fn c_handle_exception() {
     let cause = read_scause();
@@ -86,18 +81,6 @@ pub fn c_handle_exception() {
         _ => {
             handleUserLevelFault(cause, 0);
         }
-    }
-    restore_user_context();
-}
-
-#[no_mangle]
-pub fn slowpath(syscall: usize) {
-    if (syscall as isize) < -8 || (syscall as isize) > -1 {
-        unsafe {
-            handleUnknownSyscall(syscall);
-        }
-    } else {
-        handleSyscall(syscall);
     }
     restore_user_context();
 }

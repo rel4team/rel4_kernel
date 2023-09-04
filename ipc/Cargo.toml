@@ -8,4 +8,5 @@ edition = "2021"
 [dependencies]
 common = { path = "../common" }
 task_manager = { path = "../task_manager" }
+cspace = { path = "../cspace" }
 log = "0.4"

@@ -11,6 +11,7 @@ const s1: usize = 8;
 const a0: usize = 9;
 pub const capRegister: usize = 9;
 pub const badgeRegister: usize = 9;
+pub const msgInfoRegister: usize = 10;
 const a1: usize = 10;
 const a2: usize = 11;
 const a3: usize = 12;

@@ -1,13 +1,10 @@
 extern crate core;
 
-use common::structures::{lookup_fault_t, seL4_Fault_t};
+use common::{structures::{lookup_fault_t, seL4_Fault_t}, sel4_config::seL4_MsgMaxExtraCaps};
 use cspace::interface::cte_t;
 
-use crate::{
-    config::seL4_MsgMaxExtraCaps,
-    structures::{
-        extra_caps_t, syscall_error_t, 
-    },
+use crate::structures::{
+    extra_caps_t, syscall_error_t, 
 };
 
 use task_manager::*;

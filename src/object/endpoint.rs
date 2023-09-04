@@ -1,41 +1,20 @@
 use crate::{
-    config::{
-        badgeRegister, msgInfoRegister, EPState_Idle, EPState_Recv, EPState_Send,
-    },
+    config::badgeRegister,
     kernel::{
         boot::current_syscall_error,
         thread::{
             doIPCTransfer, doNBRecvFailedTransfer,
             setMRs_syscall_error,
         },
-        transfermsg::{seL4_MessageInfo_new, wordFromMessageInfo},
-        vspace::lookupIPCBuffer,
     },
     object::notification::completeSignal,
 };
 
 use task_manager::*;
 use ipc::*;
-use super::notification::cancelSignal;
 
-use common::{structures::{exception_t, seL4_Fault_NullFault_new}, sel4_config::tcbReply};
+use common::{structures::exception_t, message_info::*};
 use cspace::interface::*;
-
-#[inline]
-pub fn ep_ptr_set_queue(epptr: *const endpoint_t, queue: tcb_queue_t) {
-    endpoint_ptr_set_epQueue_head(epptr as *mut endpoint_t, queue.head as usize);
-    endpoint_ptr_set_epQueue_tail(epptr as *mut endpoint_t, queue.tail as usize);
-}
-
-#[inline]
-pub fn ep_ptr_get_queue(epptr: *const endpoint_t) -> tcb_queue_t {
-    let queue = tcb_queue_t {
-        head: endpoint_ptr_get_epQueue_head(epptr as *mut endpoint_t),
-        tail: endpoint_ptr_get_epQueue_tail(epptr as *mut endpoint_t),
-    };
-
-    queue
-}
 
 #[no_mangle]
 pub fn sendIPC(
@@ -262,43 +241,6 @@ pub fn replyFromKernel_success_empty(thread: *mut tcb_t) {
     );
 }
 
-#[no_mangle]
-pub fn cancelIPC(tptr: *mut tcb_t) {
-    let state = unsafe { &(*tptr).tcbState };
-    match thread_state_get_tsType(state) {
-        ThreadStateBlockedOnSend | ThreadStateBlockedOnReceive => {
-            let epptr = thread_state_get_blockingObject(state) as *mut endpoint_t;
-
-            assert!(endpoint_ptr_get_state(epptr) != EPState_Idle);
-            let mut queue = ep_ptr_get_queue(epptr);
-            queue = tcbEPDequeue(tptr as *mut tcb_t, queue);
-
-            let temp = queue.head as usize;
-
-            ep_ptr_set_queue(epptr, queue);
-
-            if temp == 0 {
-                endpoint_ptr_set_state(epptr, EPState_Idle);
-            }
-            setThreadState(tptr, ThreadStateInactive);
-        }
-        ThreadStateBlockedOnNotification => {
-            let ntfnPtr = thread_state_get_blockingObject(state) as *mut notification_t;
-            cancelSignal(tptr, ntfnPtr);
-        }
-        ThreadStateBlockedOnReply => unsafe {
-            (*tptr).tcbFault = seL4_Fault_NullFault_new();
-
-            let slot = getCSpace(tptr as usize, tcbReply);
-            let callerCap = mdb_node_get_mdbNext(&(*slot).cteMDBNode) as *mut cte_t;
-            if callerCap as usize != 0 {
-                cteDeleteOne(callerCap);
-            }
-        },
-
-        _ => {}
-    }
-}
 
 #[no_mangle]
 pub fn cancelAllIPC(epptr: *mut endpoint_t) {

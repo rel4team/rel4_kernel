@@ -1,4 +1,4 @@
-use task_manager::{tcb_queue_t, tcb_t};
+use task_manager::{tcb_queue_t, tcb_t, set_thread_state, ThreadState};
 
 pub enum NtfnState {
     Idle = 0,
@@ -109,6 +109,17 @@ impl notification_t {
         self.set_state(NtfnState::Active as usize);
         self.set_msg_identifier(badge);
     }
+
+    #[inline]
+    pub fn cancel_signal(&mut self, tcb: &mut tcb_t) {
+        let mut queue = self.get_queue();
+        queue.ep_dequeue(tcb);
+        self.set_queue(&queue);
+        if queue.head == 0 {
+            self.set_state(NtfnState::Idle as usize);
+        }
+        set_thread_state(tcb, ThreadState::ThreadStateInactive);
+    }
 }
 
 #[inline]
@@ -202,4 +213,3 @@ pub fn ntfn_ptr_set_active(ntfnPtr: *mut notification_t, badge: usize) {
         (*ntfnPtr).active(badge)
     }
 }
-

@@ -1,13 +1,12 @@
 use crate::{
-    config::{CNodeCancelBadgedSends, CNodeCopy, CNodeDelete,
-        CNodeMint, CNodeMove, CNodeMutate, CNodeRevoke, CNodeRotate, CNodeSaveCaller,
-    },
     kernel::{
         boot::{current_extra_caps, current_lookup_fault, current_syscall_error},
         cspace::{rust_lookupPivotSlot, rust_lookupSourceSlot, rust_lookupTargetSlot},
     },
     syscall::getSyscallArg,
 };
+
+use common::message_info::*;
 
 use super::{
     endpoint::cancelBadgedSends,
@@ -110,12 +109,12 @@ pub fn invokeCNodeDelete(destSlot: *mut cte_t) -> exception_t {
 
 #[no_mangle]
 pub fn decodeCNodeInvocation(
-    invLabel: usize,
+    invLabel: MessageLabel,
     length: usize,
     cap: &cap_t,
     buffer: *mut usize,
 ) -> exception_t {
-    if invLabel < CNodeRevoke || invLabel > CNodeSaveCaller {
+    if invLabel < MessageLabel::CNodeRevoke || invLabel > MessageLabel::CNodeSaveCaller {
         debug!("CNodeCap: Illegal Operation attempted.");
         unsafe {
             current_syscall_error._type = seL4_IllegalOperation;
@@ -138,7 +137,7 @@ pub fn decodeCNodeInvocation(
         debug!("CNode operation: Target slot invalid.");
         return lu_ret.status;
     }
-    if invLabel >= CNodeCopy && invLabel <= CNodeMutate {
+    if invLabel >= MessageLabel::CNodeCopy && invLabel <= MessageLabel::CNodeMutate {
         unsafe {
             if length < 4 || current_extra_caps.excaprefs[0] as usize == 0 {
                 debug!("CNode Copy/Mint/Move/Mutate: Truncated message.");
@@ -179,7 +178,7 @@ pub fn decodeCNodeInvocation(
 
         let isMove: bool;
         match invLabel {
-            CNodeCopy => {
+            MessageLabel::CNodeCopy => {
                 if length < 5 {
                     debug!("Truncated message for CNode Copy operation.");
                     unsafe {
@@ -201,7 +200,7 @@ pub fn decodeCNodeInvocation(
                     isMove = false;
                 }
             }
-            CNodeMint => {
+            MessageLabel::CNodeMint => {
                 if length < 6 {
                     debug!("Truncated message for CNode Mint operation.");
                     unsafe {
@@ -224,11 +223,11 @@ pub fn decodeCNodeInvocation(
                     isMove = false;
                 }
             }
-            CNodeMove => unsafe {
+            MessageLabel::CNodeMove => unsafe {
                 newCap = &(*srcSlot).cap;
                 isMove = true;
             },
-            CNodeMutate => {
+            MessageLabel::CNodeMutate => {
                 if length < 5 {
                     debug!("Truncated message for CNode Mutate operation.");
                     unsafe {
@@ -243,7 +242,7 @@ pub fn decodeCNodeInvocation(
                 }
                 isMove = true;
             }
-            _ => panic!("invalid invLabel:{}", invLabel),
+            _ => panic!("invalid invLabel:{:?}", invLabel),
         }
         if cap_get_capType(newCap) == cap_null_cap {
             debug!("CNode Copy/Mint/Move/Mutate: Mutated cap would be invalid.");
@@ -262,19 +261,19 @@ pub fn decodeCNodeInvocation(
             return invokeCNodeInsert(newCap, srcSlot, destSlot);
         }
     }
-    if invLabel == CNodeRevoke {
+    if invLabel == MessageLabel::CNodeRevoke {
         unsafe {
             setThreadState(ksCurThread as *mut tcb_t, ThreadStateRestart);
             return invokeCNodeRevoke(destSlot);
         }
     }
-    if invLabel == CNodeDelete {
+    if invLabel == MessageLabel::CNodeDelete {
         unsafe {
             setThreadState(ksCurThread as *mut tcb_t, ThreadStateRestart);
             return invokeCNodeDelete(destSlot);
         }
     }
-    if invLabel == CNodeSaveCaller {
+    if invLabel == MessageLabel::CNodeSaveCaller {
         let status = ensureEmptySlot(destSlot);
         if status != exception_t::EXCEPTION_NONE {
             debug!("CNode SaveCaller: Destination slot not empty.");
@@ -285,7 +284,7 @@ pub fn decodeCNodeInvocation(
         }
         return invokeCNodeSaveCaller(destSlot);
     }
-    if invLabel == CNodeCancelBadgedSends {
+    if invLabel == MessageLabel::CNodeCancelBadgedSends {
         unsafe {
             let destCap = &(*destSlot).cap;
             if !hasCancelSendRight(destCap) {
@@ -297,7 +296,7 @@ pub fn decodeCNodeInvocation(
             return invokeCNodeCancelBadgedSends(destCap);
         }
     }
-    if invLabel == CNodeRotate {
+    if invLabel == MessageLabel::CNodeRotate {
         unsafe {
             if length < 8
                 || current_extra_caps.excaprefs[0] as usize == 0
