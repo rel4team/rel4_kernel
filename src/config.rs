@@ -98,12 +98,6 @@ pub const n_exceptionMessage: usize = 2;
 pub const n_syscallMessage: usize = 10;
 pub const MAX_MSG_SIZE: usize = n_syscallMessage;
 
-pub const CopyRegisters_suspendSource: usize = 0;
-pub const CopyRegisters_resumeTarget: usize = 1;
-pub const CopyRegisters_transferFrame: usize = 2;
-pub const CopyRegisters_transferInteger: usize = 3;
-
-pub const ReadRegisters_suspend: usize = 0;
 pub const frameRegisters: [usize; n_frameRegisters] =
     [33, 0, 1, 2, 7, 8, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26];
 pub const gpRegisters: [usize; n_gpRegisters] =

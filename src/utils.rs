@@ -5,22 +5,6 @@ pub fn MAX_FREE_INDEX(bits: usize) -> usize {
 }
 
 #[inline]
-pub fn convert_to_mut_type_ref<T>(addr: usize) -> &'static mut T {
-    assert_ne!(addr, 0);
-    unsafe {
-        &mut *(addr as *mut T)
-    }
-}
-
-#[inline]
-pub fn convert_to_type_ref<T>(addr: usize) -> &'static T {
-    assert_ne!(addr, 0);
-    unsafe {
-        & *(addr as *mut T)
-    }
-}
-
-#[inline]
 pub fn ipc_buf_ref_to_usize_ptr(op_buf: Option<&seL4_IPCBuffer>) -> *mut usize {
     match op_buf {
         Some(buf) => {

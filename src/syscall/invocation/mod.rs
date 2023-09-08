@@ -1,6 +1,7 @@
 mod decode;
 mod invoke_tcb;
 
+pub use invoke_tcb::invokeTCB_ThreadControl;
 use core::intrinsics::unlikely;
 
 use common::{structures::{exception_t, seL4_Fault_CapFault_new}, message_info::seL4_MessageInfo_t};
@@ -55,6 +56,7 @@ pub fn handleInvocation(isCall: bool, isBlocking: bool) -> exception_t {
         isCall,
         ipc_buf_ref_to_usize_ptr(buffer),
     );
+    let _ = buffer.unwrap();
 
     if status == exception_t::EXCEPTION_PREEMTED {
         return status;

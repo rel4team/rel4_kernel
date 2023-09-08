@@ -59,6 +59,23 @@ pub fn convert_to_mut_type_ref<T>(addr: usize) -> &'static mut T {
         &mut *(addr as *mut T)
     }
 }
+
+#[inline]
+pub fn convert_to_option_type_ref<T>(addr: usize) -> Option<&'static T> {
+    if addr == 0 {
+        return None;
+    }
+    Some(convert_to_type_ref::<T>(addr))
+}
+
+#[inline]
+pub fn convert_to_option_mut_type_ref<T>(addr: usize) -> Option<&'static mut T> {
+    if addr == 0 {
+        return None;
+    }
+    Some(convert_to_mut_type_ref::<T>(addr))
+}
+
 #[no_mangle]
 #[inline]
 pub fn pageBitsForSize(page_size: usize) -> usize {

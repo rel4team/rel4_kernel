@@ -1,5 +1,5 @@
 
-use crate::structures::{cap_transfer_t, vm_attributes_t, seL4_CNode_CapData_t};
+use crate::structures::{cap_transfer_t, vm_attributes_t};
 
 #[inline]
 pub fn vmRighsFromWord(w: usize) -> usize {
@@ -52,16 +52,4 @@ pub fn capTransferFromWords(wptr: *mut usize) -> cap_transfer_t {
         };
         transfer
     }
-}
-
-
-
-#[inline]
-pub fn seL4_CNode_capData_get_guard(seL4_CNode_CapData:&seL4_CNode_CapData_t)->usize{
-    (seL4_CNode_CapData.words[0] & 0xffffffffffffffc0usize) >> 6
-}
-
-#[inline]
-pub fn seL4_CNode_capData_get_guardSize(seL4_CNode_CapData:&seL4_CNode_CapData_t)->usize{
-    (seL4_CNode_CapData.words[0] & 0x3fusize) >> 0
 }

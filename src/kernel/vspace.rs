@@ -393,7 +393,7 @@ pub fn decodeRISCVPageTableInvocation(
     buffer: *mut usize,
 ) -> exception_t {
     if label == MessageLabel::RISCVPageTableUnmap {
-        if !isFinalCapability(cte) {
+        if !unsafe {(*cte).is_final_cap()} {
             debug!("RISCVPageTableUnmap: cannot unmap if more than once cap exists");
             unsafe {
                 current_syscall_error._type = seL4_RevokeFirst;

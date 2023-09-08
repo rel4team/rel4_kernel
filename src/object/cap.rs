@@ -11,9 +11,7 @@ use common::message_info::*;
 use super::{
     endpoint::cancelBadgedSends,
     interrupt::intStateIRQNode,
-    objecttype::{hasCancelSendRight, maskCapRights,
-        updateCapData,
-    },
+    objecttype::{hasCancelSendRight, maskCapRights},
 };
 use task_manager::*;
 use ipc::*;

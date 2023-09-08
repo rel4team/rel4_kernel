@@ -12,14 +12,12 @@ use crate::{
             doReplyTransfer, Arch_initContext,
         },
         transfermsg::{
-            seL4_CNode_capData_get_guard, seL4_CNode_capData_get_guardSize, vmRighsFromWord,
-            wordFromVMRights,
+            vmRighsFromWord, wordFromVMRights,
         },
         vspace::{
             deleteASID, deleteASIDPool,
         },
     },
-    structures::seL4_CNode_CapData_t
 };
 
 use task_manager::*;
@@ -36,7 +34,7 @@ use super::{
     },
 };
 
-use common::{structures::exception_t, sel4_config::*, MASK};
+use common::{structures::exception_t, sel4_config::*};
 use cspace::interface::*;
 
 
@@ -115,7 +113,7 @@ extern "C" {
 pub fn finaliseCap(cap: &cap_t, _final: bool, _exposed: bool) -> finaliseCap_ret {
     let mut fc_ret = finaliseCap_ret::default();
 
-    if isArchCap(cap) {
+    if cap.isArchCap() {
         return Arch_finaliseCap(cap, _final);
     }
     match cap_get_capType(cap) {
@@ -204,52 +202,6 @@ pub fn finaliseCap(cap: &cap_t, _final: bool, _exposed: bool) -> finaliseCap_ret
     fc_ret.remainder = cap_null_cap_new();
     fc_ret.cleanupInfo = cap_null_cap_new();
     return fc_ret;
-}
-
-pub fn updateCapData(preserve: bool, newData: usize, _cap: &cap_t) -> cap_t {
-    let cap = &mut (_cap.clone());
-    if isArchCap(cap) {
-        let val1 = cap.words[0];
-        let val2 = cap.words[1];
-        return cap_t {
-            words: [val1, val2],
-        };
-    }
-    match cap_get_capType(cap) {
-        cap_endpoint_cap => {
-            let mut new_cap = _cap.clone();
-            if !preserve && (cap_endpoint_cap_get_capEPBadge(cap) == 0) {
-                cap_endpoint_cap_set_capEPBadge(&mut new_cap, newData);
-                return new_cap;
-            } else {
-                return cap_null_cap_new();
-            }
-        }
-        cap_notification_cap => {
-            let mut new_cap = _cap.clone();
-            if !preserve && cap_notification_cap_get_capNtfnBadge(cap) == 0 {
-                cap_notification_cap_set_capNtfnBadge(&mut new_cap, newData);
-                return new_cap;
-            } else {
-                return cap_null_cap_new();
-            }
-        }
-        cap_cnode_cap => {
-            let w = seL4_CNode_CapData_t { words: [newData] };
-            let guardSize = seL4_CNode_capData_get_guardSize(&w);
-
-            if guardSize + cap_cnode_cap_get_capCNodeRadix(cap) > wordBits {
-                return cap_null_cap_new();
-            } else {
-                let guard = seL4_CNode_capData_get_guard(&w) & MASK!(guardSize);
-                let mut new_cap = cap.clone();
-                cap_cnode_cap_set_capCNodeGuard(&mut new_cap, guard);
-                cap_cnode_cap_set_capCNodeGuardSize(&mut new_cap, guardSize);
-                return new_cap;
-            }
-        }
-        _ => return cap.clone(),
-    }
 }
 
 #[no_mangle]
