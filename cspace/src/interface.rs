@@ -4,15 +4,13 @@ use common::structures::exception_t;
 use crate::cte::{cte_move, cte_swap, insert_new_cap};
 use crate::utils::resolveAddressBits_ret_t;
 
-use super::cap::same_object_as;
-
 pub use crate::cap_rights::seL4_CapRights_t;
 pub use crate::cte::cte_t;
 pub use crate::mdb::mdb_node_t;
-pub use crate::cap::cap_t;
+pub use crate::cap::{cap_t, same_object_as, updateCapData};
 pub use crate::cap::CapTag;
 
-pub use super::structures::{finaliseCap_ret, finaliseSlot_ret};
+pub use super::structures::finaliseCap_ret;
 pub use super::cte::{deriveCap_ret, resolve_address_bits, cteDelete, cteDeleteOne, cteRevoke, cte_insert};
 pub use super::cap::null::cap_null_cap_new;
 
@@ -161,11 +159,6 @@ pub fn cap_get_capPtr(cap: &cap_t) -> usize {
 }
 
 #[inline]
-pub fn isArchCap(cap: &cap_t) -> bool {
-    cap.isArchCap()
-}
-
-#[inline]
 pub fn ensureNoChildren(slot: *mut cte_t) -> exception_t {
     unsafe {
         (& *slot).ensure_no_children()
@@ -180,12 +173,6 @@ pub fn isMDBParentOf(cte1: *mut cte_t, cte2: *mut cte_t) -> bool {
     }
 }
 
-#[inline]
-pub fn isFinalCapability(cte: *mut cte_t) -> bool {
-    unsafe {
-        (& *cte).is_final_cap()
-    }
-}
 
 #[inline]
 pub fn slotCapLongRunningDelete(slot: *mut cte_t) -> bool {
@@ -228,11 +215,6 @@ pub fn insertNewCap(parent: *mut cte_t, slot: *mut cte_t, cap: &cap_t) {
     unsafe {
         insert_new_cap(&mut *parent, &mut *slot, cap)
     }
-}
-
-#[inline]
-pub fn sameObjectAs(cap_a: &cap_t, cap_b: &cap_t) -> bool {
-    same_object_as(cap_a, cap_b)
 }
 
 #[inline]
