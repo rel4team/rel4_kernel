@@ -14,7 +14,7 @@ pub const SysNBRecv: isize = -8;
 pub use invocation::invokeTCB_ThreadControl;
 use common::structures::exception_t;
 use task_manager::{schedule, activateThread};
-pub use utils::getSyscallArg;
+pub use utils::*;
 
 use crate::{kernel::{syscall::{getActiveIRQ, handleRecv, handleReply, handleYield}, c_traps::restore_user_context}, config::irqInvalid, object::interrupt::handleInterrupt};
 

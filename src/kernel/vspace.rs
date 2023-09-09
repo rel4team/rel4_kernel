@@ -2,14 +2,14 @@ use core::intrinsics::unlikely;
 use common::message_info::*;
 use common::structures::{lookup_fault_missing_capability_new, lookup_fault_invalid_root_new, seL4_Fault_VMFault_new};
 use common::utils::pageBitsForSize;
-use common::{BIT, MASK, IS_ALIGNED};
+use common::{BIT, MASK};
 use common::{structures::exception_t, sel4_config::*};
 use log::debug;
 use vspace::*;
 use crate::{
     config::{
         badgeRegister,
-        n_msgRegisters, seL4_ASIDPoolBits, seL4_IPCBufferSizeBits, RISCVInstructionAccessFault,
+        n_msgRegisters, seL4_ASIDPoolBits, RISCVInstructionAccessFault,
         RISCVInstructionPageFault, RISCVLoadAccessFault, RISCVLoadPageFault,
         RISCVStoreAccessFault, RISCVStorePageFault, USER_TOP,
     },
@@ -128,31 +128,6 @@ pub fn deleteASID(asid: asid_t, vspace: *mut pte_t) {
 #[no_mangle]
 pub fn isValidVTableRoot(cap: &cap_t) -> bool {
     cap_get_capType(cap) == cap_page_table_cap && cap_page_table_cap_get_capPTIsMapped(cap) != 0
-}
-
-pub fn checkValidIPCBuffer(vptr: usize, cap: &cap_t) -> exception_t {
-    if cap_get_capType(cap) != cap_frame_cap {
-        debug!("Requested IPC Buffer is not a frame cap.");
-        unsafe {
-            current_syscall_error._type = seL4_IllegalOperation;
-        }
-        return exception_t::EXCEPTION_SYSCALL_ERROR;
-    }
-    if cap_frame_cap_get_capFIsDevice(cap) != 0 {
-        debug!("Specifying a device frame as an IPC buffer is not permitted.");
-        unsafe {
-            current_syscall_error._type = seL4_IllegalOperation;
-        }
-        return exception_t::EXCEPTION_SYSCALL_ERROR;
-    }
-    if !IS_ALIGNED!(vptr, seL4_IPCBufferSizeBits) {
-        debug!("Requested IPC Buffer location 0x%x is not aligned.");
-        unsafe {
-            current_syscall_error._type = seL4_AlignmentError;
-        }
-        return exception_t::EXCEPTION_SYSCALL_ERROR;
-    }
-    exception_t::EXCEPTION_NONE
 }
 
 #[no_mangle]

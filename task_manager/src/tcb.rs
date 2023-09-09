@@ -123,6 +123,16 @@ impl tcb_t {
     }
 
     #[inline]
+    pub fn bind_notification(&mut self, addr: pptr_t) {
+        self.tcbBoundNotification = addr;
+    }
+
+    #[inline]
+    pub fn unbind_notification(&mut self) {
+        self.tcbBoundNotification = 0;
+    }
+
+    #[inline]
     pub fn set_domain(&mut self, dom: usize) {
         self.sched_dequeue();
         self.domain = dom;

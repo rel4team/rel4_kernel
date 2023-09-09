@@ -120,6 +120,21 @@ impl notification_t {
         }
         set_thread_state(tcb, ThreadState::ThreadStateInactive);
     }
+
+    #[inline]
+    pub fn bind_tcb(&mut self, tcb: &mut tcb_t) {
+        self.set_bound_tcb(tcb.get_ptr());
+    }
+
+    #[inline]
+    pub fn unbind_tcb(&mut self) {
+        self.set_bound_tcb(0);
+    }
+
+    #[inline]
+    pub fn get_ptr(&self) -> usize {
+        self as *const notification_t as usize
+    }
 }
 
 #[inline]

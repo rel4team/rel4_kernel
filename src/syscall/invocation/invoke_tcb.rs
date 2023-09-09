@@ -108,31 +108,44 @@ pub fn invoke_tcb_resume(thread: &mut tcb_t) -> exception_t {
     exception_t::EXCEPTION_NONE
 }
 
-pub fn invoke_tcb_thread_control(target: &mut tcb_t, slot: &mut cte_t, fault_ep: usize, mcp: usize, prio: usize, croot_new_cap: cap_t, croot_src_slot: &mut cte_t,
-                                vroot_new_cap: cap_t, vroot_src_slot: &mut cte_t, buffer_addr: usize, buffer_cap: cap_t, buffer_src_slot: Option<&mut cte_t>,
+pub fn invoke_tcb_thread_control(target: &mut tcb_t, op_slot: Option<&mut cte_t>, fault_ep: usize, mcp: usize, prio: usize, croot_new_cap: cap_t, op_croot_src_slot:Option<&mut cte_t>,
+                                vroot_new_cap: cap_t, op_vroot_src_slot: Option<&mut cte_t>, buffer_addr: usize, buffer_cap: cap_t, buffer_src_slot: Option<&mut cte_t>,
                                 update_flag: usize) -> exception_t {
     let target_cap = cap_t::new_thread_cap(target.get_ptr());
     if update_flag & thread_control_update_mcp != 0 {
         target.set_mcp_priority(mcp);
     }
+
+    if (update_flag & thread_control_update_priority) != 0 {
+        target.set_priority(prio);
+    }
+
+    if op_slot.is_none() {
+        return exception_t::EXCEPTION_NONE;
+    }
+    let slot = op_slot.unwrap();
     if update_flag & thread_control_update_space != 0 {
-        target.tcbFaultHandler = fault_ep;
-        let root_slot = target.get_cspace_mut_ref(tcbCTable);
-        let status = root_slot.delete_all(true);
-        if status != exception_t::EXCEPTION_NONE {
-            return status;
-        }
-        if same_object_as(&croot_new_cap, &croot_src_slot.cap) && same_object_as(&target_cap, &slot.cap) {
-            cte_insert(&croot_new_cap, croot_src_slot, root_slot);
-        }
-        
-        let root_vslot = target.get_cspace_mut_ref(tcbVTable);
-        let status = root_vslot.delete_all(true);
-        if status != exception_t::EXCEPTION_NONE {
-            return status;
-        }
-        if same_object_as(&vroot_new_cap, &vroot_src_slot.cap) && same_object_as(&target_cap, &slot.cap) {
-            cte_insert(&vroot_new_cap, vroot_src_slot, root_vslot);
+        if let (Some(croot_src_slot), Some(vroot_src_slot)) = (op_croot_src_slot, op_vroot_src_slot) {
+            target.tcbFaultHandler = fault_ep;
+            let root_slot = target.get_cspace_mut_ref(tcbCTable);
+            let status = root_slot.delete_all(true);
+            if status != exception_t::EXCEPTION_NONE {
+                return status;
+            }
+            if same_object_as(&croot_new_cap, &croot_src_slot.cap) && same_object_as(&target_cap, &slot.cap) {
+                cte_insert(&croot_new_cap, croot_src_slot, root_slot);
+            }
+            
+            let root_vslot = target.get_cspace_mut_ref(tcbVTable);
+            let status = root_vslot.delete_all(true);
+            if status != exception_t::EXCEPTION_NONE {
+                return status;
+            }
+            if same_object_as(&vroot_new_cap, &vroot_src_slot.cap) && same_object_as(&target_cap, &slot.cap) {
+                cte_insert(&vroot_new_cap, vroot_src_slot, root_vslot);
+            }
+        } else {
+            panic!("Invaild arguement!")
         }
     }
 
@@ -151,10 +164,6 @@ pub fn invoke_tcb_thread_control(target: &mut tcb_t, slot: &mut cte_t, fault_ep:
         if target.is_current() {
             rescheduleRequired();
         }
-    }
-
-    if (update_flag & thread_control_update_priority) != 0 {
-        target.set_priority(prio);
     }
     exception_t::EXCEPTION_NONE
 }
@@ -177,8 +186,8 @@ pub fn invokeTCB_ThreadControl(
     updateFlags: usize,
 ) -> exception_t {
     unsafe {
-        invoke_tcb_thread_control(&mut *target, &mut *slot, faultep, mcp, prio, cRoot_newCap, &mut *cRoot_srcSlot,
-            vRoot_newCap, &mut *vRoot_srcSlot, bufferAddr,
+        invoke_tcb_thread_control(&mut *target, Some(&mut *slot), faultep, mcp, prio, cRoot_newCap, Some(&mut *cRoot_srcSlot),
+            vRoot_newCap, Some(&mut *vRoot_srcSlot), bufferAddr,
             bufferCap, convert_to_option_mut_type_ref::<cte_t>(bufferSrcSlot as usize), updateFlags)
     }
 }

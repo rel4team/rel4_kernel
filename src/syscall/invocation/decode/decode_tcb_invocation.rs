@@ -1,19 +1,17 @@
 use common::{message_info::MessageLabel, structures::{exception_t, seL4_IPCBuffer}, 
-    sel4_config::{seL4_IllegalOperation, seL4_TruncatedMessage, seL4_RangeError, tcbCTable, tcbVTable}, BIT, 
+    sel4_config::{seL4_IllegalOperation, seL4_TruncatedMessage, seL4_RangeError, tcbCTable, tcbVTable, seL4_InvalidCapability}, BIT, 
     utils::convert_to_mut_type_ref,
 };
-use cspace::interface::{cap_t, cte_t, CapTag, updateCapData};
+use cspace::interface::{cap_t, cte_t, CapTag};
 use log::debug;
 use task_manager::{tcb_t, set_thread_state, get_currenct_thread, ThreadState};
 
 use crate::{object::tcb::{
-    decodeSetPriority, decodeSetMCPriority, decodeSetSchedParams, decodeSetIPCBuffer, decodeSetSpace, 
     decodeBindNotification, decodeUnbindNotification, decodeSetTLSBase}, 
-    kernel::{boot::{current_syscall_error, current_extra_caps, get_extra_cap_by_index}, vspace::{checkValidIPCBuffer, isValidVTableRoot}},
-    syscall::{invocation::invoke_tcb::{invoke_tcb_write_registers, invoke_tcb_read_registers, invoke_tcb_copy_registers, invoke_tcb_suspend, invoke_tcb_resume, invoke_tcb_thread_control}, utils::get_syscall_arg},
-    config::{n_frameRegisters, n_gpRegisters, thread_control_update_space, thread_control_update_ipc_buffer}};
+    kernel::{boot::{current_syscall_error, current_extra_caps, get_extra_cap_by_index}, vspace::{isValidVTableRoot}},
+    config::{n_frameRegisters, n_gpRegisters, thread_control_update_space, thread_control_update_ipc_buffer, thread_control_update_priority, thread_control_update_mcp}, syscall::utils::{get_syscall_arg, check_prio, check_ipc_buffer_vaild}};
 
-
+use super::super::invoke_tcb::*;
     
 pub const CopyRegisters_suspendSource: usize = 0;
 pub const CopyRegisters_resumeTarget: usize = 1;
@@ -44,11 +42,11 @@ pub fn decodeTCBInvocation(
         }
         MessageLabel::TCBConfigure => decode_tcb_configure(cap, length, unsafe { &mut *slot }, 
             Some(convert_to_mut_type_ref::<seL4_IPCBuffer>(buffer as usize))),
-        MessageLabel::TCBSetPriority => decodeSetPriority(cap, length, buffer),
-        MessageLabel::TCBSetMCPriority => decodeSetMCPriority(cap, length, buffer),
-        MessageLabel::TCBSetSchedParams => decodeSetSchedParams(cap, length, buffer),
-        MessageLabel::TCBSetIPCBuffer => decodeSetIPCBuffer(cap, length, slot as *mut cte_t, buffer),
-        MessageLabel::TCBSetSpace => decodeSetSpace(cap, length, slot as *mut cte_t, buffer),
+        MessageLabel::TCBSetPriority => decode_set_priority(cap, length, Some(convert_to_mut_type_ref::<seL4_IPCBuffer>(buffer as usize))),
+        MessageLabel::TCBSetMCPriority => decode_set_mc_priority(cap, length, Some(convert_to_mut_type_ref::<seL4_IPCBuffer>(buffer as usize))),
+        MessageLabel::TCBSetSchedParams => decode_set_sched_params(cap, length, Some(convert_to_mut_type_ref::<seL4_IPCBuffer>(buffer as usize))),
+        MessageLabel::TCBSetIPCBuffer => decode_set_ipc_buffer(cap, length, unsafe { &mut *slot }, Some(convert_to_mut_type_ref::<seL4_IPCBuffer>(buffer as usize))),
+        MessageLabel::TCBSetSpace => decode_set_space(cap, length, unsafe { &mut *slot }, Some(convert_to_mut_type_ref::<seL4_IPCBuffer>(buffer as usize))),
         MessageLabel::TCBBindNotification => decodeBindNotification(cap),
         MessageLabel::TCBUnbindNotification => decodeUnbindNotification(cap),
         MessageLabel::TCBSetTLSBase => decodeSetTLSBase(cap, length, buffer),
@@ -160,7 +158,7 @@ fn decode_tcb_configure(target_thread_cap: &cap_t, msg_length: usize, target_thr
                 return dc_ret.status;
             }
             cap = dc_ret.cap;
-            let status = checkValidIPCBuffer(new_buffer_addr, &cap);
+            let status = check_ipc_buffer_vaild(new_buffer_addr, &cap);
             if status != exception_t::EXCEPTION_NONE {
                 return status;
             }
@@ -196,16 +194,185 @@ fn decode_tcb_configure(target_thread_cap: &cap_t, msg_length: usize, target_thr
     }
     
     set_thread_state(get_currenct_thread(), ThreadState::ThreadStateRestart);
-    invoke_tcb_thread_control(target_thread, target_thread_slot, fault_ep, 0, 0,
-        croot_cap, croot_slot, vroot_cap, vroot_slot,
+    invoke_tcb_thread_control(target_thread, Some(target_thread_slot), fault_ep, 0, 0,
+        croot_cap, Some(croot_slot), vroot_cap, Some(vroot_slot),
         new_buffer_addr, buffer_cap, buffer_slot, thread_control_update_space | thread_control_update_ipc_buffer)
+}
+
+fn decode_set_priority(cap: &cap_t, length: usize, buffer: Option<&seL4_IPCBuffer>) -> exception_t {
+    if length < 1 || get_extra_cap_by_index(0).is_none() {
+        debug!("TCB SetPriority: Truncated message.");
+        unsafe { current_syscall_error._type = seL4_TruncatedMessage; }
+        return exception_t::EXCEPTION_SYSCALL_ERROR;
+    }
+    let new_prio = get_syscall_arg(0, buffer);
+    let auth_cap = get_extra_cap_by_index(0).unwrap().cap;
+    if auth_cap.get_cap_type() != CapTag::CapThreadCap {
+        debug!("Set priority: authority cap not a TCB.");
+        unsafe {
+            current_syscall_error._type = seL4_InvalidCapability;
+            current_syscall_error.invalidCapNumber = 1;
+        }
+        return exception_t::EXCEPTION_SYSCALL_ERROR;
+    }
+    let auth_tcb = convert_to_mut_type_ref::<tcb_t>(auth_cap.get_tcb_ptr());
+    let status = check_prio(new_prio, auth_tcb);
+    if status != exception_t::EXCEPTION_NONE {
+        return status;
+    }
+    set_thread_state(get_currenct_thread(), ThreadState::ThreadStateRestart);
+    invoke_tcb_thread_control(convert_to_mut_type_ref::<tcb_t>(cap.get_tcb_ptr()), None, 0, 0, new_prio,
+        cap_t::new_null_cap(), None, cap_t::new_null_cap(), None,
+        0, cap_t::new_null_cap(), None, thread_control_update_priority)
+}
+
+fn decode_set_mc_priority(cap: &cap_t, length: usize, buffer: Option<&seL4_IPCBuffer>) -> exception_t {
+    if length < 1 || get_extra_cap_by_index(0).is_none() {
+        debug!("TCB SetMCPPriority: Truncated message.");
+        unsafe { current_syscall_error._type = seL4_TruncatedMessage; }
+        return exception_t::EXCEPTION_SYSCALL_ERROR;
+    }
+    let new_mcp = get_syscall_arg(0, buffer);
+    let auth_cap= get_extra_cap_by_index(0).unwrap().cap;
+    if auth_cap.get_cap_type() != CapTag::CapThreadCap {
+        debug!("SetMCPriority: authority cap not a TCB.");
+        unsafe {
+            current_syscall_error._type = seL4_InvalidCapability;
+            current_syscall_error.invalidCapNumber = 1;
+        }
+        return exception_t::EXCEPTION_SYSCALL_ERROR;
+    }
+
+    let auth_tcb = convert_to_mut_type_ref::<tcb_t>(auth_cap.get_tcb_ptr());
+    let status = check_prio(new_mcp, auth_tcb);
+    if status != exception_t::EXCEPTION_NONE {
+        debug!("TCB SetMCPriority: Requested maximum controlled priority {} too high (max {}).", new_mcp, auth_tcb.tcbMCP);
+        return status;
+    }
+    set_thread_state(get_currenct_thread(), ThreadState::ThreadStateRestart);
+
+    invoke_tcb_thread_control(convert_to_mut_type_ref::<tcb_t>(cap.get_tcb_ptr()), None, 0, new_mcp, 0,
+        cap_t::new_null_cap(), None, cap_t::new_null_cap(), None,
+        0, cap_t::new_null_cap(), None, thread_control_update_mcp)
+}
+
+fn decode_set_sched_params(cap: &cap_t, length: usize, buffer: Option<&seL4_IPCBuffer>) -> exception_t {
+    if length < 2 || get_extra_cap_by_index(0).is_some() {
+        debug!("TCB SetSchedParams: Truncated message.");
+        unsafe { current_syscall_error._type = seL4_TruncatedMessage; }
+        return exception_t::EXCEPTION_SYSCALL_ERROR;
+    }
+    let new_mcp = get_syscall_arg(0, buffer);
+    let new_prio = get_syscall_arg(1, buffer);
+    let auth_cap = get_extra_cap_by_index(0).unwrap().cap;
+    if auth_cap.get_cap_type() != CapTag::CapThreadCap {
+        debug!("SetSchedParams: authority cap not a TCB.");
+        unsafe {
+            current_syscall_error._type = seL4_InvalidCapability;
+            current_syscall_error.invalidCapNumber = 1;
+        }
+        return exception_t::EXCEPTION_SYSCALL_ERROR;
+    }
+
+    let auth_tcb = convert_to_mut_type_ref::<tcb_t>(auth_cap.get_tcb_ptr());
+    let status = check_prio(new_mcp, auth_tcb);
+    if status != exception_t::EXCEPTION_NONE {
+        debug!("TCB SetSchedParams: Requested maximum controlled priority {} too high (max {}).", new_mcp, auth_tcb.tcbMCP);
+        return status;
+    }
+    let status = check_prio(new_prio, auth_tcb);
+    if status != exception_t::EXCEPTION_NONE {
+        debug!("TCB SetSchedParams: Requested priority {} too high (max {}).", new_prio, auth_tcb.tcbMCP);
+        return status;
+    }
+    
+    set_thread_state(get_currenct_thread(), ThreadState::ThreadStateRestart);
+    invoke_tcb_thread_control(convert_to_mut_type_ref::<tcb_t>(cap.get_tcb_ptr()), None, 0, new_mcp, new_prio,
+        cap_t::new_null_cap(), None, cap_t::new_null_cap(), None,
+        0, cap_t::new_null_cap(), None, thread_control_update_mcp | thread_control_update_priority)
+}
+
+fn decode_set_ipc_buffer(cap: &cap_t, length: usize, slot: &mut cte_t, buffer: Option<&seL4_IPCBuffer>) -> exception_t {
+    if length < 1 || get_extra_cap_by_index(0).is_none() {
+        debug!("TCB SetIPCBuffer: Truncated message.");
+        unsafe { current_syscall_error._type = seL4_TruncatedMessage; }
+        return exception_t::EXCEPTION_SYSCALL_ERROR;
+    }
+
+    let buffer_addr = get_syscall_arg(0, buffer);
+    let (buffer_slot, buffer_cap) = if buffer_addr == 0 { (None, cap_t::new_null_cap()) } else {
+        let slot = get_extra_cap_by_index(0).unwrap();
+        let cap = slot.cap;
+        let dc_ret = slot.derive_cap(&cap);
+        if dc_ret.status != exception_t::EXCEPTION_NONE {
+            unsafe { current_syscall_error._type = seL4_IllegalOperation; }
+            return dc_ret.status;
+        }
+        let status = check_ipc_buffer_vaild(buffer_addr, &dc_ret.cap);
+        if status != exception_t::EXCEPTION_NONE {
+            return status;
+        }
+        (Some(slot), dc_ret.cap)
+    };
+
+    set_thread_state(get_currenct_thread(), ThreadState::ThreadStateRestart);
+    invoke_tcb_thread_control(convert_to_mut_type_ref::<tcb_t>(cap.get_tcb_ptr()), Some(slot), 0, 0, 0,
+        cap_t::new_null_cap(), None, cap_t::new_null_cap(), None,
+        buffer_addr, buffer_cap, buffer_slot, thread_control_update_ipc_buffer)
+}
+
+fn decode_set_space(cap: &cap_t, length: usize, slot: &mut cte_t, buffer: Option<&seL4_IPCBuffer>) -> exception_t {
+    if length < 3 || get_extra_cap_by_index(0).is_none() || get_extra_cap_by_index(1).is_none() {
+        debug!("TCB SetSpace: Truncated message.");
+        unsafe { current_syscall_error._type = seL4_TruncatedMessage; }
+        return exception_t::EXCEPTION_SYSCALL_ERROR;
+    }
+    let fault_ep = get_syscall_arg(0, buffer);
+    let croot_data = get_syscall_arg(1, buffer);
+    let vroot_data = get_syscall_arg(2, buffer);
+    let croot_slot = get_extra_cap_by_index(0).unwrap();
+    let mut croot_cap = croot_slot.cap;
+    let vroot_slot = get_extra_cap_by_index(1).unwrap();
+    let mut vroot_cap = vroot_slot.cap;
+    let target_thread = convert_to_mut_type_ref::<tcb_t>(cap.get_tcb_ptr());
+    if target_thread.get_cspace(tcbCTable).is_long_running_delete()
+        || target_thread.get_cspace(tcbVTable).is_long_running_delete() {
+        debug!("TCB Configure: CSpace or VSpace currently being deleted.");
+        unsafe { current_syscall_error._type = seL4_IllegalOperation; }
+        return exception_t::EXCEPTION_SYSCALL_ERROR;
+    }
+
+    match decode_set_space_args(croot_data, croot_cap, croot_slot) {
+        Ok(cap) => croot_cap = cap,
+        Err(status) => return status,
+    }
+    if croot_cap.get_cap_type() != CapTag::CapCNodeCap {
+        debug!("TCB Configure: CSpace cap is invalid.");
+        unsafe { current_syscall_error._type = seL4_IllegalOperation; }
+        return exception_t::EXCEPTION_SYSCALL_ERROR;
+    }
+
+    match decode_set_space_args(vroot_data, vroot_cap, vroot_slot) {
+        Ok(cap) => vroot_cap = cap,
+        Err(status) => return status,
+    }
+    if !isValidVTableRoot(&vroot_cap) {
+        debug!("TCB Configure: VSpace cap is invalid.");
+        unsafe { current_syscall_error._type = seL4_IllegalOperation; }
+        return exception_t::EXCEPTION_SYSCALL_ERROR;
+    }
+
+    set_thread_state(get_currenct_thread(), ThreadState::ThreadStateRestart);
+    invoke_tcb_thread_control(target_thread, Some(slot), fault_ep, 0, 0,
+        croot_cap, Some(croot_slot), vroot_cap, Some(vroot_slot),
+        0, cap_t::new_null_cap(), None, thread_control_update_space)
 }
 
 #[inline]
 fn decode_set_space_args(root_data: usize, root_cap: cap_t, root_slot: &mut cte_t) -> Result<cap_t, exception_t> {
     let mut ret_root_cap = root_cap;
     if root_data != 0 {
-        ret_root_cap = updateCapData(false, root_data, &root_cap);
+        ret_root_cap = root_cap.update_data(false, root_data);
     }
     let dc_ret = root_slot.derive_cap(&ret_root_cap);
     if dc_ret.status != exception_t::EXCEPTION_NONE {

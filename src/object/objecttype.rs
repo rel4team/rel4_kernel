@@ -17,7 +17,7 @@ use crate::{
         vspace::{
             deleteASID, deleteASIDPool,
         },
-    },
+    }, syscall::{unbindMaybeNotification, unbindNotification},
 };
 
 use task_manager::*;
@@ -29,9 +29,7 @@ use super::{
     interrupt::{
         deletingIRQHandler, setIRQState,
     },
-    notification::{
-        cancelAllSignals, unbindMaybeNotification, unbindNotification,
-    },
+    notification::cancelAllSignals
 };
 
 use common::{structures::exception_t, sel4_config::*};

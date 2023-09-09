@@ -98,40 +98,6 @@ pub fn receiveSignal(thread: *mut tcb_t, cap: &cap_t, isBlocking: bool) {
 }
 
 #[no_mangle]
-pub fn bindNotification(tcb: *mut tcb_t, ptr: *mut notification_t) {
-    notification_ptr_set_ntfnBoundTCB(ptr, tcb as usize);
-    unsafe {
-        (*tcb).tcbBoundNotification = ptr as *mut notification_t as usize;
-    }
-}
-
-#[no_mangle]
-pub fn doUnbindNotification(tcb: *mut tcb_t, ptr: *mut notification_t) {
-    notification_ptr_set_ntfnBoundTCB(ptr, 0);
-    unsafe {
-        (*tcb).tcbBoundNotification = 0;
-    }
-}
-
-#[no_mangle]
-pub fn unbindMaybeNotification(ptr: *const notification_t) {
-    let tcb = notification_ptr_get_ntfnBoundTCB(ptr) as *mut tcb_t;
-    if tcb as usize != 0 {
-        doUnbindNotification(tcb, ptr as *mut notification_t);
-    }
-}
-
-#[no_mangle]
-pub fn unbindNotification(tcb: *mut tcb_t) {
-    unsafe {
-        let ptr = (*tcb).tcbBoundNotification;
-        if ptr != 0 {
-            doUnbindNotification(tcb, ptr as *mut notification_t);
-        }
-    }
-}
-
-#[no_mangle]
 pub fn performInvocation_Notification(ntfn: *mut notification_t, badge: usize) -> exception_t {
     sendSignal(ntfn, badge);
     exception_t::EXCEPTION_NONE

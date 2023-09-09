@@ -56,7 +56,7 @@ pub fn handleInvocation(isCall: bool, isBlocking: bool) -> exception_t {
         isCall,
         ipc_buf_ref_to_usize_ptr(buffer),
     );
-    let _ = buffer.unwrap();
+    // let _ = buffer.unwrap();
 
     if status == exception_t::EXCEPTION_PREEMTED {
         return status;

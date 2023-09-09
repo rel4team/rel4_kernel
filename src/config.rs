@@ -41,7 +41,6 @@ pub const MAX_NUM_RESV_REG: usize = MAX_NUM_FREEMEM_REG + NUM_RESERVED_REGIONS;
 pub const CONFIG_ROOT_CNODE_SIZE_BITS: usize = 13;
 pub const seL4_PML4Bits: usize = 12;
 pub const seL4_VSpaceBits: usize = seL4_PML4Bits;
-pub const seL4_IPCBufferSizeBits: usize = 10;
 pub const BI_FRAME_SIZE_BITS: usize = 12;
 pub const seL4_ASIDPoolBits: usize = 12;
 
