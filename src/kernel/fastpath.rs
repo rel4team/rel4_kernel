@@ -1,37 +1,18 @@
-use crate::{
-    config::{
-        msgRegister, seL4_Fault_NullFault, seL4_MsgExtraCapBits, seL4_MsgLengthBits, tcbCTable,
-        tcbCaller, tcbReply, tcbVTable, EPState_Idle, EPState_Recv, EPState_Send,
-        NtfnState_Active, SysCall, SysReplyRecv, ThreadStateBlockedOnReceive,
-        ThreadStateBlockedOnReply, ThreadStateRunning,
-    },
-    object::{
-        structure_gen::{
-            endpoint_ptr_get_epQueue_head,
-            endpoint_ptr_get_epQueue_tail, endpoint_ptr_get_state, notification_ptr_get_state, 
-            seL4_Fault_get_seL4_FaultType, thread_state_get_blockingIPCCanGrant, thread_state_set_blockingIPCCanGrant,
-        },
-        tcb::isHighestPrio,
-    },
-    println,
-    structures::{
-        endpoint_t, pte_t, seL4_MessageInfo_t, tcb_t, thread_state_t,
-    },
-    MASK,
-};
+use crate::{config::{
+    msgRegister,
+    seL4_MsgLengthBits,
+}, syscall::{slowpath, SysCall, SysReplyRecv}};
+use ipc::*;
+
+use task_manager::*;
+
+use log::error;
+use vspace::*;
 use core::intrinsics::{likely, unlikely};
-use common::sel4_config::wordBits;
+use common::{sel4_config::{wordBits, tcbCTable, tcbVTable, tcbReply, tcbCaller, seL4_Fault_NullFault, seL4_MsgExtraCapBits}, MASK,
+    structures::seL4_Fault_get_seL4_FaultType, message_info::*};
 use cspace::interface::*;
 
-use super::{
-    c_traps::slowpath,
-    thread::{getCSpace, getRegister, ksCurThread, setRegister},
-    transfermsg::{
-        messageInfoFromWord_raw, seL4_MessageInfo_ptr_get_length,
-        seL4_MessageInfo_ptr_set_capsUnwrapped, wordFromMessageInfo,
-    },
-    vspace::{pptr_to_paddr, setVSpaceRoot},
-};
 #[inline]
 #[no_mangle]
 pub fn lookup_fp(_cap: &cap_t, cptr: usize) -> cap_t {
@@ -47,10 +28,10 @@ pub fn lookup_fp(_cap: &cap_t, cptr: usize) -> cap_t {
         return cap_null_cap_new();
     }
     loop {
-        guardBits = cap_cnode_cap_get_capCNodeGuardSize(&cap);
+        guardBits = cap.get_cnode_guard_size();
         radixBits = cap_cnode_cap_get_capCNodeRadix(&cap);
         cptr2 = cptr << bits;
-        capGuard = cap_cnode_cap_get_capCNodeGuard(&cap);
+        capGuard = cap.get_cnode_guard();
         if likely(guardBits != 0) && unlikely(cptr2 >> (wordBits - guardBits) != capGuard) {
             return cap_null_cap_new();
         }
@@ -160,7 +141,7 @@ pub fn fastpath_copy_mrs(length: usize, src: *mut tcb_t, dest: *mut tcb_t) {
         reg = msgRegister[0] + i;
         setRegister(dest, reg, getRegister(src, reg));
         if getRegister(src, reg) != getRegister(dest, reg) {
-            println!("wrong!!!!");
+            error!("wrong!!!!");
         }
     }
 }
@@ -183,147 +164,7 @@ pub fn fastpath_restore(badge: usize, msgInfo: usize, cur_thread: *mut tcb_t) {
     unsafe {
         __restore_fp(badge, msgInfo, cur_thread_regs);
     }
-    // println!("msgInfo:{}",msgInfo);
-    // unsafe {
-    //     asm!("mv a0,x12",in("x12") badge);
-    //     asm!("mv a1,x12",in("x12") msgInfo);
-    //     asm!("mv t0,x12",in("x12") cur_thread_regs);
-    //     asm!(
-    //         "ld  ra, (0*8)(t0)  ",
-    //         "ld  sp, (1*8)(t0)  ",
-    //         "ld  gp, (2*8)(t0)  ",
-    //         "ld  t2, (6*8)(t0)  ",
-    //         "ld  s0, (7*8)(t0)  ",
-    //         "ld  s1, (8*8)(t0)  ",
-    //         "ld  a2, (11*8)(t0) ",
-    //         "ld  a3, (12*8)(t0) ",
-    //         "ld  a4, (13*8)(t0) ",
-    //         "ld  a5, (14*8)(t0) ",
-    //         "ld  a6, (15*8)(t0) ",
-    //         "ld  a7, (16*8)(t0) ",
-    //         "ld  s2, (17*8)(t0) ",
-    //         "ld  s3, (18*8)(t0) ",
-    //         "ld  s4, (19*8)(t0) ",
-    //         "ld  s5, (20*8)(t0) ",
-    //         "ld  s6, (21*8)(t0) ",
-    //         "ld  s7, (22*8)(t0) ",
-    //         "ld  s8, (23*8)(t0) ",
-    //         "ld  s9, (24*8)(t0) ",
-    //         "ld  s10, (25*8)(t0)",
-    //         "ld  s11, (26*8)(t0)",
-    //         "ld  t3, (27*8)(t0) ",
-    //         "ld  t4, (28*8)(t0) ",
-    //         "ld  t5, (29*8)(t0) ",
-    //         "ld  t6, (30*8)(t0) ",
-    //         "ld  t1, (3*8)(t0)  ",
-    //         "add tp, t1, x0  ",
-    //         "ld  t1, (34*8)(t0)",
-    //         "csrw sepc, t1  ",
-    //         "csrw sscratch, t0",
-    //         "ld  t1, (32*8)(t0) ",
-    //         "csrw sstatus, t1",
-    //         "ld  t1, (5*8)(t0)",
-    //         "ld  t0, (4*8)(t0) ",
-    //         "sret"
-    //     );
-    // }
 }
-
-// #[no_mangle]
-// pub fn process5(
-//     badge: usize,
-//     msgInfo: usize,
-//     ep_ptr: *mut endpoint_t,
-//     cptr: usize,
-//     cap_pd: *mut pte_t,
-//     callerSlot: *mut cte_t,
-//     replySlot: *mut cte_t,
-//     replyCanGrant: usize,
-//     dest: *mut tcb_t,
-//     w: usize,
-//     length:usize,
-// ) {
-//     unsafe {
-//         // let mut info: seL4_MessageInfo_t = messageInfoFromWord_raw(msgInfo);
-//         // let length = seL4_MessageInfo_ptr_get_length((&info) as *const seL4_MessageInfo_t);
-//         // let ep_slot = unsafe { getCSpace(ksCurThread as usize, tcbCTable) };
-//         // let ep_cap = unsafe { lookup_fp(&(*ep_slot).cap, cptr) };
-//         // let dest = endpoint_ptr_get_epQueue_head(ep_ptr) as *mut tcb_t;
-
-//         // if unlikely(endpoint_ptr_get_state(ep_ptr) != EPState_Recv) {
-//         //     slowpath(SysCall as usize);
-//         // }
-//         // let newVTable = unsafe { &(*getCSpace(dest as usize, tcbVTable)).cap };
-
-//         // // let cap_pd = cap_page_table_cap_get_capPTBasePtr(newVTable) as *mut pte_t;
-
-//         // if unlikely(!isValidVTableRoot_fp(newVTable)) {
-//         //     slowpath(SysCall as usize);
-//         // }
-
-//         // let mut stored_hw_asid: pte_t = pte_t { words: [0] };
-//         // stored_hw_asid.words[0] = cap_page_table_cap_get_capPTMappedASID(newVTable);
-
-//         // let dom = 0;
-//         // unsafe {
-//         //     if unlikely(
-//         //         (*dest).tcbPriority < (*ksCurThread).tcbPriority
-//         //             && !isHighestPrio(dom, (*dest).tcbPriority),
-//         //     ) {
-//         //         slowpath(SysCall as usize);
-//         //     }
-//         // }
-//         // if unlikely(
-//         //     (cap_endpoint_cap_get_capCanGrant(&ep_cap) == 0)
-//         //         && (cap_endpoint_cap_get_capCanGrantReply(&ep_cap) == 0),
-//         // ) {
-//         //     slowpath(SysCall as usize);
-//         // }
-//         // unsafe {
-//         //     endpoint_ptr_set_epQueue_head_np(ep_ptr, (*dest).tcbEPNext);
-//         //     if unlikely((*dest).tcbEPNext != 0) {
-//         //         (*((*dest).tcbEPNext as *mut tcb_t)).tcbEPPrev = 0;
-//         //     } else {
-//         //         endpoint_ptr_mset_epQueue_tail_state(ep_ptr, 0, EPState_Idle);
-//         //     }
-//         // }
-
-//         // let badge = cap_endpoint_cap_get_capEPBadge(&ep_cap);
-//         // unsafe {
-//         //     thread_state_ptr_set_tsType_np(&mut (*ksCurThread).tcbState, ThreadStateBlockedOnReply);
-//         // }
-
-//         // let replySlot = unsafe { getCSpace(ksCurThread as usize, tcbReply) };
-
-//         // let callerSlot = getCSpace(dest as usize, tcbCaller);
-
-//         // let replyCanGrant = unsafe { thread_state_get_blockingIPCCanGrant(&(*dest).tcbState) };
-//         let mut stored_hw_asid: pte_t = pte_t { words: [w] };
-//         unsafe {
-//             // cap_reply_cap_ptr_new_np(
-//             //     &mut (*callerSlot).cap,
-//             //     replyCanGrant,
-//             //     0,
-//             //     ksCurThread as usize,
-//             // );
-//             // mdb_node_ptr_set_mdbPrev_np(&mut (*callerSlot).cteMDBNode, replySlot as usize);
-//             // mdb_node_ptr_mset_mdbNext_mdbRevocable_mdbFirstBadged(
-//             //     &mut (*replySlot).cteMDBNode,
-//             //     callerSlot as usize,
-//             //     1,
-//             //     1,
-//             // );
-//             fastpath_copy_mrs(length, ksCurThread, dest);
-//             thread_state_ptr_set_tsType_np(&mut (*dest).tcbState, ThreadStateRunning);
-//             switchToThread_fp(dest, cap_pd, stored_hw_asid);
-//         }
-//         let mut info: seL4_MessageInfo_t = messageInfoFromWord_raw(msgInfo);
-//         seL4_MessageInfo_ptr_set_capsUnwrapped((&mut info) as *mut seL4_MessageInfo_t, 0);
-//         let msgInfo1 = wordFromMessageInfo(info);
-//         // println!("badge :{:#x} msgInfo:{:#x} ksCurThread:{:#x},dest:{:#x},cap_pd:{:#x},stored_hw_asid:{:#x}",badge,msgInfo);
-//         fastpath_restore(badge, msgInfo1, ksCurThread);
-//     }
-// }
 
 #[inline]
 #[no_mangle]
@@ -416,7 +257,7 @@ pub fn fastpath_call(cptr: usize, msgInfo: usize) {
         switchToThread_fp(dest, cap_pd, stored_hw_asid);
         seL4_MessageInfo_ptr_set_capsUnwrapped((&mut info) as *mut seL4_MessageInfo_t, 0);
         let msgInfo1 = wordFromMessageInfo(info);
-        // println!("badge :{:#x} msgInfo:{:#x} ksCurThread:{:#x},dest:{:#x},cap_pd:{:#x},stored_hw_asid:{:#x}",badge,msgInfo,ksCurThread as usize,dest as usize ,cap_pd as usize , stored_hw_asid.words[0]);
+        // debug!("badge :{:#x} msgInfo:{:#x} ksCurThread:{:#x},dest:{:#x},cap_pd:{:#x},stored_hw_asid:{:#x}",badge,msgInfo,ksCurThread as usize,dest as usize ,cap_pd as usize , stored_hw_asid.words[0]);
         fastpath_restore(badge, msgInfo1, ksCurThread);
     }
 }
@@ -444,8 +285,8 @@ pub fn fastpath_reply_recv(cptr: usize, msgInfo: usize) {
 
     unsafe {
         if unlikely(
-            (*ksCurThread).tcbBoundNotification as usize != 0
-                && notification_ptr_get_state((*ksCurThread).tcbBoundNotification)
+            (*ksCurThread).tcbBoundNotification != 0
+                && notification_ptr_get_state((*ksCurThread).tcbBoundNotification as *const notification_t)
                     == NtfnState_Active,
         ) {
             slowpath(SysReplyRecv as usize);
@@ -519,17 +360,17 @@ pub fn fastpath_reply_recv(cptr: usize, msgInfo: usize) {
     }
 
     unsafe {
-        let node = mdb_node_get_mdbPrev(&(*callerSlot).cteMDBNode) as *mut cte_t;
+        let node = (*callerSlot).cteMDBNode.get_prev() as *mut cte_t;
         mdb_node_ptr_mset_mdbNext_mdbRevocable_mdbFirstBadged(&mut (*node).cteMDBNode, 0, 1, 1);
         (*callerSlot).cap = cap_null_cap_new();
-        (*callerSlot).cteMDBNode = mdb_node_new(0, 0, 0, 0);
+        (*callerSlot).cteMDBNode = mdb_node_t::new(0, 0, 0, 0);
         fastpath_copy_mrs(length, ksCurThread, caller);
 
         thread_state_ptr_set_tsType_np(&mut (*caller).tcbState, ThreadStateRunning);
         switchToThread_fp(caller, cap_pd, stored_hw_asid);
         seL4_MessageInfo_ptr_set_capsUnwrapped((&mut info) as *mut seL4_MessageInfo_t, 0);
         let msgInfo1 = wordFromMessageInfo(info);
-        // println!("out fastpath_reply_recv{}", msgInfo1);
+        // debug!("out fastpath_reply_recv{}", msgInfo1);
         fastpath_restore(0, msgInfo1, ksCurThread);
     }
 }

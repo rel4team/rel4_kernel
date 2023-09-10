@@ -1,13 +1,13 @@
 
 
 use crate::config::*;
+use common::{BIT, utils::convert_to_mut_type_ref, sel4_config::{PADDR_TOP, PPTR_TOP, PPTR_BASE, asidLowBits, IT_ASID, CONFIG_PT_LEVELS, seL4_PageBits}, ROUND_DOWN, ROUND_UP};
 use cspace::interface::*;
+use log::debug;
 use crate::{
-    kernel::vspace::{paddr_to_pptr, pptr_to_paddr, RISCV_GET_LVL_PGSIZE_BITS},
-    println,
     structures::{p_region_t, region_t, v_region_t},
-    BIT, ROUND_DOWN, ROUND_UP,
 };
+use vspace::*;
 use super::ndks_boot;
 
 #[inline]
@@ -70,7 +70,7 @@ pub fn write_slot(ptr: *mut cte_t, cap: cap_t) {
 pub fn provide_cap(root_cnode_cap: &cap_t, cap: cap_t) -> bool {
     unsafe {
         if ndks_boot.slot_pos_cur >= BIT!(CONFIG_ROOT_CNODE_SIZE_BITS) {
-            println!(
+            debug!(
                 "ERROR: can't add another cap, all {} (=2^CONFIG_ROOT_CNODE_SIZE_BITS) slots used",
                 BIT!(CONFIG_ROOT_CNODE_SIZE_BITS)
             );
@@ -90,3 +90,52 @@ pub fn clearMemory(ptr: *mut u8, bits: usize) {
     }
 }
 
+
+#[no_mangle]
+pub extern "C" fn map_it_pt_cap(_vspace_cap: &cap_t, _pt_cap: &cap_t) {
+    let vptr = _pt_cap.get_pt_mapped_address();
+    let lvl1pt = convert_to_mut_type_ref::<pte_t>(_vspace_cap.get_cap_ptr());
+    let pt = _pt_cap.get_cap_ptr();
+    let pt_ret = lvl1pt.lookup_pt_slot(vptr);
+    let targetSlot = convert_to_mut_type_ref::<pte_t>(pt_ret.ptSlot as usize);
+    *targetSlot = pte_t::new(
+        pptr_to_paddr(pt) >> seL4_PageBits, 0, 0, 0, 0, 0, 0,
+        0, 0, 1
+    );
+    sfence();
+}
+
+pub fn create_it_pt_cap(vspace_cap: &cap_t, pptr: pptr_t, vptr: vptr_t, asid: usize) -> cap_t {
+    let cap = cap_t::new_page_table_cap(asid, pptr, 1, vptr);
+    map_it_pt_cap(vspace_cap, &cap);
+    return cap;
+}
+
+#[no_mangle]
+pub fn map_it_frame_cap(_vspace_cap: &cap_t, _frame_cap: &cap_t) {
+    let vptr = _frame_cap.get_frame_mapped_address();
+    let lvl1pt = convert_to_mut_type_ref::<pte_t>(_vspace_cap.get_cap_ptr());
+    let frame_pptr: usize = _frame_cap.get_cap_ptr();
+    let pt_ret = lvl1pt.lookup_pt_slot(vptr);
+
+    let targetSlot = convert_to_mut_type_ref::<pte_t>(pt_ret.ptSlot as usize);
+    *targetSlot = pte_t::new(
+        pptr_to_paddr(frame_pptr) >> seL4_PageBits, 0, 1, 1, 0, 1,
+        1, 1, 1, 1
+    );
+    sfence();
+}
+
+
+pub fn rust_create_unmapped_it_frame_cap(pptr: pptr_t, _use_large: bool) -> cap_t {
+    cap_t::new_frame_cap(0, pptr, 0, 0, 0, 0)
+}
+
+pub fn write_it_asid_pool(it_ap_cap: &cap_t, it_lvl1pt_cap: &cap_t) {
+    let ap = it_ap_cap.get_cap_ptr();
+    unsafe {
+        let ptr = (ap + 8 * IT_ASID) as *mut usize;
+        *ptr = it_lvl1pt_cap.get_cap_ptr();
+        riscvKSASIDTable[IT_ASID >> asidLowBits] = ap as *mut asid_pool_t;
+    }
+}

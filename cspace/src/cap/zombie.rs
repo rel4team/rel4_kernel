@@ -1,6 +1,7 @@
-use common::sel4_config::wordRadix;
+use common::{sel4_config::wordRadix, MASK};
 
-use crate::MASK;
+
+use crate::interface::cte_t;
 
 use super::{cap_t, CapTag};
 
@@ -79,26 +80,6 @@ impl cap_t {
 }
 
 #[inline]
-pub fn cap_zombie_cap_new(capZombieID: usize, capZombieType: usize) -> cap_t {
-    cap_t::new_zombie_cap(capZombieID, capZombieType)
-}
-
-#[inline]
-pub fn cap_zombie_cap_get_capZombieID(cap: &cap_t) -> usize {
-    cap.get_zombie_id()
-}
-
-#[inline]
-pub fn cap_zombie_cap_set_capZombieID(cap: &mut cap_t, v64: usize) {
-    cap.set_zombie_id(v64)
-}
-
-#[inline]
-pub fn cap_zombie_cap_get_capZombieType(cap: &cap_t) -> usize {
-    cap.get_zombie_type()
-}
-
-#[inline]
 pub fn Zombie_new(number: usize, _type: usize, ptr: usize) -> cap_t {
     let mask: usize;
     if _type == ZombieType_ZombieTCB {
@@ -106,27 +87,16 @@ pub fn Zombie_new(number: usize, _type: usize, ptr: usize) -> cap_t {
     } else {
         mask = MASK!(_type + 1);
     }
-    return cap_zombie_cap_new((ptr & !mask) | (number & mask), _type);
-}
-
-#[inline]
-pub fn cap_zombie_cap_get_capZombieBits(_cap: &cap_t) -> usize {
-    _cap.get_zombie_bit()
-}
-
-#[inline]
-pub fn cap_zombie_cap_get_capZombieNumber(_cap: &cap_t) -> usize {
-    _cap.get_zombie_number()
-}
-#[inline]
-pub fn cap_zombie_cap_get_capZombiePtr(cap: &cap_t) -> usize {
-    cap.get_zombie_ptr()
-}
-#[inline]
-pub fn cap_zombie_cap_set_capZombieNumber(cap: &mut cap_t, n: usize) {
-    cap.set_zombie_number(n);
+    return cap_t::new_zombie_cap((ptr & !mask) | (number & mask), _type);
 }
 
 pub fn ZombieType_ZombieCNode(n: usize) -> usize {
     return n & MASK!(wordRadix);
+}
+
+#[inline]
+#[no_mangle]
+pub fn capCyclicZombie(cap: &cap_t, slot: *mut cte_t) -> bool {
+    let ptr = cap.get_zombie_ptr() as *mut cte_t;
+    (cap.get_cap_type() == CapTag::CapZombieCap) && (ptr == slot)
 }

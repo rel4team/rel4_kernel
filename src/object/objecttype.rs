@@ -1,49 +1,33 @@
-use core::intrinsics::unlikely;
 
 use crate::{
     config::{
-        asidInvalid, seL4_CapTableObject, seL4_EndpointObject, seL4_HugePageBits,
-        seL4_InvalidCapability, seL4_LargePageBits, seL4_NotificationObject,
-        seL4_PageBits, seL4_TCBBits, seL4_TCBObject, seL4_UntypedObject,
-        tcbCNodeEntries, tcbCTable, IRQInactive, ThreadStateRestart, VMReadWrite, CONFIG_TIME_SLICE, TCB_OFFSET,
+        seL4_CapTableObject, seL4_EndpointObject, seL4_HugePageBits,
+        seL4_LargePageBits, seL4_NotificationObject,
+        seL4_TCBObject, seL4_UntypedObject,
+        tcbCNodeEntries, IRQInactive,
     },
     kernel::{
-        boot::current_syscall_error,
+        boot::current_lookup_fault,
         thread::{
-            decodeDomainInvocation, doReplyTransfer, getCSpace, ksCurDomain, ksCurThread,
-            setThreadState, suspend, Arch_initContext,
+            doReplyTransfer, Arch_initContext,
         },
-        transfermsg::{
-            seL4_CNode_capData_get_guard, seL4_CNode_capData_get_guardSize,
-            seL4_CapRights_get_capAllowGrant, seL4_CapRights_get_capAllowGrantReply,
-            seL4_CapRights_get_capAllowRead, seL4_CapRights_get_capAllowWrite, vmRighsFromWord,
-            wordFromVMRights,
-        },
+        transfermsg::wordFromVMRights,
         vspace::{
-            decodeRISCVMMUInvocation, deleteASID, deleteASIDPool, findVSpaceForASID, maskVMRights,
-            unmapPage, unmapPageTable,
+            deleteASID, deleteASIDPool,
         },
-    },
-    println,
-    structures::{
-        asid_pool_t, endpoint_t, finaliseCap_ret,
-        notification_t, pte_t, seL4_CNode_CapData_t, seL4_CapRights_t, tcb_t,
-    },
-    MASK,
+    }, syscall::{unbindMaybeNotification, unbindNotification},
 };
 
+use task_manager::*;
+use ipc::*;
+use vspace::*;
+
 use super::{
-    cap::{decodeCNodeInvocation},
-    endpoint::{cancelAllIPC, performInvocation_Endpoint},
+    endpoint::cancelAllIPC,
     interrupt::{
-        decodeIRQControlInvocation, decodeIRQHandlerInvocation, deletingIRQHandler, setIRQState,
+        deletingIRQHandler, setIRQState,
     },
-    notification::{
-        cancelAllSignals, performInvocation_Notification, unbindMaybeNotification,
-        unbindNotification,
-    },
-    tcb::decodeTCBInvocation,
-    untyped::decodeUntypedInvocation,
+    notification::cancelAllSignals
 };
 
 use common::{structures::exception_t, sel4_config::*};
@@ -62,12 +46,19 @@ pub fn Arch_finaliseCap(cap: &cap_t, _final: bool) -> finaliseCap_ret {
     match cap_get_capType(cap) {
         cap_frame_cap => {
             if cap_frame_cap_get_capFMappedASID(cap) != 0 {
-                unmapPage(
+                match unmapPage(
                     cap_frame_cap_get_capFSize(cap),
                     cap_frame_cap_get_capFMappedASID(cap),
                     cap_frame_cap_get_capFMappedAddress(cap),
                     cap_frame_cap_get_capFBasePtr(cap),
-                );
+                ) {
+                    Err(lookup_fault) => {
+                        unsafe {
+                            current_lookup_fault = lookup_fault
+                        }
+                    }
+                    _ => {}
+                }
             }
         }
         cap_page_table_cap => {
@@ -76,7 +67,7 @@ pub fn Arch_finaliseCap(cap: &cap_t, _final: bool) -> finaliseCap_ret {
                 let find_ret = findVSpaceForASID(asid);
                 let pte = cap_page_table_cap_get_capPTBasePtr(cap);
                 if find_ret.status == exception_t::EXCEPTION_NONE
-                    && find_ret.vspace_root as usize == pte
+                    && find_ret.vspace_root.unwrap() as usize == pte
                 {
                     deleteASID(asid, pte as *mut pte_t);
                 } else {
@@ -85,6 +76,11 @@ pub fn Arch_finaliseCap(cap: &cap_t, _final: bool) -> finaliseCap_ret {
                         cap_page_table_cap_get_capPTMappedAddress(cap),
                         pte as *mut pte_t,
                     );
+                }
+                if let Some(lookup_fault) = find_ret.lookup_fault {
+                    unsafe {
+                        current_lookup_fault = lookup_fault;
+                    }
                 }
             }
         }
@@ -113,7 +109,7 @@ extern "C" {
 pub fn finaliseCap(cap: &cap_t, _final: bool, _exposed: bool) -> finaliseCap_ret {
     let mut fc_ret = finaliseCap_ret::default();
 
-    if isArchCap(cap) {
+    if cap.isArchCap() {
         return Arch_finaliseCap(cap, _final);
     }
     match cap_get_capType(cap) {
@@ -168,6 +164,7 @@ pub fn finaliseCap(cap: &cap_t, _final: bool, _exposed: bool) -> finaliseCap_ret
                 let tcb = cap_thread_cap_get_capTCBPtr(cap) as *mut tcb_t;
                 let cte_ptr = getCSpace(tcb as usize, tcbCTable) as *mut cte_t;
                 unbindNotification(tcb);
+                cancelIPC(tcb);
                 suspend(tcb);
                 unsafe {
                     tcbDebugRemove(tcb);
@@ -203,116 +200,11 @@ pub fn finaliseCap(cap: &cap_t, _final: bool, _exposed: bool) -> finaliseCap_ret
     return fc_ret;
 }
 
-pub fn updateCapData(preserve: bool, newData: usize, _cap: &cap_t) -> cap_t {
-    let cap = &mut (_cap.clone());
-    if isArchCap(cap) {
-        let val1 = cap.words[0];
-        let val2 = cap.words[1];
-        return cap_t {
-            words: [val1, val2],
-        };
-    }
-    match cap_get_capType(cap) {
-        cap_endpoint_cap => {
-            let mut new_cap = _cap.clone();
-            if !preserve && (cap_endpoint_cap_get_capEPBadge(cap) == 0) {
-                cap_endpoint_cap_set_capEPBadge(&mut new_cap, newData);
-                return new_cap;
-            } else {
-                return cap_null_cap_new();
-            }
-        }
-        cap_notification_cap => {
-            let mut new_cap = _cap.clone();
-            if !preserve && cap_notification_cap_get_capNtfnBadge(cap) == 0 {
-                cap_notification_cap_set_capNtfnBadge(&mut new_cap, newData);
-                return new_cap;
-            } else {
-                return cap_null_cap_new();
-            }
-        }
-        cap_cnode_cap => {
-            let w = seL4_CNode_CapData_t { words: [newData] };
-            let guardSize = seL4_CNode_capData_get_guardSize(&w);
-
-            if guardSize + cap_cnode_cap_get_capCNodeRadix(cap) > wordBits {
-                return cap_null_cap_new();
-            } else {
-                let guard = seL4_CNode_capData_get_guard(&w) & MASK!(guardSize);
-                let mut new_cap = cap.clone();
-                cap_cnode_cap_set_capCNodeGuard(&mut new_cap, guard);
-                cap_cnode_cap_set_capCNodeGuardSize(&mut new_cap, guardSize);
-                return new_cap;
-            }
-        }
-        _ => return cap.clone(),
-    }
-}
-
-pub fn postCapDeletion(cap: &cap_t) {
+#[no_mangle]
+pub fn post_cap_deletion(cap: &cap_t) {
     if cap_get_capType(cap) == cap_irq_handler_cap {
         let irq = cap_irq_handler_cap_get_capIRQ(cap);
         setIRQState(IRQInactive, irq);
-    }
-}
-// #[no_mangle]
-pub fn maskCapRights(rights: seL4_CapRights_t, _cap: &cap_t) -> cap_t {
-    match cap_get_capType(_cap) {
-        cap_null_cap | cap_domain_cap | cap_cnode_cap | cap_untyped_cap | cap_irq_control_cap
-        | cap_irq_handler_cap | cap_zombie_cap | cap_thread_cap | cap_page_table_cap
-        | cap_asid_control_cap | cap_asid_pool_cap => _cap.clone(),
-        cap_endpoint_cap => {
-            let cap = &mut _cap.clone();
-            cap_endpoint_cap_set_capCanSend(
-                cap,
-                cap_endpoint_cap_get_capCanSend(cap) & seL4_CapRights_get_capAllowWrite(&rights),
-            );
-            cap_endpoint_cap_set_capCanReceive(
-                cap,
-                cap_endpoint_cap_get_capCanReceive(cap) & seL4_CapRights_get_capAllowRead(&rights),
-            );
-            cap_endpoint_cap_set_capCanGrant(
-                cap,
-                cap_endpoint_cap_get_capCanGrant(cap) & seL4_CapRights_get_capAllowGrant(&rights),
-            );
-            cap_endpoint_cap_set_capCanGrantReply(
-                cap,
-                cap_endpoint_cap_get_capCanGrantReply(cap)
-                    & seL4_CapRights_get_capAllowGrantReply(&rights),
-            );
-            cap.clone()
-        }
-        cap_notification_cap => {
-            let cap = &mut _cap.clone();
-            cap_notification_cap_set_capNtfnCanSend(
-                cap,
-                cap_notification_cap_get_capNtfnCanSend(cap)
-                    & seL4_CapRights_get_capAllowWrite(&rights),
-            );
-            cap_notification_cap_set_capNtfnCanReceive(
-                cap,
-                cap_notification_cap_get_capNtfnCanReceive(cap)
-                    & seL4_CapRights_get_capAllowRead(&rights),
-            );
-            cap.clone()
-        }
-        cap_reply_cap => {
-            let cap = &mut _cap.clone();
-            cap_reply_cap_set_capReplyCanGrant(
-                cap,
-                cap_reply_cap_get_capReplyCanGrant(cap) & seL4_CapRights_get_capAllowGrant(&rights),
-            );
-            cap.clone()
-        }
-        cap_frame_cap => {
-            let cap = &mut _cap.clone();
-            let mut vm_rights = vmRighsFromWord(cap_frame_cap_get_capFVMRights(cap));
-            vm_rights = maskVMRights(vm_rights, rights);
-            cap_frame_cap_set_capFVMRights(cap, wordFromVMRights(vm_rights));
-            cap.clone()
-        }
-
-        _ => panic!("Invalid cap!"),
     }
 }
 
@@ -339,14 +231,14 @@ pub fn createObject(
         seL4_TCBObject => {
             let tcb = (regionBase as usize + TCB_OFFSET) as *mut tcb_t;
             unsafe {
-                (*tcb).tcbArch = Arch_initContext((*tcb).tcbArch);
+                (*tcb).tcbArch = Arch_initContext();
                 (*tcb).tcbTimeSlice = CONFIG_TIME_SLICE;
                 (*tcb).domain = ksCurDomain;
                 tcbDebugAppend(tcb);
             }
             return cap_thread_cap_new(tcb as usize);
         }
-        seL4_EndpointObject => cap_endpoint_cap_new(0, 1, 1, 1, 1, regionBase as usize),
+        seL4_EndpointObject => cap_t::new_endpoint_cap(0, 1, 1, 1, 1, regionBase as usize),
         seL4_NotificationObject => cap_notification_cap_new(0, 1, 1, regionBase as usize),
         seL4_CapTableObject => cap_cnode_cap_new(userSize, 0, 0, regionBase as usize),
         seL4_UntypedObject => {
@@ -421,107 +313,6 @@ pub fn createNewObjects(
         unsafe {
             insertNewCap(parent, destCNode.add(destOffset + i), &cap);
         }
-    }
-}
-
-#[no_mangle]
-pub fn decodeInvocation(
-    invLabel: usize,
-    length: usize,
-    capIndex: usize,
-    slot: *mut cte_t,
-    cap: &mut cap_t,
-    block: bool,
-    call: bool,
-    buffer: *mut usize,
-) -> exception_t {
-    // println!("cap :{:#x} {:#x}")
-    // println!("type:{}", cap_get_capType(cap));
-    match cap_get_capType(cap) {
-        cap_null_cap => {
-            println!("Attempted to invoke a null cap {:#x}.", capIndex);
-            unsafe {
-                current_syscall_error._type = seL4_InvalidCapability;
-                current_syscall_error.invalidCapNumber = 0;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
-        }
-        cap_zombie_cap => {
-            println!("Attempted to invoke a zombie cap {:#x}.", capIndex);
-            unsafe {
-                current_syscall_error._type = seL4_InvalidCapability;
-                current_syscall_error.invalidCapNumber = 0;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
-        }
-        cap_endpoint_cap => {
-            if unlikely(cap_endpoint_cap_get_capCanSend(cap) == 0) {
-                println!("Attempted to invoke a read-only endpoint cap {}.", capIndex);
-                unsafe {
-                    current_syscall_error._type = seL4_InvalidCapability;
-                    current_syscall_error.invalidCapNumber = 0;
-                    return exception_t::EXCEPTION_SYSCALL_ERROR;
-                }
-            }
-            unsafe {
-                setThreadState(ksCurThread, ThreadStateRestart);
-            }
-            return performInvocation_Endpoint(
-                cap_endpoint_cap_get_capEPPtr(cap) as *mut endpoint_t,
-                cap_endpoint_cap_get_capEPBadge(cap),
-                cap_endpoint_cap_get_capCanGrant(cap) != 0,
-                cap_endpoint_cap_get_capCanGrantReply(cap) != 0,
-                block,
-                call,
-            );
-        }
-        cap_notification_cap => {
-            if unlikely(cap_notification_cap_get_capNtfnCanSend(cap) == 0) {
-                println!(
-                    "Attempted to invoke a read-only notification cap {}.",
-                    capIndex
-                );
-                unsafe {
-                    current_syscall_error._type = seL4_InvalidCapability;
-                    current_syscall_error.invalidCapNumber = 0;
-                    return exception_t::EXCEPTION_SYSCALL_ERROR;
-                }
-            }
-            unsafe {
-                setThreadState(ksCurThread, ThreadStateRestart);
-            }
-            return performInvocation_Notification(
-                cap_notification_cap_get_capNtfnPtr(cap) as *mut notification_t,
-                cap_notification_cap_get_capNtfnBadge(cap),
-            );
-        }
-        cap_reply_cap => {
-            if unlikely(cap_reply_cap_get_capReplyMaster(cap) != 0) {
-                println!("Attempted to invoke an invalid reply cap {}.", capIndex);
-                unsafe {
-                    current_syscall_error._type = seL4_InvalidCapability;
-                    current_syscall_error.invalidCapNumber = 0;
-                    return exception_t::EXCEPTION_SYSCALL_ERROR;
-                }
-            }
-            unsafe {
-                setThreadState(ksCurThread, ThreadStateRestart);
-            }
-            return performInvocation_Reply(
-                cap_reply_cap_get_capTCBPtr(cap) as *mut tcb_t,
-                slot,
-                cap_reply_cap_get_capReplyCanGrant(cap) != 0,
-            );
-        }
-        cap_thread_cap => decodeTCBInvocation(invLabel, length, cap, slot, call, buffer),
-        cap_domain_cap => decodeDomainInvocation(invLabel, length, buffer),
-        cap_cnode_cap => decodeCNodeInvocation(invLabel, length, cap, buffer),
-        cap_untyped_cap => decodeUntypedInvocation(invLabel, length, slot, cap, call, buffer),
-        cap_irq_control_cap => decodeIRQControlInvocation(invLabel, length, slot, buffer),
-        cap_irq_handler_cap => {
-            decodeIRQHandlerInvocation(invLabel, cap_irq_handler_cap_get_capIRQ(cap))
-        }
-        _ => decodeRISCVMMUInvocation(invLabel, length, capIndex, slot, cap, call, buffer),
     }
 }
 

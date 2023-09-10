@@ -166,10 +166,6 @@ impl cap_t {
 
 }
 
-#[inline]
-pub fn cap_endpoint_cap_new(capEPBadge: usize, capCanGrantReply: usize, capCanGrant: usize, capCanSend: usize, capCanReceive: usize, capEPPtr: usize) -> cap_t {
-    cap_t::new_endpoint_cap(capEPBadge, capCanGrantReply, capCanGrant, capCanSend, capCanReceive, capEPPtr)
-}
 
 #[inline]
 pub fn cap_endpoint_cap_get_capEPBadge(cap: &cap_t) -> usize {
@@ -177,27 +173,14 @@ pub fn cap_endpoint_cap_get_capEPBadge(cap: &cap_t) -> usize {
 }
 
 #[inline]
-pub fn cap_endpoint_cap_set_capEPBadge(cap: &mut cap_t, v64: usize) {
-    cap.set_ep_badge(v64)
-}
-
-#[inline]
 pub fn cap_endpoint_cap_get_capCanGrantReply(cap: & cap_t) -> usize {
     cap.get_ep_can_grant_reply()
 }
 
-#[inline]
-pub fn cap_endpoint_cap_set_capCanGrantReply(cap: &mut cap_t, v64: usize) {
-    cap.set_ep_can_grant_reply(v64)
-}
 
 #[inline]
 pub fn cap_endpoint_cap_get_capCanGrant(cap: &cap_t) -> usize {
     cap.get_ep_can_grant()
-}
-#[inline]
-pub fn cap_endpoint_cap_set_capCanGrant(cap: &mut cap_t, v64: usize) {
-    cap.set_ep_can_grant(v64)
 }
 
 #[inline]
@@ -206,18 +189,8 @@ pub fn cap_endpoint_cap_get_capCanReceive(cap: &cap_t) -> usize {
 }
 
 #[inline]
-pub fn cap_endpoint_cap_set_capCanReceive(cap: &mut cap_t, v64: usize) {
-    cap.set_ep_can_receive(v64)
-}
-
-#[inline]
 pub fn cap_endpoint_cap_get_capCanSend(cap: &cap_t) -> usize {
     cap.get_ep_can_send()
-}
-
-#[inline]
-pub fn cap_endpoint_cap_set_capCanSend(cap: &mut cap_t, v64: usize) {
-    cap.set_ep_can_send(v64)
 }
 
 #[inline]

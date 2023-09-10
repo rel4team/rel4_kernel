@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 common = { path = "../common" }
+log = "0.4"

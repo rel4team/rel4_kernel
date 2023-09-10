@@ -1,16 +1,13 @@
 extern crate core;
 
+use common::{structures::{lookup_fault_t, seL4_Fault_t}, sel4_config::seL4_MsgMaxExtraCaps, utils::convert_to_option_mut_type_ref};
 use cspace::interface::cte_t;
 
-use crate::{
-    config::{
-        ksDomScheduleLength, seL4_MsgMaxExtraCaps
-    },
-    structures::{
-        dschedule_t, extra_caps_t, lookup_fault_t, seL4_Fault_t, syscall_error_t, tcb_t, 
-    },
+use crate::structures::{
+    extra_caps_t, syscall_error_t, 
 };
 
+use task_manager::*;
 
 #[link(name = "kernel_all.c")]
 extern "C" {
@@ -42,16 +39,6 @@ pub static mut current_syscall_error: syscall_error_t = syscall_error_t {
     _type: 0,
 };
 
-#[no_mangle]
-#[link_section = ".boot.bss"]
-pub static mut ksWorkUnitsCompleted: usize = 0;
-
-
-#[link_section = ".boot.bss"]
-pub static mut ksDomSchedule: [dschedule_t; ksDomScheduleLength] = [dschedule_t {
-    domain: 0,
-    length: 60,
-}; ksDomScheduleLength];
 
 
 #[no_mangle]
@@ -60,7 +47,13 @@ pub static mut current_extra_caps: extra_caps_t = extra_caps_t {
     excaprefs: [0 as *mut cte_t; seL4_MsgMaxExtraCaps],
 };
 
-
+#[inline]
+pub fn get_extra_cap_by_index(index: usize) -> Option<&'static mut cte_t> {
+    assert!(index < seL4_MsgMaxExtraCaps);
+    unsafe {
+        convert_to_option_mut_type_ref::<cte_t>(current_extra_caps.excaprefs[index] as usize)
+    }
+}
 
 #[no_mangle]
 pub extern "C" fn initIRQController(arr: *mut i32, size: usize) {

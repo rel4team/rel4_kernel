@@ -1,64 +1,20 @@
 use crate::{
-    config::{
-        badgeRegister, msgInfoRegister, tcbReply, EPState_Idle, EPState_Recv, EPState_Send,
-        NtfnState_Active, ThreadStateBlockedOnNotification, ThreadStateBlockedOnReceive,
-        ThreadStateBlockedOnReply, ThreadStateBlockedOnSend, ThreadStateInactive,
-        ThreadStateRestart, ThreadStateRunning,
-    },
+    config::badgeRegister,
     kernel::{
         boot::current_syscall_error,
         thread::{
-            doIPCTransfer, doNBRecvFailedTransfer, getCSpace, ksCurThread, possibleSwitchTo,
-            rescheduleRequired, scheduleTCB, setMRs_syscall_error, setRegister, setThreadState,
+            doIPCTransfer, doNBRecvFailedTransfer,
+            setMRs_syscall_error,
         },
-        transfermsg::{seL4_MessageInfo_new, wordFromMessageInfo},
-        vspace::lookupIPCBuffer,
     },
-    object::{
-        notification::completeSignal,
-        structure_gen::{
-            notification_ptr_get_state, thread_state_get_blockingIPCCanGrant,
-            thread_state_get_blockingIPCCanGrantReply, thread_state_get_blockingIPCIsCall,
-            thread_state_get_blockingObject,
-        },
-        tcb::{setupCallerCap, tcbEPDequeue},
-    },
-    structures::{endpoint_t, notification_t, tcb_queue_t, tcb_t},
+    object::notification::completeSignal,
 };
 
-use super::{
-    cap::cteDeleteOne,
-    notification::cancelSignal,
-    structure_gen::{
-        endpoint_ptr_get_epQueue_head, endpoint_ptr_get_epQueue_tail, endpoint_ptr_get_state,
-        endpoint_ptr_set_epQueue_head, endpoint_ptr_set_epQueue_tail, endpoint_ptr_set_state,
-        seL4_Fault_NullFault_new, thread_state_get_blockingIPCBadge,
-        thread_state_get_tsType, thread_state_set_blockingIPCBadge,
-        thread_state_set_blockingIPCCanGrant, thread_state_set_blockingIPCCanGrantReply,
-        thread_state_set_blockingIPCIsCall, thread_state_set_blockingObject,
-        thread_state_set_tsType,
-    },
-    tcb::{tcbEPAppend, tcbSchedEnqueue},
-};
+use task_manager::*;
+use ipc::*;
 
-use common::structures::exception_t;
+use common::{structures::exception_t, message_info::*};
 use cspace::interface::*;
-
-#[inline]
-pub fn ep_ptr_set_queue(epptr: *const endpoint_t, queue: tcb_queue_t) {
-    endpoint_ptr_set_epQueue_head(epptr as *mut endpoint_t, queue.head as usize);
-    endpoint_ptr_set_epQueue_tail(epptr as *mut endpoint_t, queue.tail as usize);
-}
-
-#[inline]
-pub fn ep_ptr_get_queue(epptr: *const endpoint_t) -> tcb_queue_t {
-    let queue = tcb_queue_t {
-        head: endpoint_ptr_get_epQueue_head(epptr as *mut endpoint_t) as *mut tcb_t,
-        tail: endpoint_ptr_get_epQueue_tail(epptr as *mut endpoint_t) as *mut tcb_t,
-    };
-
-    queue
-}
 
 #[no_mangle]
 pub fn sendIPC(
@@ -139,7 +95,7 @@ pub fn receiveIPC(thread: *mut tcb_t, cap: &cap_t, isBlocking: bool) {
     unsafe {
         assert!(cap_get_capType(cap) == cap_endpoint_cap);
         let epptr = cap_endpoint_cap_get_capEPPtr(cap) as *const endpoint_t;
-        let ntfnPtr = (*thread).tcbBoundNotification;
+        let ntfnPtr = (*thread).tcbBoundNotification as *mut notification_t;
         if ntfnPtr as usize != 0 && notification_ptr_get_state(ntfnPtr) == NtfnState_Active {
             completeSignal(ntfnPtr, thread);
             return;
@@ -188,7 +144,7 @@ pub fn receiveIPC(thread: *mut tcb_t, cap: &cap_t, isBlocking: bool) {
                     } else {
                         false
                     };
-                // println!("in recvIPC ,  sender:{:#x} , thread:{:#x}",sender as usize,thread as usize);
+                // debug!("in recvIPC ,  sender:{:#x} , thread:{:#x}",sender as usize,thread as usize);
                 doIPCTransfer(sender, epptr as *mut endpoint_t, badge, canGrant, thread);
                 let do_call = if thread_state_get_blockingIPCIsCall(&(*sender).tcbState) != 0 {
                     true
@@ -222,46 +178,6 @@ pub fn receiveIPC(thread: *mut tcb_t, cap: &cap_t, isBlocking: bool) {
 }
 
 #[no_mangle]
-pub fn cancelBadgedSends(epptr: *mut endpoint_t, badge: usize) {
-    unsafe {
-        match endpoint_ptr_get_state(epptr) {
-            EPState_Idle | EPState_Recv => {}
-            EPState_Send => {
-                let mut queue = ep_ptr_get_queue(epptr);
-                endpoint_ptr_set_state(epptr, EPState_Idle);
-                endpoint_ptr_set_epQueue_head(epptr, 0);
-                endpoint_ptr_set_epQueue_tail(epptr, 0);
-                let mut thread = queue.head;
-                while thread as usize != 0 {
-                    let ptr = thread as *mut tcb_t;
-                    thread = (*ptr).tcbEPNext as *mut tcb_t;
-                    let b = thread_state_get_blockingIPCBadge(&(*ptr).tcbState);
-
-                    if b == badge {
-                        setThreadState(ptr, ThreadStateRestart);
-                        tcbSchedEnqueue(ptr);
-                        queue = tcbEPDequeue(ptr, queue);
-                    }
-                }
-
-                ep_ptr_set_queue(epptr, queue);
-
-                if queue.head as usize != 0 {
-                    endpoint_ptr_set_state(epptr, EPState_Send);
-                }
-                rescheduleRequired();
-            }
-            _ => {
-                panic!(
-                    " unknown endpoint state in cancelBadgedSends:{}",
-                    endpoint_ptr_get_state(epptr)
-                );
-            }
-        }
-    }
-}
-
-#[no_mangle]
 pub fn replyFromKernel_error(thread: *mut tcb_t) {
     let ipcBuffer = lookupIPCBuffer(true, thread) as *mut usize;
     setRegister(thread, badgeRegister, 0);
@@ -285,43 +201,6 @@ pub fn replyFromKernel_success_empty(thread: *mut tcb_t) {
     );
 }
 
-#[no_mangle]
-pub fn cancelIPC(tptr: *mut tcb_t) {
-    let state = unsafe { &(*tptr).tcbState };
-    match thread_state_get_tsType(state) {
-        ThreadStateBlockedOnSend | ThreadStateBlockedOnReceive => {
-            let epptr = thread_state_get_blockingObject(state) as *mut endpoint_t;
-
-            assert!(endpoint_ptr_get_state(epptr) != EPState_Idle);
-            let mut queue = ep_ptr_get_queue(epptr);
-            queue = tcbEPDequeue(tptr as *mut tcb_t, queue);
-
-            let temp = queue.head as usize;
-
-            ep_ptr_set_queue(epptr, queue);
-
-            if temp == 0 {
-                endpoint_ptr_set_state(epptr, EPState_Idle);
-            }
-            setThreadState(tptr, ThreadStateInactive);
-        }
-        ThreadStateBlockedOnNotification => {
-            let ntfnPtr = thread_state_get_blockingObject(state) as *mut notification_t;
-            cancelSignal(tptr, ntfnPtr);
-        }
-        ThreadStateBlockedOnReply => unsafe {
-            (*tptr).tcbFault = seL4_Fault_NullFault_new();
-
-            let slot = getCSpace(tptr as usize, tcbReply);
-            let callerCap = mdb_node_get_mdbNext(&(*slot).cteMDBNode) as *mut cte_t;
-            if callerCap as usize != 0 {
-                cteDeleteOne(callerCap);
-            }
-        },
-
-        _ => {}
-    }
-}
 
 #[no_mangle]
 pub fn cancelAllIPC(epptr: *mut endpoint_t) {

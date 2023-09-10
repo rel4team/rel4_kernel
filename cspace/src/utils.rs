@@ -1,51 +1,26 @@
-use common::sel4_config::{RISCVPageBits, RISCVGigaPageBits, RISCVMegaPageBits, seL4_MinUntypedBits,
-    RISCV_4K_Page, RISCV_Mega_Page, RISCV_Giga_Page};
+use common::{sel4_config::seL4_MinUntypedBits, BIT, structures::exception_t};
 
-#[macro_export]
-macro_rules! MASK {
-    ($e:expr) => {
-        {
-             (1usize << $e) - 1usize
-        }
-    }
-}
-
-#[macro_export]
-macro_rules! BIT {
-    ($e:expr) => {
-        {
-            1usize<<$e
-        }
-    }
-}
-
-#[inline]
-pub fn pageBitsForSize(page_size: usize) -> usize {
-    match page_size {
-        RISCV_4K_Page => RISCVPageBits,
-        RISCV_Mega_Page => RISCVMegaPageBits,
-        RISCV_Giga_Page => RISCVGigaPageBits,
-        _ => panic!("Invalid page size!"),
-    }
-}
-
-#[inline]
-pub fn convert_to_type_ref<T>(addr: usize) -> &'static T {
-    assert_ne!(addr, 0);
-    unsafe {
-        & *(addr as *mut T)
-    }
-}
-
-#[inline]
-pub fn convert_to_mut_type_ref<T>(addr: usize) -> &'static mut T {
-    assert_ne!(addr, 0);
-    unsafe {
-        &mut *(addr as *mut T)
-    }
-}
+use crate::cte::cte_t;
 
 
 pub fn MAX_FREE_INDEX(bits: usize) -> usize {
     BIT!(bits - seL4_MinUntypedBits)
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct resolveAddressBits_ret_t {
+    pub status: exception_t,
+    pub slot: *mut cte_t,
+    pub bitsRemaining: usize,
+}
+
+impl Default for resolveAddressBits_ret_t {
+    fn default() -> Self {
+        resolveAddressBits_ret_t {
+            status: exception_t::EXCEPTION_NONE,
+            slot: 0 as *mut cte_t,
+            bitsRemaining: 0,
+        }
+    }
 }

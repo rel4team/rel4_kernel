@@ -3,7 +3,12 @@
 #![allow(non_snake_case)]
 #![allow(non_camel_case_types)]
 #![allow(non_upper_case_globals)]
+#![feature(linkage)]
 
 pub mod sel4_config;
 pub mod structures;
-mod utils;
+pub mod utils;
+pub mod sbi;
+mod console;
+pub mod logging;
+pub mod message_info;

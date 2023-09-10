@@ -1,21 +1,21 @@
 use super::calculate_extra_bi_size_bits;
-use super::utils::{arch_get_n_paging, write_slot, provide_cap, clearMemory};
+use super::utils::{arch_get_n_paging, write_slot, provide_cap, clearMemory, create_it_pt_cap, map_it_frame_cap};
 use super::{ndks_boot, utils::is_reg_empty};
-use common::sel4_config::{wordBits, seL4_SlotBits};
-use common::structures::exception_t;
+use common::{BIT, ROUND_DOWN};
+use common::sel4_config::{wordBits, seL4_SlotBits, IT_ASID, asidLowBits, seL4_PageBits, seL4_PageTableBits, CONFIG_PT_LEVELS,
+    PAGE_BITS, CONFIG_MAX_NUM_NODES, TCB_OFFSET, CONFIG_TIME_SLICE, tcbCTable, tcbVTable, tcbBuffer, CONFIG_NUM_DOMAINS, seL4_TCBBits};
+use common::structures::{exception_t, seL4_IPCBuffer};
 use cspace::interface::*;
-use crate::kernel::boot::ksDomSchedule;
-use crate::kernel::thread::{ksDomScheduleIdx, Arch_initContext, capRegister, setRegister, setNextPC, setThreadState,
-    ksCurDomain, ksDomainTime, getCSpaceRef};
-use crate::kernel::vspace::{copyGlobalMappings, map_it_frame_cap, riscvKSASIDTable, RISCV_GET_LVL_PGSIZE_BITS, RISCV_GET_LVL_PGSIZE,
-    pptr_to_paddr, pptr_t, create_it_pt_cap};
-use crate::object::cnode::setupReplyMaster;
+use log::debug;
+use crate::kernel::thread::Arch_initContext;
 use crate::object::interrupt::setIRQState;
-use crate::structures::{region_t, rootserver_mem_t, v_region_t, tcb_t, asid_pool_t, seL4_SlotRegion, create_frames_of_region_ret_t,
-    seL4_BootInfo, seL4_IPCBuffer};
-use crate::{BIT, ROUND_DOWN, println};
+use crate::structures::{region_t, rootserver_mem_t, v_region_t, seL4_SlotRegion, create_frames_of_region_ret_t,
+    seL4_BootInfo};
+
 use crate::config::*;
 
+use task_manager::*;
+use vspace::*;
 #[no_mangle]
 #[link_section = ".boot.bss"]
 pub static mut rootserver_mem: region_t = region_t { start: 0, end: 0 };
@@ -47,7 +47,7 @@ pub fn root_server_init(it_v_reg: v_region_t, extra_bi_size_bits: usize, ipcbuf_
         create_root_cnode()
     };
     if root_cnode_cap.get_cap_type() == CapTag::CapNullCap {
-        println!("ERROR: root c-node creation failed\n");
+        debug!("ERROR: root c-node creation failed\n");
         return None;
     }
 
@@ -60,7 +60,7 @@ pub fn root_server_init(it_v_reg: v_region_t, extra_bi_size_bits: usize, ipcbuf_
         rust_create_it_address_space(&root_cnode_cap, it_v_reg)
     };
     if it_pd_cap.get_cap_type() == CapTag::CapNullCap {
-        println!("ERROR: address space creation for initial thread failed");
+        debug!("ERROR: address space creation for initial thread failed");
         return None;
     }
 
@@ -71,12 +71,12 @@ pub fn root_server_init(it_v_reg: v_region_t, extra_bi_size_bits: usize, ipcbuf_
         create_ipcbuf_frame_cap(&root_cnode_cap, &it_pd_cap, ipcbuf_vptr)
     };
     if ipcbuf_cap.get_cap_type() == CapTag::CapNullCap {
-        println!("ERROR: could not create IPC buffer for initial thread");
+        debug!("ERROR: could not create IPC buffer for initial thread");
         return None;
     }
 
     if ipcbuf_cap.get_cap_type() == CapTag::CapNullCap {
-        println!("ERROR: could not create IPC buffer for initial thread");
+        debug!("ERROR: could not create IPC buffer for initial thread");
         return None;
     }
     if !create_frame_ui_frames(root_cnode_cap, it_pd_cap, ui_reg, pv_offset) {
@@ -99,7 +99,7 @@ pub fn root_server_init(it_v_reg: v_region_t, extra_bi_size_bits: usize, ipcbuf_
     };
 
     if initial as usize == 0 {
-        println!("ERROR: could not create initial thread");
+        debug!("ERROR: could not create initial thread");
         return None;
     }
     Some((initial, root_cnode_cap))
@@ -119,7 +119,7 @@ unsafe fn create_initial_thread(
     let tcb = unsafe { (rootserver.tcb + TCB_OFFSET) as *mut tcb_t };
     (*tcb).tcbTimeSlice = CONFIG_TIME_SLICE;
 
-    (*tcb).tcbArch = Arch_initContext((*tcb).tcbArch);
+    (*tcb).tcbArch = Arch_initContext();
 
     let ptr = root_cnode_cap.get_cap_ptr() as *mut cte_t;
     let cte = unsafe {
@@ -127,23 +127,23 @@ unsafe fn create_initial_thread(
     };
     let dc_ret = cte.derive_cap(&ipcbuf_cap.clone());
     if dc_ret.status != exception_t::EXCEPTION_NONE {
-        println!("Failed to derive copy of IPC Buffer\n");
+        debug!("Failed to derive copy of IPC Buffer\n");
         return 0 as *mut tcb_t;
     }
     cteInsert(
         &root_cnode_cap.clone(),
         unsafe { &mut *(ptr.add(seL4_CapInitThreadCNode)) },
-        getCSpaceRef(rootserver.tcb, tcbCTable),
+        getCSpaceMutRef(rootserver.tcb, tcbCTable),
     );
     cteInsert(
         &it_pd_cap.clone(),
         unsafe { &mut *(ptr.add(seL4_CapInitThreadVspace)) },
-        getCSpaceRef(rootserver.tcb, tcbVTable),
+        getCSpaceMutRef(rootserver.tcb, tcbVTable),
     );
     cteInsert(
         &dc_ret.cap.clone(),
         unsafe { &mut *(ptr.add(seL4_CapInitThreadIPCBuffer)) },
-        getCSpaceRef(rootserver.tcb, tcbBuffer),
+        getCSpaceMutRef(rootserver.tcb, tcbBuffer),
     );
     (*tcb).tcbIPCBuffer = ipcbuf_vptr;
 
@@ -153,7 +153,7 @@ unsafe fn create_initial_thread(
     (*tcb).tcbMCP = seL4_MaxPrio;
     (*tcb).tcbPriority = seL4_MaxPrio;
     setThreadState(tcb, ThreadStateRunning);
-    setupReplyMaster(tcb);
+    (*tcb).setup_reply_master();
     ksCurDomain = ksDomSchedule[ksDomScheduleIdx].domain;
     ksDomainTime = ksDomSchedule[ksDomScheduleIdx].length;
 
@@ -166,7 +166,7 @@ unsafe fn create_initial_thread(
 fn asid_init(root_cnode_cap: cap_t, it_pd_cap: cap_t) -> bool {
     let it_ap_cap = create_it_asid_pool(&root_cnode_cap);
     if it_ap_cap.get_cap_type() == CapTag::CapNullCap {
-        println!("ERROR: could not create ASID pool for initial thread");
+        debug!("ERROR: could not create ASID pool for initial thread");
         return false;
     }
     
@@ -199,7 +199,7 @@ fn create_frame_ui_frames(root_cnode_cap: cap_t, it_pd_cap: cap_t, ui_reg: regio
         pv_offset as isize,
     );
     if !create_frames_ret.success {
-        println!("ERROR: could not create all userland image frames");
+        debug!("ERROR: could not create all userland image frames");
         return false;
     }
     unsafe {
@@ -362,7 +362,7 @@ fn init_irqs(root_cnode_cap: &cap_t) {
     setIRQState(IRQTimer, KERNEL_TIMER_IRQ);
     unsafe {
         let ptr = root_cnode_cap.get_cap_ptr() as *mut cte_t;
-        write_slot(ptr.add(seL4_CapIRQControl), cap_irq_control_cap_new());
+        write_slot(ptr.add(seL4_CapIRQControl), cap_t::new_irq_control_cap());
     }
 }
 
@@ -415,7 +415,7 @@ fn init_bi_frame_cap(root_cnode_cap: cap_t, it_pd_cap: cap_t, bi_frame_vptr: usi
         );
 
         if !extra_bi_ret.success {
-            println!("ERROR: mapping extra boot info to initial thread failed");
+            debug!("ERROR: mapping extra boot info to initial thread failed");
             return false;
         }
         unsafe {

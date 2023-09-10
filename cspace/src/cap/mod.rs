@@ -1,6 +1,5 @@
-use common::sel4_config::{seL4_EndpointBits, seL4_NotificationBits, seL4_SlotBits, PT_SIZE_BITS, seL4_ReplyBits};
+use common::{sel4_config::{seL4_EndpointBits, seL4_NotificationBits, seL4_SlotBits, PT_SIZE_BITS, seL4_ReplyBits, wordBits}, MASK, utils::pageBitsForSize};
 
-use crate::{MASK, utils::pageBitsForSize};
 
 
 pub mod asid_control;
@@ -18,6 +17,39 @@ pub mod reply;
 pub mod thread;
 pub mod untyped;
 pub mod zombie;
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+struct CNodeCapData {
+    pub words: [usize; 1],
+}
+
+impl CNodeCapData {
+    #[inline]
+    pub fn new(data: usize) -> Self {
+        CNodeCapData { words: [data] }
+    }
+
+    #[inline]
+    pub fn get_guard(&self) -> usize {
+        (self.words[0] & 0xffffffffffffffc0usize) >> 6
+    }
+
+    #[inline]
+    pub fn get_guard_size(&self) -> usize {
+        self.words[0] & 0x3fusize
+    }
+}
+
+// #[inline]
+// pub fn seL4_CNode_capData_get_guard(seL4_CNode_CapData:&seL4_CNode_CapData_t)->usize{
+//     (seL4_CNode_CapData.words[0] & 0xffffffffffffffc0usize) >> 6
+// }
+
+// #[inline]
+// pub fn seL4_CNode_capData_get_guardSize(seL4_CNode_CapData:&seL4_CNode_CapData_t)->usize{
+//     (seL4_CNode_CapData.words[0] & 0x3fusize) >> 0
+// }
 
 #[derive(Eq, PartialEq, Debug)]
 pub enum CapTag {
@@ -212,4 +244,52 @@ pub fn is_cap_revocable(derived_cap: &cap_t, src_cap: &cap_t) -> bool {
         
         _ => false
     }
+}
+
+
+impl cap_t {
+    pub fn update_data(&self, preserve: bool, new_data: usize) -> Self {
+        if self.isArchCap() {
+            return self.clone();
+        }
+        match self.get_cap_type() {
+            CapTag::CapEndpointCap => {
+                if !preserve && self.get_ep_badge() == 0 {
+                    let mut new_cap = self.clone();
+                    new_cap.set_ep_badge(new_data);
+                    new_cap
+                } else {
+                    cap_t::new_null_cap()
+                }
+            }
+
+            CapTag::CapNotificationCap => {
+                if !preserve && self.get_nf_badge() == 0 {
+                    let mut new_cap = self.clone();
+                    new_cap.set_nf_badge(new_data);
+                    new_cap
+                } else {
+                    cap_t::new_null_cap()
+                }
+            }
+
+            CapTag::CapCNodeCap => {
+                let w = CNodeCapData::new(new_data);
+                let guard_size = w.get_guard_size();
+                if guard_size + self.get_cnode_radix() > wordBits {
+                    return cap_t::new_null_cap();
+                }
+                let guard = w.get_guard() & MASK!(guard_size);
+                let mut new_cap = self.clone();
+                new_cap.set_cnode_guard(guard);
+                new_cap.set_cnode_guard_size(guard_size);
+                new_cap
+            }
+            _ => { self.clone() }
+        }
+    }
+}
+
+pub fn updateCapData(preserve: bool, newData: usize, _cap: &cap_t) -> cap_t {
+    _cap.update_data(preserve, newData)
 }

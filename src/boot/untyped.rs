@@ -1,9 +1,11 @@
 use super::{ndks_boot, utils::*};
-use crate::{println, config::*, BIT, IS_ALIGNED, utils::MAX_FREE_INDEX, MASK, kernel::vspace::pptr_to_paddr,
+use crate::{config::*, utils::MAX_FREE_INDEX,
     structures::{region_t, p_region_t, seL4_SlotRegion, seL4_SlotPos, seL4_UntypedDesc}};
 
-use common::sel4_config::{seL4_MaxUntypedBits, seL4_MinUntypedBits};
+use common::{sel4_config::{seL4_MaxUntypedBits, seL4_MinUntypedBits}, MASK, BIT, IS_ALIGNED};
 use cspace::interface::*;
+use log::debug;
+use vspace::*;
 
 pub fn create_untypeds(root_cnode_cap: &cap_t, boot_mem_reuse_reg: region_t) -> bool {
     unsafe {
@@ -15,7 +17,7 @@ pub fn create_untypeds(root_cnode_cap: &cap_t, boot_mem_reuse_reg: region_t) -> 
                 end: ndks_boot.reserved[i].start,
             });
             if !create_untypeds_for_region(root_cnode_cap, true, reg.clone(), first_untyped_slot) {
-                println!(
+                debug!(
                     "ERROR: creation of untypeds for device region {} at
                        [{}..{}] failed\n",
                     i, reg.start, reg.end
@@ -31,7 +33,7 @@ pub fn create_untypeds(root_cnode_cap: &cap_t, boot_mem_reuse_reg: region_t) -> 
                 end: CONFIG_PADDR_USER_DEVICE_TOP,
             });
             if !create_untypeds_for_region(root_cnode_cap, true, reg.clone(), first_untyped_slot) {
-                println!(
+                debug!(
                     "ERROR: creation of untypeds for top device region 
                        [{}..{}] failed\n",
                     reg.start, reg.end
@@ -45,7 +47,7 @@ pub fn create_untypeds(root_cnode_cap: &cap_t, boot_mem_reuse_reg: region_t) -> 
             boot_mem_reuse_reg,
             first_untyped_slot,
         ) {
-            println!(
+            debug!(
                 "ERROR: creation of untypeds for recycled boot memory
                    [{}..{}] failed\n",
                 boot_mem_reuse_reg.start, boot_mem_reuse_reg.end
@@ -57,7 +59,7 @@ pub fn create_untypeds(root_cnode_cap: &cap_t, boot_mem_reuse_reg: region_t) -> 
             let reg = ndks_boot.freemem[i];
             ndks_boot.freemem[i] = region_t { start: 0, end: 0 };
             if !create_untypeds_for_region(root_cnode_cap, false, reg, first_untyped_slot) {
-                println!(
+                debug!(
                     "ERROR: creation of untypeds for free memory region :{} at
                 [{}..{}] failed\n",
                     i, reg.start, reg.end
@@ -79,7 +81,7 @@ fn create_untypeds_for_region(
     mut reg: region_t,
     first_untyped_slot: seL4_SlotPos,
 ) -> bool {
-    // println!("{:#x} {:#x}", reg.start, reg.end);
+    // debug!("{:#x} {:#x}", reg.start, reg.end);
     while !is_reg_empty(&reg) {
         let mut size_bits = seL4_WordBits - 1 - (reg.end - reg.start).leading_zeros() as usize;
         if size_bits > seL4_MaxUntypedBits {
@@ -103,7 +105,7 @@ fn create_untypeds_for_region(
             }
         }
         reg.start += BIT!(size_bits);
-        // println!("start :{:#x} end:{:#x}",reg.start ,reg.end);
+        // debug!("start :{:#x} end:{:#x}",reg.start ,reg.end);
     }
     return true;
 }
@@ -116,12 +118,12 @@ fn provide_untyped_cap(
     first_untyped_slot: seL4_SlotPos,
 ) -> bool {
     if size_bits > seL4_MaxUntypedBits || size_bits < seL4_MinUntypedBits {
-        println!("Kernel init: Invalid untyped size {}", size_bits);
+        debug!("Kernel init: Invalid untyped size {}", size_bits);
         return false;
     }
 
     if !IS_ALIGNED!(pptr, size_bits) {
-        println!(
+        debug!(
             "Kernel init: Unaligned untyped pptr {} (alignment {})",
             pptr, size_bits
         );
@@ -129,7 +131,7 @@ fn provide_untyped_cap(
     }
 
     if !device_memory && !pptr_in_kernel_window(pptr) {
-        println!(
+        debug!(
             "Kernel init: Non-device untyped pptr {} outside kernel window",
             pptr
         );
@@ -137,7 +139,7 @@ fn provide_untyped_cap(
     }
 
     if !device_memory && !pptr_in_kernel_window(pptr + MASK!(size_bits)) {
-        println!(
+        debug!(
             "Kernel init: End of non-device untyped at {} outside kernel window (size {})",
             pptr, size_bits
         );
@@ -161,7 +163,7 @@ fn provide_untyped_cap(
             );
             ret = provide_cap(root_cnode_cap, ut_cap.clone());
         } else {
-            println!("Kernel init: Too many untyped regions for boot info");
+            debug!("Kernel init: Too many untyped regions for boot info");
             ret = true
         }
     }

@@ -1,17 +1,20 @@
 
 use common::structures::exception_t;
 
-use crate::cte::{cte_insert, cte_move, cte_swap, cap_removable, insert_new_cap};
+use crate::cte::insert_new_cap;
 
-use super::cap::{is_cap_revocable, same_object_as};
-
-pub use crate::cte::cte_t;
+pub use crate::cap_rights::seL4_CapRights_t;
+pub use crate::cte::{};
 pub use crate::mdb::mdb_node_t;
-pub use crate::cap::cap_t;
+pub use crate::cap::{cap_t, same_object_as, updateCapData};
 pub use crate::cap::CapTag;
 
-pub use super::cte::deriveCap_ret;
+pub use super::structures::finaliseCap_ret;
+pub use super::cte::{deriveCap_ret, resolve_address_bits, cteDelete, cteDeleteOne, cteRevoke, cte_insert, cte_t, cte_move, cte_swap};
 pub use super::cap::null::cap_null_cap_new;
+
+pub use crate::cap_rights::rightsFromWord;
+
 pub use super::cap::untyped::{
     cap_untyped_cap_get_capBlockSize, cap_untyped_cap_get_capFreeIndex, cap_untyped_cap_get_capIsDevice,
     cap_untyped_cap_get_capPtr, cap_untyped_cap_new, cap_untyped_cap_ptr_set_capFreeIndex, cap_untyped_cap_set_capFreeIndex,
@@ -19,15 +22,12 @@ pub use super::cap::untyped::{
 
 pub use super::cap::endpoint::{
     cap_endpoint_cap_get_capCanGrant, cap_endpoint_cap_get_capCanGrantReply, cap_endpoint_cap_get_capCanReceive,
-    cap_endpoint_cap_get_capCanSend, cap_endpoint_cap_get_capEPBadge, cap_endpoint_cap_get_capEPPtr, cap_endpoint_cap_new,
-    cap_endpoint_cap_set_capCanGrant, cap_endpoint_cap_set_capCanGrantReply, cap_endpoint_cap_set_capCanReceive,
-    cap_endpoint_cap_set_capCanSend, cap_endpoint_cap_set_capEPBadge
+    cap_endpoint_cap_get_capCanSend, cap_endpoint_cap_get_capEPBadge, cap_endpoint_cap_get_capEPPtr,
 };
 
 pub use super::cap::zombie::{
-    cap_zombie_cap_get_capZombieID, cap_zombie_cap_get_capZombieType, cap_zombie_cap_new, cap_zombie_cap_set_capZombieID,
-    cap_zombie_cap_get_capZombieBits, cap_zombie_cap_get_capZombieNumber, cap_zombie_cap_get_capZombiePtr, Zombie_new,
-    cap_zombie_cap_set_capZombieNumber, ZombieType_ZombieTCB
+    Zombie_new,
+    ZombieType_ZombieTCB
 };
 
 pub use super::cap::page_table::{
@@ -66,11 +66,10 @@ pub use super::cap::notification::{
 };
 
 pub use super::cap::cnode::{
-    cap_cnode_cap_get_capCNodeGuard, cap_cnode_cap_get_capCNodeGuardSize, cap_cnode_cap_get_capCNodePtr,
-    cap_cnode_cap_get_capCNodeRadix, cap_cnode_cap_new, cap_cnode_cap_set_capCNodeGuard, cap_cnode_cap_set_capCNodeGuardSize
+    cap_cnode_cap_get_capCNodePtr,
+    cap_cnode_cap_get_capCNodeRadix, cap_cnode_cap_new
 };
 
-pub use super::cap::irq_control::cap_irq_control_cap_new;
 
 pub use super::cap::irq_handler::{
     cap_irq_handler_cap_get_capIRQ, cap_irq_handler_cap_new
@@ -95,77 +94,19 @@ pub const cap_asid_pool_cap: usize = CapTag::CapASIDPoolCap as usize;
 
 
 #[inline]
-pub fn mdb_node_new(mdbNext: usize, mdbRevocable: usize, mdbFirstBadged: usize, mdbPrev: usize) -> mdb_node_t {
-    mdb_node_t::new(mdbNext, mdbRevocable, mdbFirstBadged, mdbPrev)
-}
-
-#[inline]
-pub fn mdb_node_get_mdbNext(mdb_node: &mdb_node_t) -> usize {
-    mdb_node.get_next()
-}
-
-#[inline]
-pub fn mdb_node_ptr_set_mdbNext(mdb_node: &mut mdb_node_t, v64: usize) {
-    mdb_node.set_next(v64)
-}
-
-#[inline]
-pub fn mdb_node_get_mdbRevocable(mdb_node: &mdb_node_t) -> usize {
-    mdb_node.get_revocable()
-}
-
-#[inline]
-pub fn mdb_node_get_mdbFirstBadged(mdb_node: &mdb_node_t) -> usize {
-    mdb_node.get_first_badged()
-}
-
-#[inline]
-pub fn mdb_node_set_mdbRevocable(mdb_node: &mut mdb_node_t, v64: usize) {
-    mdb_node.set_revocable(v64)
-}
-
-#[inline]
-pub fn mdb_node_set_mdbFirstBadged(mdb_node: &mut mdb_node_t, v64: usize) {
-    mdb_node.set_first_badged(v64)
-}
-
-#[inline]
-pub fn mdb_node_get_mdbPrev(mdb_node: &mdb_node_t) -> usize {
-    mdb_node.get_prev()
-}
-
-#[inline]
-pub fn mdb_node_set_mdbPrev(mdb_node: &mut mdb_node_t, v64: usize) {
-    mdb_node.set_prev(v64)
-}
-
-#[inline]
-pub fn mdb_node_ptr_set_mdbPrev(mdb_node: &mut mdb_node_t, v64: usize) {
-    mdb_node.set_prev(v64)
-}
-
-#[inline]
 pub fn cap_get_capType(cap: &cap_t) -> usize {
     cap.get_cap_type() as usize
 }
 
-pub fn cap_get_capPtr(cap: &cap_t) -> usize {
-    cap.get_cap_ptr()
-}
 
 #[inline]
-pub fn isArchCap(cap: &cap_t) -> bool {
-    cap.isArchCap()
-}
-
-
-#[no_mangle]
 pub fn ensureNoChildren(slot: *mut cte_t) -> exception_t {
     unsafe {
         (& *slot).ensure_no_children()
     }
 }
 
+#[inline]
 #[no_mangle]
 pub fn isMDBParentOf(cte1: *mut cte_t, cte2: *mut cte_t) -> bool {
     unsafe {
@@ -173,33 +114,14 @@ pub fn isMDBParentOf(cte1: *mut cte_t, cte2: *mut cte_t) -> bool {
     }
 }
 
-#[no_mangle]
-pub fn isFinalCapability(cte: *mut cte_t) -> bool {
-    unsafe {
-        (& *cte).is_final_cap()
-    }
-}
-
-
-#[no_mangle]
-pub fn slotCapLongRunningDelete(slot: *mut cte_t) -> bool {
-    unsafe {
-        (& *slot).is_long_running_delete()
-    }
-}
-
-pub fn isCapRevocable(_derivedCap: &cap_t, _srcCap: &cap_t) -> bool {
-    is_cap_revocable(_derivedCap, _srcCap)
-}
-
-
-#[no_mangle]
+#[inline]
 pub fn cteInsert(newCap: &cap_t, srcSlot: *mut cte_t, destSlot: *mut cte_t) {
     unsafe {
         cte_insert(newCap, &mut *srcSlot, &mut *destSlot)
     }
 }
 
+#[inline]
 #[no_mangle]
 pub fn deriveCap(slot: *mut cte_t, cap: &cap_t) -> deriveCap_ret {
     unsafe {
@@ -207,37 +129,11 @@ pub fn deriveCap(slot: *mut cte_t, cap: &cap_t) -> deriveCap_ret {
     }
 }
 
-#[no_mangle]
-pub fn cteMove(_newCap: &cap_t, srcSlot: *mut cte_t, destSlot: *mut cte_t) {
-    unsafe {
-        cte_move(_newCap, &mut *srcSlot, &mut *destSlot)
-    }
-}
-
-#[no_mangle]
-pub fn cteSwap(cap1: &cap_t, slot1: *mut cte_t, cap2: &cap_t, slot2: *mut cte_t) {
-    unsafe {
-        cte_swap(cap1, &mut *slot1, cap2, &mut *slot2)
-    }
-}
-
-
 #[inline]
-#[no_mangle]
-pub fn capRemovable(cap: &cap_t, slot: *mut cte_t) -> bool {
-    cap_removable(cap, slot)
-}
-
-
-#[no_mangle]
 pub fn insertNewCap(parent: *mut cte_t, slot: *mut cte_t, cap: &cap_t) {
     unsafe {
         insert_new_cap(&mut *parent, &mut *slot, cap)
     }
-}
-
-pub fn sameObjectAs(cap_a: &cap_t, cap_b: &cap_t) -> bool {
-    same_object_as(cap_a, cap_b)
 }
 
 #[inline]
