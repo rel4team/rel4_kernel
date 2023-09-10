@@ -5,7 +5,7 @@ use crate::{
     object::tcb::{
         copyMRs, lookupExtraCaps
     },
-    structures::cap_transfer_t, syscall::getSyscallArg,
+    structures::cap_transfer_t,
 };
 
 use task_manager::*;
@@ -27,7 +27,6 @@ use super::{
 
 use common::{structures::{exception_t, seL4_Fault_get_seL4_FaultType}, BIT, sel4_config::*};
 use cspace::interface::*;
-use log::debug;
 
 #[no_mangle]
 pub static mut kernel_stack_alloc: [[u8; BIT!(CONFIG_KERNEL_STACK_BITS)]; CONFIG_MAX_NUM_NODES] =
@@ -58,58 +57,6 @@ pub fn idle_thread() {
         }
     }
 }
-
-#[no_mangle]
-pub fn decodeDomainInvocation(invLabel: MessageLabel, length: usize, buffer: *mut usize) -> exception_t {
-    if invLabel != MessageLabel::DomainSetSet {
-        unsafe {
-            current_syscall_error._type = seL4_IllegalOperation;
-            return exception_t::EXCEPTION_SYSCALL_ERROR;
-        }
-    }
-    let domain: usize;
-    if length == 0 {
-        debug!("Domain Configure: Truncated message.");
-        unsafe {
-            current_syscall_error._type = seL4_TruncatedMessage;
-            return exception_t::EXCEPTION_SYSCALL_ERROR;
-        }
-    } else {
-        domain = getSyscallArg(0, buffer);
-        if domain >= 1 {
-            debug!("Domain Configure: invalid domain ({} >= 1).", domain);
-            unsafe {
-                current_syscall_error._type = seL4_InvalidArgument;
-                current_syscall_error.invalidArgumentNumber = 0;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
-        }
-    }
-    unsafe {
-        if current_extra_caps.excaprefs[0] as usize == 0 {
-            debug!("Domain Configure: Truncated message.");
-            current_syscall_error._type = seL4_TruncatedMessage;
-            return exception_t::EXCEPTION_SYSCALL_ERROR;
-        }
-    }
-    let tcap = unsafe { &(*current_extra_caps.excaprefs[0]).cap };
-    if unlikely(cap_get_capType(tcap) != cap_thread_cap) {
-        debug!("Domain Configure: thread cap required.");
-        unsafe {
-            current_syscall_error._type = seL4_InvalidArgument;
-            current_syscall_error.invalidArgumentNumber = 1;
-            return exception_t::EXCEPTION_SYSCALL_ERROR;
-        }
-    }
-    unsafe {
-        setThreadState(ksCurThread, ThreadStateRestart);
-        setDomain(cap_thread_cap_get_capTCBPtr(tcap) as *mut tcb_t, domain);
-    }
-    exception_t::EXCEPTION_NONE
-}
-
-
-
 
 #[no_mangle]
 pub fn configureIdleThread(_tcb: *const tcb_t) {

@@ -362,7 +362,7 @@ fn init_irqs(root_cnode_cap: &cap_t) {
     setIRQState(IRQTimer, KERNEL_TIMER_IRQ);
     unsafe {
         let ptr = root_cnode_cap.get_cap_ptr() as *mut cte_t;
-        write_slot(ptr.add(seL4_CapIRQControl), cap_irq_control_cap_new());
+        write_slot(ptr.add(seL4_CapIRQControl), cap_t::new_irq_control_cap());
     }
 }
 

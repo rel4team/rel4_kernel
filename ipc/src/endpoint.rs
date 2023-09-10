@@ -1,4 +1,5 @@
-use task_manager::{tcb_queue_t, tcb_t, ThreadState, set_thread_state};
+use common::utils::convert_to_mut_type_ref;
+use task_manager::{tcb_queue_t, tcb_t, ThreadState, set_thread_state, rescheduleRequired};
 
 
 pub const EPState_Idle: usize = EPState::Idle as usize;
@@ -80,6 +81,34 @@ impl endpoint_t {
         }
         set_thread_state(tcb, ThreadState::ThreadStateInactive);
     }
+
+    pub fn cancel_badged_sends(&mut self, badge: usize) {
+        match self.get_state() {
+            EPState::Idle | EPState::Recv => {}
+            EPState::Send => {
+                let mut queue = self.get_queue();
+                self.set_state(EPState::Idle as usize);
+                self.set_queue_head(0);
+                self.set_queue_tail(0);
+                let mut thread_ptr = queue.head;
+                while thread_ptr != 0 {
+                    let thread = convert_to_mut_type_ref::<tcb_t>(thread_ptr);
+                    thread_ptr = thread.tcbEPNext;
+                    if thread.tcbState.get_blocking_ipc_badge() == badge {
+                        set_thread_state(thread, ThreadState::ThreadStateRestart);
+                        thread.sched_enqueue();
+                        queue.ep_dequeue(thread);
+                    }
+                }
+                self.set_queue(&queue);
+                if queue.head != 0 {
+                    self.set_state(EPState::Send as usize);
+                }
+                rescheduleRequired();
+            }
+        }
+    }
+
 }
 
 
@@ -138,4 +167,3 @@ pub fn ep_ptr_get_queue(epptr: *const endpoint_t) -> tcb_queue_t {
     (*epptr).get_queue()
    }
 }
-

@@ -1,5 +1,5 @@
 use common::MASK;
-pub const seL4_CapRightsBits: usize = 4;
+const seL4_CapRightsBits: usize = 4;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -43,29 +43,4 @@ impl seL4_CapRights_t {
 #[inline]
 pub fn rightsFromWord(w: usize) -> seL4_CapRights_t {
     seL4_CapRights_t::from_word(w)
-}
-
-#[inline]
-pub fn wordFromRights(rights: &seL4_CapRights_t) -> usize {
-   rights.to_word()
-}
-
-#[inline]
-pub fn seL4_CapRights_get_capAllowGrantReply(rights: &seL4_CapRights_t) -> usize {
-    rights.get_allow_grant_reply()
-}
-
-#[inline]
-pub fn seL4_CapRights_get_capAllowGrant(rights: &seL4_CapRights_t) -> usize {
-    rights.get_allow_grant()
-}
-
-#[inline]
-pub fn seL4_CapRights_get_capAllowRead(rights: &seL4_CapRights_t) -> usize {
-    rights.get_allow_read()
-}
-
-#[inline]
-pub fn seL4_CapRights_get_capAllowWrite(rights: &seL4_CapRights_t) -> usize {
-    rights.get_allow_write()
 }

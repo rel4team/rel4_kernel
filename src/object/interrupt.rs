@@ -13,15 +13,12 @@ use crate::{
         thread::getExtraCPtr,
     },
     riscv::{read_sip, resetTimer},
-    syscall::getSyscallArg,
+    syscall::{getSyscallArg, ensureEmptySlot},
 };
 
 use common::message_info::*;
 
-use super::{
-    cap::ensureEmptySlot,
-    notification::sendSignal,
-};
+use super::notification::sendSignal;
 
 use common::{structures::exception_t, BIT, sel4_config::*};
 use cspace::interface::*;

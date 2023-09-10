@@ -1,19 +1,21 @@
 mod decode_tcb_invocation;
+mod decode_domain_invocation;
+mod decode_cnode_invocation;
 
 use core::intrinsics::unlikely;
 
-use common::{structures::exception_t, sel4_config::seL4_InvalidCapability, utils::convert_to_mut_type_ref, message_info::MessageLabel};
+use common::{structures::{exception_t, seL4_IPCBuffer}, sel4_config::seL4_InvalidCapability, utils::{convert_to_mut_type_ref, convert_to_option_type_ref}, message_info::MessageLabel};
 use cspace::interface::{cte_t, cap_t, CapTag};
 use ipc::{endpoint_t, notification_t};
 use log::debug;
 use task_manager::{set_thread_state, get_currenct_thread, ThreadState, tcb_t};
 
-use crate::{kernel::{boot::current_syscall_error, thread::decodeDomainInvocation, vspace::decodeRISCVMMUInvocation}, 
+use crate::{kernel::{boot::current_syscall_error, vspace::decodeRISCVMMUInvocation}, 
     object::{endpoint::performInvocation_Endpoint, notification::performInvocation_Notification, 
-        objecttype::performInvocation_Reply, cap::decodeCNodeInvocation, untyped::decodeUntypedInvocation, 
+        objecttype::performInvocation_Reply, untyped::decodeUntypedInvocation, 
         interrupt::{decodeIRQControlInvocation, decodeIRQHandlerInvocation}}};
 
-use self::decode_tcb_invocation::decodeTCBInvocation;
+use self::{decode_tcb_invocation::decode_tcb_invocation, decode_domain_invocation::decode_domain_invocation, decode_cnode_invocation::decode_cnode_invocation};
 
 
 #[no_mangle]
@@ -33,8 +35,8 @@ pub fn decodeInvocation(
             unsafe {
                 current_syscall_error._type = seL4_InvalidCapability;
                 current_syscall_error.invalidCapNumber = 0;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
             }
+            return exception_t::EXCEPTION_SYSCALL_ERROR;
         }
 
         CapTag::CapEndpointCap => {
@@ -43,8 +45,8 @@ pub fn decodeInvocation(
                 unsafe {
                     current_syscall_error._type = seL4_InvalidCapability;
                     current_syscall_error.invalidCapNumber = 0;
-                    return exception_t::EXCEPTION_SYSCALL_ERROR;
                 }
+                return exception_t::EXCEPTION_SYSCALL_ERROR;
             }
             set_thread_state(get_currenct_thread(), ThreadState::ThreadStateRestart);
             return performInvocation_Endpoint(
@@ -66,8 +68,8 @@ pub fn decodeInvocation(
                 unsafe {
                     current_syscall_error._type = seL4_InvalidCapability;
                     current_syscall_error.invalidCapNumber = 0;
-                    return exception_t::EXCEPTION_SYSCALL_ERROR;
                 }
+                return exception_t::EXCEPTION_SYSCALL_ERROR;
             }
             set_thread_state(get_currenct_thread(), ThreadState::ThreadStateRestart);
             return performInvocation_Notification(
@@ -92,9 +94,9 @@ pub fn decodeInvocation(
                 cap.get_reply_can_grant() != 0,
             );
         }
-        CapTag::CapThreadCap => decodeTCBInvocation(invLabel, length, cap, slot, call, buffer),
-        CapTag::CapDomainCap => decodeDomainInvocation(invLabel, length, buffer),
-        CapTag::CapCNodeCap => decodeCNodeInvocation(invLabel, length, cap, buffer),
+        CapTag::CapThreadCap => decode_tcb_invocation(invLabel, length, cap, unsafe { &mut *slot }, call, convert_to_option_type_ref::<seL4_IPCBuffer>(buffer as usize)),
+        CapTag::CapDomainCap => decode_domain_invocation(invLabel, length, convert_to_option_type_ref::<seL4_IPCBuffer>(buffer as usize)),
+        CapTag::CapCNodeCap => decode_cnode_invocation(invLabel, length, cap, convert_to_option_type_ref::<seL4_IPCBuffer>(buffer as usize)),
         CapTag::CapUntypedCap => decodeUntypedInvocation(invLabel, length, slot, cap, call, buffer),
         CapTag::CapIrqControlCap => decodeIRQControlInvocation(invLabel, length, slot, buffer),
         CapTag::CapIrqHandlerCap => {

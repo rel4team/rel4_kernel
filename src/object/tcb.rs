@@ -5,19 +5,16 @@ use crate::{
         msgRegister, n_msgRegisters,
     },
     kernel::{
-        boot::{current_extra_caps, current_syscall_error},
+        boot::current_extra_caps,
         thread::getExtraCPtr,
     },
-    syscall::{getSyscallArg, bindNotification, unbindNotification},
 };
 
 use common::message_info::*;
 use task_manager::*;
-use ipc::*;
 
 use common::{structures::{exception_t, seL4_IPCBuffer}, sel4_config::*};
 use cspace::interface::*;
-use log::debug;
 
 #[no_mangle]
 pub fn lookupExtraCaps(
@@ -110,111 +107,4 @@ pub fn copyMRs(
         }
     }
     i
-}
-
-#[no_mangle]
-pub fn decodeBindNotification(cap: &cap_t) -> exception_t {
-    unsafe {
-        if current_extra_caps.excaprefs[0] as usize == 0 {
-            debug!("TCB BindNotification: Truncated message.");
-            current_syscall_error._type = seL4_TruncatedMessage;
-            return exception_t::EXCEPTION_SYSCALL_ERROR;
-        }
-    }
-
-    let tcb = cap_thread_cap_get_capTCBPtr(cap) as *mut tcb_t;
-    let ntfnPtr: *mut notification_t;
-    unsafe {
-        if (*tcb).tcbBoundNotification != 0 {
-            debug!("TCB BindNotification: TCB already has a bound notification.");
-            current_syscall_error._type = seL4_IllegalOperation;
-            return exception_t::EXCEPTION_SYSCALL_ERROR;
-        }
-    }
-    let ntfn_cap: &cap_t;
-    unsafe {
-        ntfn_cap = &(*current_extra_caps.excaprefs[0]).cap;
-    }
-    if cap_get_capType(ntfn_cap) == cap_notification_cap {
-        ntfnPtr = cap_notification_cap_get_capNtfnPtr(ntfn_cap) as *mut notification_t;
-    } else {
-        debug!("TCB BindNotification: Notification is invalid.");
-        unsafe {
-            current_syscall_error._type = seL4_IllegalOperation;
-            return exception_t::EXCEPTION_SYSCALL_ERROR;
-        }
-    }
-    if cap_notification_cap_get_capNtfnCanReceive(ntfn_cap) == 0 {
-        debug!("TCB BindNotification: Insufficient access rights");
-        unsafe {
-            current_syscall_error._type = seL4_IllegalOperation;
-            return exception_t::EXCEPTION_SYSCALL_ERROR;
-        }
-    }
-
-    if notification_ptr_get_ntfnQueue_head(ntfnPtr) != 0
-        || notification_ptr_get_ntfnQueue_tail(ntfnPtr) != 0
-    {
-        debug!("TCB BindNotification: Notification cannot be bound.");
-        unsafe {
-            current_syscall_error._type = seL4_IllegalOperation;
-            return exception_t::EXCEPTION_SYSCALL_ERROR;
-        }
-    }
-    unsafe {
-        setThreadState(ksCurThread as *mut tcb_t, ThreadStateRestart);
-    }
-    invokeTCB_NotificationControl(tcb, ntfnPtr)
-}
-
-#[no_mangle]
-pub fn invokeTCB_NotificationControl(tcb: *mut tcb_t, ntfnPtr: *mut notification_t) -> exception_t {
-    if ntfnPtr as usize != 0 {
-        bindNotification(tcb, ntfnPtr);
-    } else {
-        unbindNotification(tcb);
-    }
-    exception_t::EXCEPTION_NONE
-}
-
-#[no_mangle]
-pub fn decodeUnbindNotification(cap: &cap_t) -> exception_t {
-    let tcb = cap_thread_cap_get_capTCBPtr(cap) as *mut tcb_t;
-    unsafe {
-        if (*tcb).tcbBoundNotification == 0 {
-            debug!("TCB BindNotification: TCB already has a bound notification.");
-            current_syscall_error._type = seL4_IllegalOperation;
-            return exception_t::EXCEPTION_SYSCALL_ERROR;
-        }
-
-        setThreadState(ksCurThread as *mut tcb_t, ThreadStateRestart);
-    }
-    invokeTCB_NotificationControl(tcb, 0 as *mut notification_t)
-}
-
-#[no_mangle]
-pub fn invokeSetTLSBase(thread: *mut tcb_t, base: usize) -> exception_t {
-    setRegister(thread, TLS_BASE, base);
-    unsafe {
-        if thread == ksCurThread {
-            rescheduleRequired();
-        }
-    }
-    exception_t::EXCEPTION_NONE
-}
-
-#[no_mangle]
-pub fn decodeSetTLSBase(cap: &cap_t, length: usize, buffer: *mut usize) -> exception_t {
-    if length < 1 {
-        debug!("TCB SetTLSBase: Truncated message.");
-        unsafe {
-            current_syscall_error._type = seL4_TruncatedMessage;
-            return exception_t::EXCEPTION_SYSCALL_ERROR;
-        }
-    }
-    let base = getSyscallArg(0, buffer);
-    unsafe {
-        setThreadState(ksCurThread, ThreadStateRestart);
-    }
-    invokeSetTLSBase(cap_thread_cap_get_capTCBPtr(cap) as *mut tcb_t, base)
 }

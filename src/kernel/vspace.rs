@@ -6,6 +6,7 @@ use common::{BIT, MASK};
 use common::{structures::exception_t, sel4_config::*};
 use log::debug;
 use vspace::*;
+use crate::syscall::ensureEmptySlot;
 use crate::{
     config::{
         badgeRegister,
@@ -14,7 +15,6 @@ use crate::{
         RISCVStoreAccessFault, RISCVStorePageFault, USER_TOP,
     },
     kernel::boot::current_syscall_error,
-    object::cap::ensureEmptySlot,
     riscv::read_stval,
     syscall::getSyscallArg,
     utils::MAX_FREE_INDEX,
@@ -125,10 +125,6 @@ pub fn deleteASID(asid: asid_t, vspace: *mut pte_t) {
     }
 }
 
-#[no_mangle]
-pub fn isValidVTableRoot(cap: &cap_t) -> bool {
-    cap_get_capType(cap) == cap_page_table_cap && cap_page_table_cap_get_capPTIsMapped(cap) != 0
-}
 
 #[no_mangle]
 pub fn performPageInvocationUnmap(cap: &cap_t, ctSlot: *mut cte_t) -> exception_t {

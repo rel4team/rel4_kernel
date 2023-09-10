@@ -28,10 +28,10 @@ pub fn lookup_fp(_cap: &cap_t, cptr: usize) -> cap_t {
         return cap_null_cap_new();
     }
     loop {
-        guardBits = cap_cnode_cap_get_capCNodeGuardSize(&cap);
+        guardBits = cap.get_cnode_guard_size();
         radixBits = cap_cnode_cap_get_capCNodeRadix(&cap);
         cptr2 = cptr << bits;
-        capGuard = cap_cnode_cap_get_capCNodeGuard(&cap);
+        capGuard = cap.get_cnode_guard();
         if likely(guardBits != 0) && unlikely(cptr2 >> (wordBits - guardBits) != capGuard) {
             return cap_null_cap_new();
         }
@@ -360,10 +360,10 @@ pub fn fastpath_reply_recv(cptr: usize, msgInfo: usize) {
     }
 
     unsafe {
-        let node = mdb_node_get_mdbPrev(&(*callerSlot).cteMDBNode) as *mut cte_t;
+        let node = (*callerSlot).cteMDBNode.get_prev() as *mut cte_t;
         mdb_node_ptr_mset_mdbNext_mdbRevocable_mdbFirstBadged(&mut (*node).cteMDBNode, 0, 1, 1);
         (*callerSlot).cap = cap_null_cap_new();
-        (*callerSlot).cteMDBNode = mdb_node_new(0, 0, 0, 0);
+        (*callerSlot).cteMDBNode = mdb_node_t::new(0, 0, 0, 0);
         fastpath_copy_mrs(length, ksCurThread, caller);
 
         thread_state_ptr_set_tsType_np(&mut (*caller).tcbState, ThreadStateRunning);

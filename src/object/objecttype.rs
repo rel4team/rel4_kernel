@@ -11,9 +11,7 @@ use crate::{
         thread::{
             doReplyTransfer, Arch_initContext,
         },
-        transfermsg::{
-            vmRighsFromWord, wordFromVMRights,
-        },
+        transfermsg::wordFromVMRights,
         vspace::{
             deleteASID, deleteASIDPool,
         },
@@ -209,66 +207,6 @@ pub fn post_cap_deletion(cap: &cap_t) {
         setIRQState(IRQInactive, irq);
     }
 }
-// #[no_mangle]
-pub fn maskCapRights(rights: seL4_CapRights_t, _cap: &cap_t) -> cap_t {
-    match cap_get_capType(_cap) {
-        cap_null_cap | cap_domain_cap | cap_cnode_cap | cap_untyped_cap | cap_irq_control_cap
-        | cap_irq_handler_cap | cap_zombie_cap | cap_thread_cap | cap_page_table_cap
-        | cap_asid_control_cap | cap_asid_pool_cap => _cap.clone(),
-        cap_endpoint_cap => {
-            let cap = &mut _cap.clone();
-            cap_endpoint_cap_set_capCanSend(
-                cap,
-                cap_endpoint_cap_get_capCanSend(cap) & seL4_CapRights_get_capAllowWrite(&rights),
-            );
-            cap_endpoint_cap_set_capCanReceive(
-                cap,
-                cap_endpoint_cap_get_capCanReceive(cap) & seL4_CapRights_get_capAllowRead(&rights),
-            );
-            cap_endpoint_cap_set_capCanGrant(
-                cap,
-                cap_endpoint_cap_get_capCanGrant(cap) & seL4_CapRights_get_capAllowGrant(&rights),
-            );
-            cap_endpoint_cap_set_capCanGrantReply(
-                cap,
-                cap_endpoint_cap_get_capCanGrantReply(cap)
-                    & seL4_CapRights_get_capAllowGrantReply(&rights),
-            );
-            cap.clone()
-        }
-        cap_notification_cap => {
-            let cap = &mut _cap.clone();
-            cap_notification_cap_set_capNtfnCanSend(
-                cap,
-                cap_notification_cap_get_capNtfnCanSend(cap)
-                    & seL4_CapRights_get_capAllowWrite(&rights),
-            );
-            cap_notification_cap_set_capNtfnCanReceive(
-                cap,
-                cap_notification_cap_get_capNtfnCanReceive(cap)
-                    & seL4_CapRights_get_capAllowRead(&rights),
-            );
-            cap.clone()
-        }
-        cap_reply_cap => {
-            let cap = &mut _cap.clone();
-            cap_reply_cap_set_capReplyCanGrant(
-                cap,
-                cap_reply_cap_get_capReplyCanGrant(cap) & seL4_CapRights_get_capAllowGrant(&rights),
-            );
-            cap.clone()
-        }
-        cap_frame_cap => {
-            let cap = &mut _cap.clone();
-            let mut vm_rights = vmRighsFromWord(cap_frame_cap_get_capFVMRights(cap));
-            vm_rights = maskVMRights(vm_rights, rights);
-            cap_frame_cap_set_capFVMRights(cap, wordFromVMRights(vm_rights));
-            cap.clone()
-        }
-
-        _ => panic!("Invalid cap!"),
-    }
-}
 
 pub fn hasCancelSendRight(cap: &cap_t) -> bool {
     match cap_get_capType(cap) {
@@ -300,7 +238,7 @@ pub fn createObject(
             }
             return cap_thread_cap_new(tcb as usize);
         }
-        seL4_EndpointObject => cap_endpoint_cap_new(0, 1, 1, 1, 1, regionBase as usize),
+        seL4_EndpointObject => cap_t::new_endpoint_cap(0, 1, 1, 1, 1, regionBase as usize),
         seL4_NotificationObject => cap_notification_cap_new(0, 1, 1, regionBase as usize),
         seL4_CapTableObject => cap_cnode_cap_new(userSize, 0, 0, regionBase as usize),
         seL4_UntypedObject => {

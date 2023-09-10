@@ -1,7 +1,7 @@
 mod decode;
 mod invoke_tcb;
+mod invoke_cnode;
 
-pub use invoke_tcb::invokeTCB_ThreadControl;
 use core::intrinsics::unlikely;
 
 use common::{structures::{exception_t, seL4_Fault_CapFault_new}, message_info::seL4_MessageInfo_t};

@@ -1,3 +1,4 @@
+use common::utils::convert_to_mut_type_ref;
 use task_manager::{tcb_queue_t, tcb_t, set_thread_state, ThreadState};
 
 pub enum NtfnState {
@@ -129,6 +130,15 @@ impl notification_t {
     #[inline]
     pub fn unbind_tcb(&mut self) {
         self.set_bound_tcb(0);
+    }
+
+    #[inline]
+    pub fn safe_unbind_tcb(&mut self) {
+        let tcb = self.get_bound_tcb();
+        self.unbind_tcb();
+        if tcb as usize != 0 {
+            convert_to_mut_type_ref::<tcb_t>(tcb).unbind_notification();
+        }
     }
 
     #[inline]

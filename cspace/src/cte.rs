@@ -21,6 +21,9 @@ pub struct cte_t {
 }
 
 impl cte_t {
+    pub fn get_ptr(&self) -> usize {
+        self as *const cte_t as usize
+    }
     pub fn derive_cap(&mut self, cap: &cap_t) -> deriveCap_ret {
         if cap.isArchCap() {
             return self.arch_derive_cap(cap);

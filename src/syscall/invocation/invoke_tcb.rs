@@ -1,9 +1,9 @@
-use common::{structures::{exception_t, seL4_IPCBuffer}, message_info::seL4_MessageInfo_t, sel4_config::{tcbCTable, tcbVTable, tcbBuffer}, utils::convert_to_option_mut_type_ref};
+use common::{structures::{exception_t, seL4_IPCBuffer}, message_info::seL4_MessageInfo_t, sel4_config::{tcbCTable, tcbVTable, tcbBuffer}};
 use cspace::interface::{cap_t, cte_t, same_object_as, cte_insert};
-use ipc::cancel_ipc;
-use task_manager::{tcb_t, badgeRegister, msgInfoRegister, get_currenct_thread, set_thread_state, ThreadState, FaultIP, NextIP, rescheduleRequired};
+use ipc::{cancel_ipc, notification_t};
+use task_manager::{tcb_t, badgeRegister, msgInfoRegister, get_currenct_thread, set_thread_state, ThreadState, FaultIP, NextIP, rescheduleRequired, TLS_BASE};
 
-use crate::{config::{n_frameRegisters, n_msgRegisters, msgRegister, frameRegisters, n_gpRegisters, gpRegisters, thread_control_update_mcp, thread_control_update_space, thread_control_update_ipc_buffer, thread_control_update_priority}, syscall::utils::get_syscall_arg};
+use crate::{config::{n_frameRegisters, n_msgRegisters, msgRegister, frameRegisters, n_gpRegisters, gpRegisters}, syscall::{utils::get_syscall_arg, do_bind_notification, safe_unbind_notification}};
 
 pub fn invoke_tcb_read_registers(src: &mut tcb_t, suspend_source: usize, n: usize, _arch: usize, call: bool) -> exception_t {
     let thread = get_currenct_thread();
@@ -96,98 +96,92 @@ pub fn invoke_tcb_copy_registers(dest: &mut tcb_t, src: &mut tcb_t, suspendSourc
     exception_t::EXCEPTION_NONE
 }
 
+#[inline]
 pub fn invoke_tcb_suspend(thread: &mut tcb_t) -> exception_t {
     cancel_ipc(thread);
     thread.suspend();
     exception_t::EXCEPTION_NONE
 }
 
+#[inline]
 pub fn invoke_tcb_resume(thread: &mut tcb_t) -> exception_t {
     cancel_ipc(thread);
     thread.restart();
     exception_t::EXCEPTION_NONE
 }
 
-pub fn invoke_tcb_thread_control(target: &mut tcb_t, op_slot: Option<&mut cte_t>, fault_ep: usize, mcp: usize, prio: usize, croot_new_cap: cap_t, op_croot_src_slot:Option<&mut cte_t>,
-                                vroot_new_cap: cap_t, op_vroot_src_slot: Option<&mut cte_t>, buffer_addr: usize, buffer_cap: cap_t, buffer_src_slot: Option<&mut cte_t>,
-                                update_flag: usize) -> exception_t {
+#[inline]
+pub fn invoke_tcb_set_mcp(target: &mut tcb_t, mcp: usize) -> exception_t {
+    target.set_mcp_priority(mcp);
+    exception_t::EXCEPTION_NONE
+}
+
+#[inline]
+pub fn invoke_tcb_set_priority(target: &mut tcb_t, prio: usize) -> exception_t {
+    target.set_priority(prio);
+    exception_t::EXCEPTION_NONE
+}
+
+pub fn invoke_tcb_set_space(target: &mut tcb_t, slot: &mut cte_t, fault_ep: usize,
+        croot_new_cap: cap_t, croot_src_slot: &mut cte_t, vroot_new_cap: cap_t, vroot_src_slot: &mut cte_t) -> exception_t {
     let target_cap = cap_t::new_thread_cap(target.get_ptr());
-    if update_flag & thread_control_update_mcp != 0 {
-        target.set_mcp_priority(mcp);
+    target.tcbFaultHandler = fault_ep;
+    let root_slot = target.get_cspace_mut_ref(tcbCTable);
+    let status = root_slot.delete_all(true);
+    if status != exception_t::EXCEPTION_NONE {
+        return status;
     }
-
-    if (update_flag & thread_control_update_priority) != 0 {
-        target.set_priority(prio);
+    if same_object_as(&croot_new_cap, &croot_src_slot.cap) && same_object_as(&target_cap, &slot.cap) {
+        cte_insert(&croot_new_cap, croot_src_slot, root_slot);
     }
-
-    if op_slot.is_none() {
-        return exception_t::EXCEPTION_NONE;
+    
+    let root_vslot = target.get_cspace_mut_ref(tcbVTable);
+    let status = root_vslot.delete_all(true);
+    if status != exception_t::EXCEPTION_NONE {
+        return status;
     }
-    let slot = op_slot.unwrap();
-    if update_flag & thread_control_update_space != 0 {
-        if let (Some(croot_src_slot), Some(vroot_src_slot)) = (op_croot_src_slot, op_vroot_src_slot) {
-            target.tcbFaultHandler = fault_ep;
-            let root_slot = target.get_cspace_mut_ref(tcbCTable);
-            let status = root_slot.delete_all(true);
-            if status != exception_t::EXCEPTION_NONE {
-                return status;
-            }
-            if same_object_as(&croot_new_cap, &croot_src_slot.cap) && same_object_as(&target_cap, &slot.cap) {
-                cte_insert(&croot_new_cap, croot_src_slot, root_slot);
-            }
-            
-            let root_vslot = target.get_cspace_mut_ref(tcbVTable);
-            let status = root_vslot.delete_all(true);
-            if status != exception_t::EXCEPTION_NONE {
-                return status;
-            }
-            if same_object_as(&vroot_new_cap, &vroot_src_slot.cap) && same_object_as(&target_cap, &slot.cap) {
-                cte_insert(&vroot_new_cap, vroot_src_slot, root_vslot);
-            }
-        } else {
-            panic!("Invaild arguement!")
-        }
-    }
-
-    if (update_flag & thread_control_update_ipc_buffer) != 0 {
-        let buffer_slot = target.get_cspace_mut_ref(tcbBuffer);
-        let status = buffer_slot.delete_all(true);
-        if status != exception_t::EXCEPTION_NONE {
-            return status;
-        }
-        target.tcbIPCBuffer = buffer_addr;
-        if let Some(buffer_src_slot) =  buffer_src_slot {
-            if same_object_as(&buffer_cap, &buffer_src_slot.cap) && same_object_as(&target_cap, &slot.cap) {
-                cte_insert(&buffer_cap, buffer_src_slot, buffer_slot);
-            }
-        }
-        if target.is_current() {
-            rescheduleRequired();
-        }
+    if same_object_as(&vroot_new_cap, &vroot_src_slot.cap) && same_object_as(&target_cap, &slot.cap) {
+        cte_insert(&vroot_new_cap, vroot_src_slot, root_vslot);
     }
     exception_t::EXCEPTION_NONE
 }
 
-
-#[no_mangle]
-pub fn invokeTCB_ThreadControl(
-    target: *mut tcb_t,
-    slot: *mut cte_t,
-    faultep: usize,
-    mcp: usize,
-    prio: usize,
-    cRoot_newCap: cap_t,
-    cRoot_srcSlot: *mut cte_t,
-    vRoot_newCap: cap_t,
-    vRoot_srcSlot: *mut cte_t,
-    bufferAddr: usize,
-    bufferCap: cap_t,
-    bufferSrcSlot: *mut cte_t,
-    updateFlags: usize,
-) -> exception_t {
-    unsafe {
-        invoke_tcb_thread_control(&mut *target, Some(&mut *slot), faultep, mcp, prio, cRoot_newCap, Some(&mut *cRoot_srcSlot),
-            vRoot_newCap, Some(&mut *vRoot_srcSlot), bufferAddr,
-            bufferCap, convert_to_option_mut_type_ref::<cte_t>(bufferSrcSlot as usize), updateFlags)
+pub fn invoke_tcb_set_ipc_buffer(target: &mut tcb_t, slot: &mut cte_t, buffer_addr: usize, buffer_cap: cap_t, buffer_src_slot: Option<&mut cte_t>) -> exception_t {
+    let target_cap = cap_t::new_thread_cap(target.get_ptr());
+    let buffer_slot = target.get_cspace_mut_ref(tcbBuffer);
+    let status = buffer_slot.delete_all(true);
+    if status != exception_t::EXCEPTION_NONE {
+        return status;
     }
+    target.tcbIPCBuffer = buffer_addr;
+    if let Some(buffer_src_slot) =  buffer_src_slot {
+        if same_object_as(&buffer_cap, &buffer_src_slot.cap) && same_object_as(&target_cap, &slot.cap) {
+            cte_insert(&buffer_cap, buffer_src_slot, buffer_slot);
+        }
+    }
+    if target.is_current() {
+        rescheduleRequired();
+    }
+    exception_t::EXCEPTION_NONE
+}
+
+#[inline]
+pub fn invoke_tcb_bind_notification(tcb: &mut tcb_t, ntfn: &mut notification_t) -> exception_t {
+    do_bind_notification(tcb, ntfn);
+    exception_t::EXCEPTION_NONE
+}
+
+#[inline]
+pub fn invoke_tcb_unbind_notification(tcb: &mut tcb_t) -> exception_t {
+    safe_unbind_notification(tcb);
+    exception_t::EXCEPTION_NONE
+}
+
+#[inline]
+pub fn invoke_tcb_set_tls_base(thread: &mut tcb_t, base: usize) -> exception_t {
+    thread.set_register(TLS_BASE, base);
+    if thread.is_current(){
+        rescheduleRequired();
+    }
+    exception_t::EXCEPTION_NONE
 }

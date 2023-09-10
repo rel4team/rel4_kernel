@@ -178,46 +178,6 @@ pub fn receiveIPC(thread: *mut tcb_t, cap: &cap_t, isBlocking: bool) {
 }
 
 #[no_mangle]
-pub fn cancelBadgedSends(epptr: *mut endpoint_t, badge: usize) {
-    unsafe {
-        match endpoint_ptr_get_state(epptr) {
-            EPState_Idle | EPState_Recv => {}
-            EPState_Send => {
-                let mut queue = ep_ptr_get_queue(epptr);
-                endpoint_ptr_set_state(epptr, EPState_Idle);
-                endpoint_ptr_set_epQueue_head(epptr, 0);
-                endpoint_ptr_set_epQueue_tail(epptr, 0);
-                let mut thread = queue.head;
-                while thread != 0 {
-                    let ptr = thread as *mut tcb_t;
-                    thread = (*ptr).tcbEPNext;
-                    let b = thread_state_get_blockingIPCBadge(&(*ptr).tcbState);
-
-                    if b == badge {
-                        setThreadState(ptr, ThreadStateRestart);
-                        tcbSchedEnqueue(ptr);
-                        queue = tcbEPDequeue(ptr, queue);
-                    }
-                }
-
-                ep_ptr_set_queue(epptr, queue);
-
-                if queue.head as usize != 0 {
-                    endpoint_ptr_set_state(epptr, EPState_Send);
-                }
-                rescheduleRequired();
-            }
-            _ => {
-                panic!(
-                    " unknown endpoint state in cancelBadgedSends:{}",
-                    endpoint_ptr_get_state(epptr)
-                );
-            }
-        }
-    }
-}
-
-#[no_mangle]
 pub fn replyFromKernel_error(thread: *mut tcb_t) {
     let ipcBuffer = lookupIPCBuffer(true, thread) as *mut usize;
     setRegister(thread, badgeRegister, 0);

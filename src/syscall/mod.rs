@@ -11,7 +11,6 @@ pub const SysRecv: isize = -5;
 pub const SysReply: isize = -6;
 pub const SysYield: isize = -7;
 pub const SysNBRecv: isize = -8;
-pub use invocation::invokeTCB_ThreadControl;
 use common::structures::exception_t;
 use task_manager::{schedule, activateThread};
 pub use utils::*;

@@ -8,15 +8,12 @@ use crate::{
         boot::{current_extra_caps, current_lookup_fault, current_syscall_error},
         cspace::rust_lookupTargetSlot,
     },
-    syscall::getSyscallArg,
+    syscall::{getSyscallArg, ensureEmptySlot},
     boot::clearMemory,
 };
 
-use super::{
-    cap::ensureEmptySlot,
-    objecttype::{
-        createNewObjects, getObjectSize, Arch_isFrameType,
-    },
+use super::objecttype::{
+    createNewObjects, getObjectSize, Arch_isFrameType,
 };
 use task_manager::*;
 use common::{structures::{exception_t, lookup_fault_missing_capability_new}, sel4_config::*, BIT, MASK, ROUND_DOWN, message_info::MessageLabel};
