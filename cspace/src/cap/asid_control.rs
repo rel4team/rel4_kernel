@@ -1,8 +1,7 @@
 use super::{cap_t, CapTag};
 
-
+/// asid control 相关的cap方法
 impl cap_t {
-
     #[inline]
     pub fn new_asid_control_cap() -> Self {
         let mut cap = cap_t::default();

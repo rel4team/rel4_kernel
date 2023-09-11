@@ -1,8 +1,8 @@
 use core::intrinsics::likely;
 use super::{cap_t, CapTag};
 
+/// asid pool cap相关字段和方法
 impl cap_t {
-    
     #[inline]
     pub fn new_asid_pool_cap(capASIDBase: usize, capASIDPool: usize) -> Self {
         let mut cap = cap_t::default();

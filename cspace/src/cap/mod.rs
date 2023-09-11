@@ -1,7 +1,5 @@
 use common::{sel4_config::{seL4_EndpointBits, seL4_NotificationBits, seL4_SlotBits, PT_SIZE_BITS, seL4_ReplyBits, wordBits}, MASK, utils::pageBitsForSize};
 
-
-
 pub mod asid_control;
 pub mod asid_pool;
 pub mod cnode;
@@ -41,16 +39,7 @@ impl CNodeCapData {
     }
 }
 
-// #[inline]
-// pub fn seL4_CNode_capData_get_guard(seL4_CNode_CapData:&seL4_CNode_CapData_t)->usize{
-//     (seL4_CNode_CapData.words[0] & 0xffffffffffffffc0usize) >> 6
-// }
-
-// #[inline]
-// pub fn seL4_CNode_capData_get_guardSize(seL4_CNode_CapData:&seL4_CNode_CapData_t)->usize{
-//     (seL4_CNode_CapData.words[0] & 0x3fusize) >> 0
-// }
-
+/// Cap 在内核态中的种类枚举
 #[derive(Eq, PartialEq, Debug)]
 pub enum CapTag {
     CapNullCap = 0,
@@ -71,6 +60,8 @@ pub enum CapTag {
 }
 
 
+/// cap_t 表示一个capability，由两个机器字组成，包含了类型、对象元数据以及指向内核对象的指针。
+/// 每个类型的capability的每个字段都实现了get和set方法。
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct cap_t {
@@ -83,7 +74,50 @@ impl Default for cap_t {
     }
 }
 
+
+/// cap 的公用方法
 impl cap_t {
+    pub fn update_data(&self, preserve: bool, new_data: usize) -> Self {
+        if self.isArchCap() {
+            return self.clone();
+        }
+        match self.get_cap_type() {
+            CapTag::CapEndpointCap => {
+                if !preserve && self.get_ep_badge() == 0 {
+                    let mut new_cap = self.clone();
+                    new_cap.set_ep_badge(new_data);
+                    new_cap
+                } else {
+                    cap_t::new_null_cap()
+                }
+            }
+
+            CapTag::CapNotificationCap => {
+                if !preserve && self.get_nf_badge() == 0 {
+                    let mut new_cap = self.clone();
+                    new_cap.set_nf_badge(new_data);
+                    new_cap
+                } else {
+                    cap_t::new_null_cap()
+                }
+            }
+
+            CapTag::CapCNodeCap => {
+                let w = CNodeCapData::new(new_data);
+                let guard_size = w.get_guard_size();
+                if guard_size + self.get_cnode_radix() > wordBits {
+                    return cap_t::new_null_cap();
+                }
+                let guard = w.get_guard() & MASK!(guard_size);
+                let mut new_cap = self.clone();
+                new_cap.set_cnode_guard(guard);
+                new_cap.set_cnode_guard_size(guard_size);
+                new_cap
+            }
+            _ => { self.clone() }
+        }
+    }
+
     pub fn get_cap_type(&self) -> CapTag {
         unsafe {
             core::mem::transmute::<u8, CapTag>(((self.words[0] >> 59) & 0x1f) as u8)
@@ -196,6 +230,7 @@ pub fn same_region_as(cap1: &cap_t, cap2: &cap_t) -> bool {
     }
 }
 
+/// 判断两个cap指向的内核对象是否是同一个内存区域
 pub fn same_object_as(cap1: &cap_t, cap2: &cap_t) -> bool {
     if cap1.get_cap_type() == CapTag::CapUntypedCap {
         return false;
@@ -246,49 +281,6 @@ pub fn is_cap_revocable(derived_cap: &cap_t, src_cap: &cap_t) -> bool {
     }
 }
 
-
-impl cap_t {
-    pub fn update_data(&self, preserve: bool, new_data: usize) -> Self {
-        if self.isArchCap() {
-            return self.clone();
-        }
-        match self.get_cap_type() {
-            CapTag::CapEndpointCap => {
-                if !preserve && self.get_ep_badge() == 0 {
-                    let mut new_cap = self.clone();
-                    new_cap.set_ep_badge(new_data);
-                    new_cap
-                } else {
-                    cap_t::new_null_cap()
-                }
-            }
-
-            CapTag::CapNotificationCap => {
-                if !preserve && self.get_nf_badge() == 0 {
-                    let mut new_cap = self.clone();
-                    new_cap.set_nf_badge(new_data);
-                    new_cap
-                } else {
-                    cap_t::new_null_cap()
-                }
-            }
-
-            CapTag::CapCNodeCap => {
-                let w = CNodeCapData::new(new_data);
-                let guard_size = w.get_guard_size();
-                if guard_size + self.get_cnode_radix() > wordBits {
-                    return cap_t::new_null_cap();
-                }
-                let guard = w.get_guard() & MASK!(guard_size);
-                let mut new_cap = self.clone();
-                new_cap.set_cnode_guard(guard);
-                new_cap.set_cnode_guard_size(guard_size);
-                new_cap
-            }
-            _ => { self.clone() }
-        }
-    }
-}
 
 pub fn updateCapData(preserve: bool, newData: usize, _cap: &cap_t) -> cap_t {
     _cap.update_data(preserve, newData)

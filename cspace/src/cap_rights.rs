@@ -1,6 +1,10 @@
 use common::MASK;
 const seL4_CapRightsBits: usize = 4;
 
+/// 通过mask操作用于对cap_t的权限进行取子集操作
+/// 
+/// 目前只对四类Cap有效：CapEndpointCap、CapNotificationCap、CapReplyCap、CapFrameCap
+/// 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct seL4_CapRights_t {

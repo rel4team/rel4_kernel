@@ -1,6 +1,6 @@
 use super::{cap_t, CapTag};
 
-
+/// irq handler cap相关字段和方法
 impl cap_t {
 
     #[inline]

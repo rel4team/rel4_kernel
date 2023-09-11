@@ -2,7 +2,7 @@ use crate::{
     config::badgeRegister,
     kernel::thread::doNBRecvFailedTransfer,
 };
-
+use cspace::compatibility::*;
 use task_manager::*;
 use ipc::*;
 

@@ -1,7 +1,7 @@
 use super::{cap_t, CapTag};
 
+/// frame cap相关字段和方法
 impl cap_t {
-
     #[inline]
     pub fn new_frame_cap(capFMappedASID: usize, capFBasePtr: usize, capFSize: usize, capFVMRights: usize, capFIsDevice: usize, capFMappedAddress: usize) -> Self {
         let mut cap = cap_t::default();

@@ -5,7 +5,7 @@ use crate::{structures::{
 }, syscall::lookupSlotForCNodeOp};
 
 use task_manager::*;
-
+use cspace::compatibility::*;
 use common::structures::exception_t;
 use cspace::interface::*;
 

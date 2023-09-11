@@ -1,8 +1,7 @@
 use super::{cap_t, CapTag};
 
-
+/// irq control cap相关字段和方法
 impl cap_t {
-
     #[inline]
     pub fn new_irq_control_cap() -> Self {
         let mut cap = cap_t::default();

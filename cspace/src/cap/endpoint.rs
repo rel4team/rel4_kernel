@@ -1,7 +1,7 @@
 use core::intrinsics::{unlikely, likely};
 use super::{cap_t, CapTag};
 
-
+/// endpoint cap相关字段和方法
 impl cap_t {
     #[inline]
     pub fn new_endpoint_cap(capEPBadge: usize, capCanGrantReply: usize, capCanGrant: usize, capCanSend: usize, capCanReceive: usize, capEPPtr: usize) -> Self {

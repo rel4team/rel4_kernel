@@ -13,6 +13,7 @@ pub struct deriveCap_ret {
     pub cap: cap_t,
 }
 
+/// 由cap_t和 mdb_node 组成，是CSpace的基本组成单元
 #[repr(C)]
 #[derive(Clone, Copy, Default)]
 pub struct cte_t {
@@ -91,17 +92,15 @@ impl cte_t {
 
     pub fn ensure_no_children(&self) -> exception_t {
         if self.cteMDBNode.get_next() != 0 {
-            unsafe {
-                let next = & *(self.cteMDBNode.get_next() as *mut cte_t);
-                if self.is_mdb_parent_of(next) {
-                    return exception_t::EXCEPTION_SYSCALL_ERROR;
-                }
+            let next = convert_to_type_ref::<cte_t>(self.cteMDBNode.get_next());
+            if self.is_mdb_parent_of(next) {
+                return exception_t::EXCEPTION_SYSCALL_ERROR;
             }
         }
         return exception_t::EXCEPTION_NONE;
     }
 
-    pub fn is_mdb_parent_of(&self, next: &Self) -> bool {
+    fn is_mdb_parent_of(&self, next: &Self) -> bool {
         if !(self.cteMDBNode.get_revocable() != 0) {
             return false;
         }
@@ -163,7 +162,7 @@ impl cte_t {
         }
     }
 
-    pub fn finalise(&mut self, immediate: bool) -> finaliseSlot_ret {
+    fn finalise(&mut self, immediate: bool) -> finaliseSlot_ret {
         let mut ret = finaliseSlot_ret::default();
         while self.cap.get_cap_type() != CapTag::CapNullCap {
             let fc_ret = finaliseCap(&self.cap, self.is_final_cap(), false);
@@ -221,7 +220,7 @@ impl cte_t {
         }
     }
 
-    pub fn set_empty(&mut self, cleanup_info: &cap_t) {
+    fn set_empty(&mut self, cleanup_info: &cap_t) {
         if self.cap.get_cap_type() != CapTag::CapNullCap {
             let mdb_node = self.cteMDBNode;
             let prev_addr = mdb_node.get_prev();
@@ -243,7 +242,7 @@ impl cte_t {
         }
     }
 
-    pub fn reduce_zombie(&mut self, immediate: bool) -> exception_t {
+    fn reduce_zombie(&mut self, immediate: bool) -> exception_t {
         assert_eq!(self.cap.get_cap_type(), CapTag::CapZombieCap);
         let self_ptr = self as *mut cte_t as usize;
         let ptr = self.cap.get_zombie_ptr();
@@ -310,59 +309,63 @@ impl cte_t {
     }
 }
 
-
-pub fn cte_insert(newCap: &cap_t, srcSlot: &mut cte_t, destSlot: &mut cte_t) {
-    let srcMDB = &mut srcSlot.cteMDBNode;
-    let srcCap = &(srcSlot.cap.clone());
+/// 将一个cap插入slot中并维护能力派生树
+/// 
+/// 将一个new_cap插入到dest slot中并作为src slot的派生子节点插入派生树中
+pub fn cte_insert(new_cap: &cap_t, src_slot: &mut cte_t, dest_slot: &mut cte_t) {
+    let srcMDB = &mut src_slot.cteMDBNode;
+    let srcCap = &(src_slot.cap.clone());
     let mut newMDB = srcMDB.clone();
-    let newCapIsRevocable = is_cap_revocable(newCap, srcCap);
-    newMDB.set_prev(srcSlot as *const cte_t as usize);
+    let newCapIsRevocable = is_cap_revocable(new_cap, srcCap);
+    newMDB.set_prev(src_slot as *const cte_t as usize);
     newMDB.set_revocable(newCapIsRevocable as usize);
     newMDB.set_first_badged(newCapIsRevocable as usize);
 
     /* Haskell error: "cteInsert to non-empty destination" */
-    assert_eq!(destSlot.cap.get_cap_type(), CapTag::CapNullCap);
+    assert_eq!(dest_slot.cap.get_cap_type(), CapTag::CapNullCap);
     /* Haskell error: "cteInsert: mdb entry must be empty" */
-    assert!(destSlot.cteMDBNode.get_next() == 0 && destSlot.cteMDBNode.get_prev() == 0);
+    assert!(dest_slot.cteMDBNode.get_next() == 0 && dest_slot.cteMDBNode.get_prev() == 0);
 
-    setUntypedCapAsFull(srcCap, newCap, srcSlot);
+    setUntypedCapAsFull(srcCap, new_cap, src_slot);
     
-    (*destSlot).cap = newCap.clone();
-    (*destSlot).cteMDBNode = newMDB;
-    srcSlot.cteMDBNode.set_next(destSlot as *const cte_t as usize);
+    (*dest_slot).cap = new_cap.clone();
+    (*dest_slot).cteMDBNode = newMDB;
+    src_slot.cteMDBNode.set_next(dest_slot as *const cte_t as usize);
     if newMDB.get_next() != 0 {
         let cte_ref = convert_to_mut_type_ref::<cte_t>(newMDB.get_next());
-        cte_ref.cteMDBNode.set_prev(destSlot as *const cte_t as usize);
+        cte_ref.cteMDBNode.set_prev(dest_slot as *const cte_t as usize);
     }
 }
-
-pub fn cte_move(newCap: &cap_t, srcSlot: &mut cte_t, destSlot: &mut cte_t) {
+/// 将一个cap插入slot中并删除原节点
+/// 
+/// 将一个new_cap插入到dest slot中并作为替代src slot在派生树中的位置
+pub fn cte_move(new_cap: &cap_t, src_slot: &mut cte_t, dest_slot: &mut cte_t) {
     /* Haskell error: "cteInsert to non-empty destination" */
-    assert_eq!(destSlot.cap.get_cap_type(), CapTag::CapNullCap);
+    assert_eq!(dest_slot.cap.get_cap_type(), CapTag::CapNullCap);
     /* Haskell error: "cteInsert: mdb entry must be empty" */
     assert!(
-        destSlot.cteMDBNode.get_next() == 0
-            && destSlot.cteMDBNode.get_prev() == 0
+        dest_slot.cteMDBNode.get_next() == 0
+            && dest_slot.cteMDBNode.get_prev() == 0
     );
-    let mdb = srcSlot.cteMDBNode;
-    destSlot.cap = newCap.clone();
-    srcSlot.cap = cap_t::new_null_cap();
-    destSlot.cteMDBNode = mdb;
-    srcSlot.cteMDBNode = mdb_node_t::new(0, 0, 0, 0);
+    let mdb = src_slot.cteMDBNode;
+    dest_slot.cap = new_cap.clone();
+    src_slot.cap = cap_t::new_null_cap();
+    dest_slot.cteMDBNode = mdb;
+    src_slot.cteMDBNode = mdb_node_t::new(0, 0, 0, 0);
 
     let prev_ptr = mdb.get_prev();
     if prev_ptr != 0 {
         let prev_ref = convert_to_mut_type_ref::<cte_t>(prev_ptr);
-        prev_ref.cteMDBNode.set_next(destSlot as *const cte_t as usize);
+        prev_ref.cteMDBNode.set_next(dest_slot as *const cte_t as usize);
     }
     let next_ptr = mdb.get_next();
     if next_ptr != 0 {
         let next_ref = convert_to_mut_type_ref::<cte_t>(next_ptr);
-        next_ref.cteMDBNode.set_prev(destSlot as *const cte_t as usize);
+        next_ref.cteMDBNode.set_prev(dest_slot as *const cte_t as usize);
     }
 }
 
-
+/// 交换两个slot，并将新的cap数据填入
 pub fn cte_swap(cap1: &cap_t, slot1: &mut cte_t, cap2: &cap_t, slot2: &mut cte_t) {
     let mdb1 = slot1.cteMDBNode;
     let mdb2 = slot2.cteMDBNode;
@@ -445,6 +448,9 @@ fn setUntypedCapAsFull(srcCap: &cap_t, newCap: &cap_t, srcSlot: &mut cte_t) {
     }
 }
 
+/// 从cspace寻址特定的slot
+/// 
+/// 从给定的cnode、cap index、和depth中找到对应cap的slot，成功则返回slot指针，失败返回找到的最深的cnode
 #[allow(unreachable_code)]
 pub fn resolve_address_bits(node_cap: &cap_t, cap_ptr: usize, _n_bits: usize) -> resolveAddressBits_ret_t {
     let mut ret = resolveAddressBits_ret_t::default();

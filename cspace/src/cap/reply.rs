@@ -1,7 +1,7 @@
 use super::{cap_t, CapTag};
 
+/// reply cap相关字段和方法
 impl cap_t {
-
     #[inline]
     pub fn new_reply_cap(capReplyCanGrant: usize, capReplyMaster: usize, capTCBPtr: usize) -> Self {
         let mut cap = cap_t::default();

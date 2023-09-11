@@ -8,6 +8,7 @@ use super::{cap_t, CapTag};
 pub const ZombieType_ZombieTCB: usize = 1usize << wordRadix;
 pub const TCB_CNODE_RADIX: usize = 4;
 
+/// zombie cap相关字段和方法
 impl cap_t {
 
     #[inline]

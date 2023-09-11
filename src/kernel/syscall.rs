@@ -11,7 +11,7 @@ use crate::{
     },
     riscv::read_sip,
 };
-
+use cspace::compatibility::*;
 use super::{
     boot::{active_irq, current_fault, current_lookup_fault},
     faulthandler::handleFault,

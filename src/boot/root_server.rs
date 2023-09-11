@@ -5,6 +5,7 @@ use common::{BIT, ROUND_DOWN};
 use common::sel4_config::{wordBits, seL4_SlotBits, IT_ASID, asidLowBits, seL4_PageBits, seL4_PageTableBits, CONFIG_PT_LEVELS,
     PAGE_BITS, CONFIG_MAX_NUM_NODES, TCB_OFFSET, CONFIG_TIME_SLICE, tcbCTable, tcbVTable, tcbBuffer, CONFIG_NUM_DOMAINS, seL4_TCBBits};
 use common::structures::{exception_t, seL4_IPCBuffer};
+use cspace::compatibility::*;
 use cspace::interface::*;
 use log::debug;
 use crate::kernel::thread::Arch_initContext;

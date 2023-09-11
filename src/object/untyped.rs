@@ -16,6 +16,7 @@ use super::objecttype::{
     createNewObjects, getObjectSize, Arch_isFrameType,
 };
 use task_manager::*;
+use cspace::compatibility::*;
 use common::{structures::{exception_t, lookup_fault_missing_capability_new}, sel4_config::*, BIT, MASK, ROUND_DOWN, message_info::MessageLabel};
 use cspace::interface::*;
 use log::debug;

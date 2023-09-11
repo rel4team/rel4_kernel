@@ -1,7 +1,7 @@
 use super::{cap_t, CapTag};
 
+/// thread cap相关字段和方法
 impl cap_t {
-
     #[inline]
     pub fn new_thread_cap(capTCBPtr: usize) -> Self {
         let cap = cap_t {

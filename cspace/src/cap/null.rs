@@ -1,7 +1,7 @@
 use super::{cap_t, CapTag};
 
+/// null cap相关字段和方法
 impl cap_t {
-    
     #[inline]
     pub fn new_null_cap() -> Self {
         let mut cap = cap_t::default();

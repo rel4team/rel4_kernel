@@ -1,8 +1,7 @@
 use super::{cap_t, CapTag};
 
-
+/// notification cap相关字段和方法
 impl cap_t {
-
     #[inline]
     pub fn new_notification_cap(capNtfnBadge: usize, capNtfnCanReceive: usize, capNtfnCanSend: usize, capNtfnPtr: usize) -> Self {
         let mut cap = cap_t::default();

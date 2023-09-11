@@ -19,7 +19,7 @@ use crate::{
 use common::message_info::*;
 
 use super::notification::sendSignal;
-
+use cspace::compatibility::*;
 use common::{structures::exception_t, BIT, sel4_config::*};
 use cspace::interface::*;
 use ipc::*;

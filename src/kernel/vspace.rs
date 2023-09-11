@@ -21,7 +21,7 @@ use crate::{
     boot::clearMemory,
 
 };
-
+use cspace::compatibility::*;
 use task_manager::*;
 
 use super::thread::setMR;

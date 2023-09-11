@@ -9,7 +9,7 @@ use crate::{
     },
     object::notification::completeSignal,
 };
-
+use cspace::compatibility::*;
 use task_manager::*;
 use ipc::*;
 

@@ -21,7 +21,7 @@ use crate::{
 use task_manager::*;
 use ipc::*;
 use vspace::*;
-
+use cspace::compatibility::*;
 use super::{
     endpoint::cancelAllIPC,
     interrupt::{

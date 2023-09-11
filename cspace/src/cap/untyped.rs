@@ -2,8 +2,8 @@
 use core::intrinsics::unlikely;
 use super::{cap_t, CapTag};
 
+/// untyped cap相关字段和方法
 impl cap_t {
-
     #[inline]
     pub fn new_untyped_cap(capFreeIndex: usize, capIsDevice: usize, capBlockSize: usize, capPtr: usize) -> Self {
         let mut cap = cap_t::default();

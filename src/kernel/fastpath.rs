@@ -3,7 +3,7 @@ use crate::{config::{
     seL4_MsgLengthBits,
 }, syscall::{slowpath, SysCall, SysReplyRecv}};
 use ipc::*;
-
+use cspace::compatibility::*;
 use task_manager::*;
 
 use log::error;

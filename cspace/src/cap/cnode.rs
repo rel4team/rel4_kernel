@@ -2,9 +2,8 @@ use core::intrinsics::unlikely;
 
 use super::{cap_t, CapTag};
 
-
+/// cnode cap相关的字段和方法
 impl cap_t {
-
     #[inline]
     pub fn new_cnode_cap( capCNodeRadix: usize, capCNodeGuardSize: usize, capCNodeGuard: usize, capCNodePtr: usize) -> Self {
         let mut cap = cap_t::default();
