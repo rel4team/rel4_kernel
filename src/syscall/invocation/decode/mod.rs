@@ -16,7 +16,12 @@ use crate::{kernel::{boot::current_syscall_error, vspace::decodeRISCVMMUInvocati
         objecttype::performInvocation_Reply,
         interrupt::{decodeIRQControlInvocation, decodeIRQHandlerInvocation}}};
 
-use self::{decode_tcb_invocation::decode_tcb_invocation, decode_domain_invocation::decode_domain_invocation, decode_cnode_invocation::decode_cnode_invocation, decode_untyped_invocation::decodeUntypedInvocation};
+use self::{
+    decode_tcb_invocation::decode_tcb_invocation, 
+    decode_domain_invocation::decode_domain_invocation,
+    decode_cnode_invocation::decode_cnode_invocation,
+    decode_untyped_invocation::decode_untyed_invocation
+};
 
 
 #[no_mangle]
@@ -98,7 +103,7 @@ pub fn decodeInvocation(
         CapTag::CapThreadCap => decode_tcb_invocation(invLabel, length, cap, unsafe { &mut *slot }, call, convert_to_option_type_ref::<seL4_IPCBuffer>(buffer as usize)),
         CapTag::CapDomainCap => decode_domain_invocation(invLabel, length, convert_to_option_type_ref::<seL4_IPCBuffer>(buffer as usize)),
         CapTag::CapCNodeCap => decode_cnode_invocation(invLabel, length, cap, convert_to_option_type_ref::<seL4_IPCBuffer>(buffer as usize)),
-        CapTag::CapUntypedCap => decodeUntypedInvocation(invLabel, length, slot, cap, call, buffer),
+        CapTag::CapUntypedCap => decode_untyed_invocation(invLabel, length, unsafe { &mut *slot }, cap, convert_to_option_type_ref::<seL4_IPCBuffer>(buffer as usize)),
         CapTag::CapIrqControlCap => decodeIRQControlInvocation(invLabel, length, slot, buffer),
         CapTag::CapIrqHandlerCap => {
             decodeIRQHandlerInvocation(invLabel, cap.get_irq_handler())

@@ -15,8 +15,6 @@ extern "C" {
 
 fn create_new_objects(obj_type: ObjectType, parent: &mut cte_t, dest_cnode: &mut cte_t, dest_offset: usize,
                         dest_length: usize, region_base: usize, user_size: usize, device_mem: usize) {
-    // let objectSize = getObjectSize(t, userSize);
-    // let _totalObjectSize = destLength << objectSize;
     let object_size = obj_type.get_object_size(user_size);
     for i in 0..dest_length {
         let cap = create_object(obj_type, region_base + (i << object_size), user_size, device_mem);
@@ -111,24 +109,3 @@ pub fn invoke_untyped_retype(src_slot: &mut cte_t, reset: bool, retype_base: ppt
         retype_base, user_size, device_mem);
     exception_t::EXCEPTION_NONE
 }
-
-#[no_mangle]
-pub fn invokeUntyped_Retype(
-    srcSlot: *mut cte_t,
-    reset: bool,
-    retypeBase: *mut usize,
-    newType: usize,
-    userSize: usize,
-    destCNode: *mut cte_t,
-    destOffset: usize,
-    destLength: usize,
-    deviceMemory: bool,
-) -> exception_t {
-    unsafe {
-        let obj_type = core::mem::transmute::<u8, ObjectType>(newType as u8);
-        invoke_untyped_retype(&mut *srcSlot, reset, retypeBase as usize,
-            obj_type, userSize, &mut *destCNode,
-            destOffset, destLength, deviceMemory as usize)
-    }
-}
-

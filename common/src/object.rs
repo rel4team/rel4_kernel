@@ -1,6 +1,6 @@
 use crate::sel4_config::*;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum ObjectType {
     UnytpedObject = 0,
     TCBObject = 1,
@@ -14,11 +14,7 @@ pub enum ObjectType {
 }
 
 impl ObjectType {
-    pub fn from_usize(value: usize) -> Self {
-        unsafe {
-            core::mem::transmute::<u8, ObjectType>(value as u8)
-        }
-    }
+    
 }
 
 pub const seL4_UntypedObject: usize = ObjectType::UnytpedObject as usize;
@@ -59,6 +55,23 @@ impl ObjectType {
             }
         }
     }
+
+    pub fn from_usize(value: usize) -> Option<Self> {
+        if value >= seL4_ObjectTypeCount {
+            return None;
+        }
+        unsafe {
+           Some(core::mem::transmute::<u8, ObjectType>(value as u8))
+        }
+    }
+
+    pub fn is_arch_type(self) -> bool {
+        match self {
+            Self::GigaPageObject | Self::NormalPageObject | Self::MegaPageObject => true,
+            _ => false
+        }
+    }
+
 }
 
 pub fn getObjectSize(t: usize, userObjSize: usize) -> usize {
