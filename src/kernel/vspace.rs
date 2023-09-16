@@ -1,20 +1,19 @@
 use core::intrinsics::unlikely;
 use common::message_info::*;
-use common::structures::{lookup_fault_missing_capability_new, lookup_fault_invalid_root_new, seL4_Fault_VMFault_new, seL4_IPCBuffer};
+use common::structures::{lookup_fault_invalid_root_new, seL4_Fault_VMFault_new, seL4_IPCBuffer};
 use common::utils::{pageBitsForSize, convert_to_option_type_ref};
 use common::{BIT, MASK};
 use common::{structures::exception_t, sel4_config::*};
 use log::debug;
 use vspace::*;
 use crate::syscall::ensureEmptySlot;
-use crate::syscall::invocation::decode::decode_mmu_invocation::decode_page_table_invocation;
-use crate::syscall::invocation::invoke_mmu_op::{performPageGetAddress, performPageInvocationUnmap};
+use crate::syscall::invocation::decode::decode_mmu_invocation::{decode_page_table_invocation, decodeRISCVFrameInvocation};
 use crate::utils::clear_memory;
 use crate::{
     config::{
-        badgeRegister, seL4_ASIDPoolBits, RISCVInstructionAccessFault,
+        seL4_ASIDPoolBits, RISCVInstructionAccessFault,
         RISCVInstructionPageFault, RISCVLoadAccessFault, RISCVLoadPageFault,
-        RISCVStoreAccessFault, RISCVStorePageFault, USER_TOP,
+        RISCVStoreAccessFault, RISCVStorePageFault
     },
     kernel::boot::current_syscall_error,
     riscv::read_stval,
@@ -25,13 +24,11 @@ use crate::{
 use cspace::compatibility::*;
 use task_manager::*;
 
-use super::thread::setMR;
 use super::{
     boot::{
         current_extra_caps, current_fault, current_lookup_fault,
     },
     cspace::rust_lookupTargetSlot,
-    transfermsg::{vmAttributesFromWord, vm_attributes_get_riscvExecuteNever},
 };
 
 use cspace::interface::*;
@@ -138,145 +135,6 @@ pub fn performPageInvocationMapPTE(
     }
     updatePTE(pte, base)
 }
-
-#[no_mangle]
-pub fn decodeRISCVFrameInvocation(
-    label: MessageLabel,
-    length: usize,
-    cte: *mut cte_t,
-    cap: &mut cap_t,
-    call: bool,
-    buffer: *const usize,
-) -> exception_t {
-    match label {
-        MessageLabel::RISCVPageMap => unsafe {
-            if length < 3 || current_extra_caps.excaprefs[0] as usize == 0 {
-                debug!("RISCVPageMap: Truncated message.");
-                current_syscall_error._type = seL4_TruncatedMessage;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
-
-            let vaddr = getSyscallArg(0, buffer);
-            let w_rightsMask = getSyscallArg(1, buffer);
-            let attr = vmAttributesFromWord(getSyscallArg(2, buffer));
-            let lvl1ptCap = &(*current_extra_caps.excaprefs[0]).cap;
-
-            let frameSize = cap_frame_cap_get_capFSize(cap);
-            let capVMRights = cap_frame_cap_get_capFVMRights(cap);
-
-            if cap_get_capType(lvl1ptCap) != cap_page_table_cap
-                || (cap_page_table_cap_get_capPTIsMapped(lvl1ptCap) == 0)
-            {
-                debug!("RISCVPageMap: Bad PageTable cap.");
-                current_syscall_error._type = seL4_InvalidCapability;
-                current_syscall_error.invalidCapNumber = 1;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
-            let lvl1pt = cap_page_table_cap_get_capPTBasePtr(lvl1ptCap) as *mut pte_t;
-            let asid = cap_page_table_cap_get_capPTMappedASID(lvl1ptCap);
-
-            let find_ret = findVSpaceForASID(asid);
-            if find_ret.status != exception_t::EXCEPTION_NONE {
-                debug!("RISCVPageMap: No PageTable for ASID");
-                current_lookup_fault = find_ret.lookup_fault.unwrap();
-                current_syscall_error._type = seL4_FailedLookup;
-                current_syscall_error.failedLookupWasSource = false as usize;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
-
-            if find_ret.vspace_root.unwrap() != lvl1pt {
-                debug!("RISCVPageMap: ASID lookup failed");
-                current_syscall_error._type = seL4_InvalidCapability;
-                current_syscall_error.invalidCapNumber = 1;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
-
-            let vtop = vaddr + BIT!(pageBitsForSize(frameSize)) - 1;
-
-            if unlikely(vtop >= USER_TOP) {
-                current_syscall_error._type = seL4_InvalidArgument;
-                current_syscall_error.invalidCapNumber = 0;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
-
-            if unlikely(!checkVPAlignment(frameSize, vaddr)) {
-                current_syscall_error._type = seL4_AlignmentError;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
-
-            let lu_ret = lookupPTSlot(lvl1pt, vaddr);
-
-            if lu_ret.ptBitsLeft != pageBitsForSize(frameSize) {
-                current_lookup_fault = lookup_fault_missing_capability_new(lu_ret.ptBitsLeft);
-                current_syscall_error._type = seL4_FailedLookup;
-                current_syscall_error.failedLookupWasSource = false as usize;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
-
-            let frame_asid = cap_frame_cap_get_capFMappedASID(cap);
-            if frame_asid != asidInvalid {
-                if frame_asid != asid {
-                    debug!("RISCVPageMap: Attempting to remap a frame that does not belong to the passed address space");
-                    current_syscall_error._type = seL4_InvalidCapability;
-                    current_syscall_error.invalidCapNumber = 1;
-                    return exception_t::EXCEPTION_SYSCALL_ERROR;
-                }
-
-                let mapped_vaddr = cap_frame_cap_get_capFMappedAddress(cap);
-                if mapped_vaddr != vaddr {
-                    debug!("RISCVPageMap: attempting to map frame into multiple addresses");
-                    current_syscall_error._type = seL4_InvalidArgument;
-                    current_syscall_error.invalidArgumentNumber = 0;
-                    return exception_t::EXCEPTION_SYSCALL_ERROR;
-                }
-
-                if isPTEPageTable(lu_ret.ptSlot) {
-                    debug!("RISCVPageMap: no mapping to remap.");
-                    current_syscall_error._type = seL4_DeleteFirst;
-                    return exception_t::EXCEPTION_SYSCALL_ERROR;
-                }
-            } else {
-                if pte_ptr_get_valid(lu_ret.ptSlot) != 0 {
-                    debug!("Virtual address already mapped");
-                    current_syscall_error._type = seL4_DeleteFirst;
-                    return exception_t::EXCEPTION_SYSCALL_ERROR;
-                }
-            }
-            // let vmRights=m
-            let vmRights = maskVMRights(capVMRights, rightsFromWord(w_rightsMask));
-            let frame_paddr = pptr_to_paddr(cap_frame_cap_get_capFBasePtr(cap));
-            cap_frame_cap_set_capFMappedASID(cap, asid);
-            cap_frame_cap_set_capFMappedAddress(cap, vaddr);
-
-            let executable = vm_attributes_get_riscvExecuteNever(attr) == 0;
-            let pte = makeUserPTE(frame_paddr, executable, vmRights);
-            setThreadState(ksCurThread, ThreadStateRestart);
-            // debug!(" res {:#x} {:#x} {:#x} {:#x} {:#x} {:#x}",cap.words[0],cap.words[1],cte as usize,pte.words[0],lu_ret.ptSlot as usize ,ksCurThread as usize);
-            performPageInvocationMapPTE(cap, cte as *mut cte_t, pte, lu_ret.ptSlot as *mut pte_t)
-        },
-        MessageLabel::RISCVPageUnmap => {
-            unsafe {
-                setThreadState(ksCurThread, ThreadStateRestart);
-            }
-            performPageInvocationUnmap(cap, cte)
-        }
-        MessageLabel::RISCVPageGetAddress => {
-            assert!(n_msgRegisters >= 1);
-            unsafe {
-                setThreadState(ksCurThread, ThreadStateRestart);
-            }
-            performPageGetAddress(cap_frame_cap_get_capFBasePtr(cap), call)
-        }
-        _ => {
-            debug!("invalid operation label:{:?}", label);
-            unsafe {
-                current_syscall_error._type = seL4_IllegalOperation;
-            }
-            exception_t::EXCEPTION_SYSCALL_ERROR
-        }
-    }
-}
-
 
 #[no_mangle]
 pub fn decodeRISCVMMUInvocation(

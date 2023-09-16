@@ -8,7 +8,6 @@ use crate::{
         syscall::{get_syscall_arg, lookup_slot_for_cnode_op, invocation::invoke_cnode::*}
     };
 
-#[no_mangle]
 pub fn decode_cnode_invocation(invLabel: MessageLabel, length: usize, cap: &cap_t, buffer: Option<&seL4_IPCBuffer>) -> exception_t {
     if invLabel < MessageLabel::CNodeRevoke || invLabel > MessageLabel::CNodeSaveCaller {
         debug!("CNodeCap: Illegal Operation attempted.");

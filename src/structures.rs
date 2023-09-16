@@ -174,13 +174,6 @@ pub struct syscall_error_t {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct vm_attributes_t {
-    pub words: [usize; 1],
-}
-
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct extra_caps_t {
     pub excaprefs: [*mut cte_t; seL4_MsgMaxExtraCaps],
 }

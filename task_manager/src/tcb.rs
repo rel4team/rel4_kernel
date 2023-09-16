@@ -1,4 +1,4 @@
-use common::utils::{pageBitsForSize, convert_to_type_ref};
+use common::utils::pageBitsForSize;
 use common::{structures::lookup_fault_t, MASK, utils::convert_to_mut_type_ref};
 use cspace::interface::{cte_t, resolve_address_bits, CapTag, cap_t, mdb_node_t, cte_insert};
 use vspace::{set_vm_root, pptr_t, VMReadWrite, VMReadOnly};

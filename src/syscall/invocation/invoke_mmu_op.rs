@@ -1,7 +1,7 @@
 use common::{structures::exception_t, utils::convert_to_mut_type_ref, sel4_config::{seL4_PageTableBits, seL4_PageBits, asidInvalid}, message_info::seL4_MessageInfo_t};
-use cspace::interface::{cap_t, cte_t};
+use cspace::interface::{cap_t, cte_t, seL4_CapRights_t};
 use task_manager::{get_currenct_thread, msgInfoRegister, set_thread_state, ThreadState};
-use vspace::{pte_t, sfence, pptr_to_paddr, unmapPage};
+use vspace::{pte_t, sfence, pptr_to_paddr, unmapPage, vm_attributes_t, maskVMRights};
 
 use crate::{utils::clear_memory, config::badgeRegister, kernel::boot::current_lookup_fault};
 
@@ -51,12 +51,7 @@ pub fn invoke_page_get_address(vbase_ptr: usize, call: bool) -> exception_t {
     exception_t::EXCEPTION_NONE
 }
 
-#[no_mangle]
-pub fn performPageGetAddress(vbase_ptr: usize, call: bool) -> exception_t {
-    invoke_page_get_address(vbase_ptr, call)
-}
-
-pub fn invoke_page_unmap(frame_cap: &mut cap_t) -> exception_t {
+pub fn invoke_page_unmap(frame_cap: &mut cap_t, frame_slot: &mut cte_t) -> exception_t {
     if frame_cap.get_pt_mapped_asid() != asidInvalid {
         match unmapPage(frame_cap.get_frame_size(), frame_cap.get_frame_mapped_asid(),
         frame_cap.get_pt_mapped_address(), frame_cap.get_frame_base_ptr()) {
@@ -68,11 +63,22 @@ pub fn invoke_page_unmap(frame_cap: &mut cap_t) -> exception_t {
     }
     frame_cap.set_frame_mapped_address(0);
     frame_cap.set_pt_mapped_asid(asidInvalid);
+    frame_slot.cap = *frame_cap;
     exception_t::EXCEPTION_NONE
 }
 
 
-#[no_mangle]
-pub fn performPageInvocationUnmap(cap: &mut cap_t, ctSlot: *mut cte_t) -> exception_t {
-    invoke_page_unmap(cap)
+pub fn invoke_page_map(frame_cap: &mut cap_t, w_rights_mask: usize, vaddr: usize, asid: usize, attr: vm_attributes_t,
+    pt_slot: &mut pte_t, frame_slot: &mut cte_t) -> exception_t {
+    let frame_vm_rights = frame_cap.get_frame_vm_rights();
+    let vm_rights = maskVMRights(frame_vm_rights, seL4_CapRights_t::from_word(w_rights_mask));
+    let frame_addr = pptr_to_paddr(frame_cap.get_frame_base_ptr());
+    frame_cap.set_frame_mapped_address(vaddr);
+    frame_cap.set_frame_mapped_asid(asid);
+    let executable = attr.get_execute_never() == 0;
+    let pte = pte_t::make_user_pte(frame_addr, executable, vm_rights);
+    set_thread_state(get_currenct_thread(), ThreadState::ThreadStateRestart);
+    frame_slot.cap = *frame_cap;
+    pt_slot.update(pte);
+    exception_t::EXCEPTION_NONE
 }
