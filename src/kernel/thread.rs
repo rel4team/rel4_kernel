@@ -1,6 +1,6 @@
 use crate::{
     config::{
-        CONFIG_KERNEL_STACK_BITS, SSTATUS_SPIE, SSTATUS_SPP, n_msgRegisters, msgRegister,
+        CONFIG_KERNEL_STACK_BITS, SSTATUS_SPIE, SSTATUS_SPP,
     },
     object::tcb::{
         copyMRs, lookupExtraCaps

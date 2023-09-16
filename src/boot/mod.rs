@@ -26,7 +26,7 @@ use crate::config::*;
 use vspace::*;
 use task_manager::*;
 pub use root_server::rootserver;
-pub use utils::{write_slot, provide_cap, clearMemory};
+pub use utils::{write_slot, provide_cap};
 
 
 #[no_mangle]

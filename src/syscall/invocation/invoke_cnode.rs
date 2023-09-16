@@ -1,10 +1,10 @@
-use common::{structures::exception_t, sel4_config::{tcbCaller, seL4_IllegalOperation}, utils::convert_to_mut_type_ref};
+use common::{structures::exception_t, sel4_config::{tcbCaller, seL4_IllegalOperation, seL4_DeleteFirst}, utils::convert_to_mut_type_ref};
 use cspace::interface::{cte_t, CapTag, cte_move, cap_t, cte_insert, cte_swap, seL4_CapRights_t};
 use ipc::endpoint_t;
 use log::debug;
 use task_manager::{get_currenct_thread, set_thread_state, ThreadState};
 
-use crate::{syscall::{mask_cap_rights, ensure_empty_slot}, kernel::boot::current_syscall_error, object::objecttype::hasCancelSendRight};
+use crate::{syscall::mask_cap_rights, kernel::boot::current_syscall_error, object::objecttype::hasCancelSendRight};
 
 #[inline]
 pub fn invoke_cnode_copy(src_slot: &mut cte_t, dest_slot: &mut cte_t, cap_right: seL4_CapRights_t) -> exception_t {
@@ -60,10 +60,10 @@ pub fn invoke_cnode_mutate(src_slot: &mut cte_t, dest_slot: &mut cte_t, cap_data
 
 #[inline]
 pub fn invoke_cnode_save_caller(dest_slot: &mut cte_t) -> exception_t {
-    let status = ensure_empty_slot(dest_slot);
-    if status != exception_t::EXCEPTION_NONE {
+    if dest_slot.cap.get_cap_type() != CapTag::CapNullCap {
         debug!("CNode SaveCaller: Destination slot not empty.");
-        return status;
+        unsafe { current_syscall_error._type = seL4_DeleteFirst; }
+        return exception_t::EXCEPTION_SYSCALL_ERROR;
     }
     set_thread_state(get_currenct_thread(), ThreadState::ThreadStateRestart);
     let src_slot = get_currenct_thread().get_cspace_mut_ref(tcbCaller);

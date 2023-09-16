@@ -1,11 +1,11 @@
-use common::{message_info::MessageLabel, sel4_config::{seL4_IllegalOperation, seL4_TruncatedMessage, seL4_FailedLookup}, 
+use common::{message_info::MessageLabel, sel4_config::{seL4_IllegalOperation, seL4_TruncatedMessage, seL4_FailedLookup, seL4_DeleteFirst}, 
 structures::{exception_t, lookup_fault_missing_capability_new, seL4_IPCBuffer}, utils::convert_to_mut_type_ref};
 use cspace::interface::{cap_t, cte_t, CapTag, seL4_CapRights_t};
 use log::debug;
 
 use crate::{
     kernel::boot::{current_syscall_error, current_lookup_fault, get_extra_cap_by_index}, 
-        syscall::{get_syscall_arg, lookup_slot_for_cnode_op, invocation::invoke_cnode::*, ensure_empty_slot}
+        syscall::{get_syscall_arg, lookup_slot_for_cnode_op, invocation::invoke_cnode::*}
     };
 
 #[no_mangle]
@@ -53,16 +53,16 @@ fn decode_cnode_invoke_with_two_slot(label: MessageLabel, dest_slot: &mut cte_t,
     let src_index = get_syscall_arg(2, buffer);
     let src_depth = get_syscall_arg(3, buffer);
     let src_root = get_extra_cap_by_index(0).unwrap().cap;
-    let status = ensure_empty_slot(dest_slot);
-    if status != exception_t::EXCEPTION_NONE {
+    if dest_slot.cap.get_cap_type() != CapTag::CapNullCap {
         debug!("CNode Copy/Mint/Move/Mutate: Destination not empty.");
-        return status;
+        unsafe { current_syscall_error._type = seL4_DeleteFirst; }
+        return exception_t::EXCEPTION_SYSCALL_ERROR;
     }
 
     let lu_ret = lookup_slot_for_cnode_op(true, &src_root, src_index, src_depth);
     if lu_ret.status != exception_t::EXCEPTION_NONE {
         debug!("CNode Copy/Mint/Move/Mutate: Invalid source slot.");
-        return status;
+        return lu_ret.status;
     }
     let src_slot = convert_to_mut_type_ref::<cte_t>(lu_ret.slot as usize);
     if src_slot.cap.get_cap_type() == CapTag::CapNullCap {
@@ -150,9 +150,9 @@ fn decode_cnode_rotate(dest_slot: &mut cte_t, length: usize, buffer: Option<&seL
         return exception_t::EXCEPTION_SYSCALL_ERROR;
     }
     if src_slot.get_ptr() != dest_slot.get_ptr() {
-        let status = ensure_empty_slot(dest_slot);
-        if status != exception_t::EXCEPTION_NONE {
-            return status;
+        if dest_slot.cap.get_cap_type() != CapTag::CapNullCap {
+            unsafe { current_syscall_error._type = seL4_DeleteFirst; }
+            return exception_t::EXCEPTION_SYSCALL_ERROR;
         }
     }
 

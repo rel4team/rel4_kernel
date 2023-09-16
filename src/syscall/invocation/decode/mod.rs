@@ -2,6 +2,7 @@ mod decode_tcb_invocation;
 mod decode_domain_invocation;
 mod decode_cnode_invocation;
 mod decode_untyped_invocation;
+pub mod decode_mmu_invocation;
 
 use core::intrinsics::unlikely;
 

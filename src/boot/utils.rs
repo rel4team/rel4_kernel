@@ -83,13 +83,6 @@ pub fn provide_cap(root_cnode_cap: &cap_t, cap: cap_t) -> bool {
     }
 }
 
-#[inline]
-pub fn clearMemory(ptr: *mut u8, bits: usize) {
-    unsafe {
-        core::slice::from_raw_parts_mut(ptr, BIT!(bits)).fill(0);
-    }
-}
-
 
 #[no_mangle]
 pub extern "C" fn map_it_pt_cap(_vspace_cap: &cap_t, _pt_cap: &cap_t) {

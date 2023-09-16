@@ -1,7 +1,6 @@
 
 use crate::config::{
-    msgRegister, n_exceptionMessage,
-    n_msgRegisters, n_syscallMessage, seL4_CapFault_Addr, seL4_CapFault_BitsLeft,
+    n_exceptionMessage, n_syscallMessage, seL4_CapFault_Addr, seL4_CapFault_BitsLeft,
     seL4_CapFault_DepthMismatch_BitsFound, seL4_CapFault_GuardMismatch_BitsFound,
     seL4_CapFault_GuardMismatch_GuardFound, seL4_CapFault_IP, seL4_CapFault_InRecvPhase,
     seL4_CapFault_LookupFailureType, seL4_VMFault_Addr, seL4_VMFault_FSR,

@@ -1,15 +1,9 @@
 use core::intrinsics::unlikely;
 
-use crate::{
-    config::{
-        msgRegister, n_msgRegisters,
-    },
-    kernel::{
-        boot::current_extra_caps,
-        thread::getExtraCPtr,
-    },
+use crate::kernel::{
+    boot::current_extra_caps,
+    thread::getExtraCPtr,
 };
-
 use common::message_info::*;
 use task_manager::*;
 

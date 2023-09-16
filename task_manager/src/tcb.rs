@@ -6,7 +6,7 @@ use vspace::{set_vm_root, pptr_t, VMReadWrite, VMReadOnly};
 // use crate::{structures::{notification_t, seL4_Fault_t}, config::{seL4_TCBBits, tcbVTable}};
 use common::sel4_config::{seL4_TCBBits, tcbVTable, tcbCTable, wordBits, tcbReply, tcbCaller, tcbBuffer};
 use common::structures::{seL4_Fault_t, seL4_IPCBuffer};
-use crate::{SSTATUS, possible_switch_to, schedule_tcb};
+use crate::{SSTATUS, possible_switch_to, schedule_tcb, n_msgRegisters, msgRegister};
 use crate::structures::lookupSlot_raw_ret_t;
 
 use super::{registers::n_contextRegisters, ready_queues_index, ksReadyQueues, addToBitmap, removeFromBitmap, NextIP, FaultIP, ksIdleThread, ksCurThread,
@@ -310,7 +310,7 @@ impl tcb_t {
         if vm_rights == VMReadWrite || (!is_receiver && vm_rights == VMReadOnly) {
             let base_ptr = buffer_cap.get_frame_base_ptr();
             let page_bits = pageBitsForSize(buffer_cap.get_frame_size());
-            return Some(convert_to_type_ref::<seL4_IPCBuffer>(base_ptr + (w_buffer_ptr & MASK!(page_bits))));
+            return Some(convert_to_mut_type_ref::<seL4_IPCBuffer>(base_ptr + (w_buffer_ptr & MASK!(page_bits))));
         }
         return None;
     }
@@ -329,6 +329,21 @@ impl tcb_t {
             return Some(convert_to_mut_type_ref::<seL4_IPCBuffer>(base_ptr + (w_buffer_ptr & MASK!(page_bits))));
         }
         return None;
+    }
+
+    #[inline]
+    pub fn set_mr(&mut self, offset: usize, reg: usize) -> usize {
+        if offset >= n_msgRegisters {
+            if let Some(ipc_buffer) = self.lookup_mut_ipc_buffer(true) {
+                ipc_buffer.msg[offset] = reg;
+                return offset + 1;
+            } else {
+                return n_msgRegisters;
+            }
+        } else {
+            self.set_register(msgRegister[offset], reg);
+            return offset + 1;
+        }
     }
 
 }

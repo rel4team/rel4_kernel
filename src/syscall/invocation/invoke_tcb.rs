@@ -1,9 +1,15 @@
 use common::{structures::{exception_t, seL4_IPCBuffer}, message_info::seL4_MessageInfo_t, sel4_config::{tcbCTable, tcbVTable, tcbBuffer}};
 use cspace::interface::{cap_t, cte_t, same_object_as, cte_insert};
 use ipc::{cancel_ipc, notification_t};
-use task_manager::{tcb_t, badgeRegister, msgInfoRegister, get_currenct_thread, set_thread_state, ThreadState, FaultIP, NextIP, rescheduleRequired, TLS_BASE};
+use task_manager::{
+    tcb_t, badgeRegister, msgInfoRegister, get_currenct_thread, set_thread_state, ThreadState,
+    FaultIP, NextIP, rescheduleRequired, TLS_BASE, msgRegister, n_msgRegisters
+};
 
-use crate::{config::{n_frameRegisters, n_msgRegisters, msgRegister, frameRegisters, n_gpRegisters, gpRegisters}, syscall::{utils::get_syscall_arg, do_bind_notification, safe_unbind_notification}};
+use crate::{
+    config::{n_frameRegisters, frameRegisters, n_gpRegisters, gpRegisters}, 
+    syscall::{utils::get_syscall_arg, do_bind_notification, safe_unbind_notification}
+};
 
 pub fn invoke_tcb_read_registers(src: &mut tcb_t, suspend_source: usize, n: usize, _arch: usize, call: bool) -> exception_t {
     let thread = get_currenct_thread();

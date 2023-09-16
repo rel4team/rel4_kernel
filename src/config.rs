@@ -1,5 +1,4 @@
-//! Constants used in rCore
-
+//! Constants used in ReL4
 
 pub const USER_STACK_SIZE: usize = 4096 * 2;
 pub const KERNEL_STACK_SIZE: usize = 4096 * 10;
@@ -74,7 +73,6 @@ pub const SIE_MEIE: usize = 11;
 
 pub const badgeRegister: usize = 9;
 pub const seL4_MsgLengthBits:usize =7;
-pub const n_msgRegisters: usize = 4;
 
 pub const RISCVInstructionMisaligned: usize = 0;
 pub const RISCVInstructionAccessFault: usize = 1;
@@ -99,7 +97,6 @@ pub const frameRegisters: [usize; n_frameRegisters] =
     [33, 0, 1, 2, 7, 8, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26];
 pub const gpRegisters: [usize; n_gpRegisters] =
     [9, 10, 11, 12, 13, 14, 15, 16, 4, 5, 6, 27, 28, 29, 30, 3];
-pub const msgRegister: [usize; n_msgRegisters] = [11, 12, 13, 14];
 pub const thread_control_update_priority: usize = 0x1;
 pub const thread_control_update_ipc_buffer: usize = 0x2;
 pub const thread_control_update_space: usize = 0x4;

@@ -1,16 +1,17 @@
-mod decode;
+pub mod decode;
 mod invoke_tcb;
 mod invoke_cnode;
-pub mod invoke_untyped;
+mod invoke_untyped;
+pub mod invoke_mmu_op;
 
 use core::intrinsics::unlikely;
 
 use common::{structures::{exception_t, seL4_Fault_CapFault_new}, message_info::seL4_MessageInfo_t};
 use log::debug;
-use task_manager::{get_currenct_thread, msgInfoRegister, capRegister, ThreadState, set_thread_state};
+use task_manager::{get_currenct_thread, msgInfoRegister, capRegister, ThreadState, set_thread_state, n_msgRegisters};
 
 use crate::{kernel::{boot::current_fault, faulthandler::handleFault}, object::{tcb::lookup_extra_caps, endpoint::{replyFromKernel_error, replyFromKernel_success_empty}},
- config::n_msgRegisters, utils::ipc_buf_ref_to_usize_ptr};
+    utils::ipc_buf_ref_to_usize_ptr};
 
 use self::decode::decodeInvocation;
 

@@ -1,5 +1,5 @@
 use super::calculate_extra_bi_size_bits;
-use super::utils::{arch_get_n_paging, write_slot, provide_cap, clearMemory, create_it_pt_cap, map_it_frame_cap};
+use super::utils::{arch_get_n_paging, write_slot, provide_cap, create_it_pt_cap, map_it_frame_cap};
 use super::{ndks_boot, utils::is_reg_empty};
 use common::{BIT, ROUND_DOWN};
 use common::sel4_config::{wordBits, seL4_SlotBits, IT_ASID, asidLowBits, seL4_PageBits, seL4_PageTableBits, CONFIG_PT_LEVELS,
@@ -14,6 +14,7 @@ use crate::structures::{region_t, rootserver_mem_t, v_region_t, seL4_SlotRegion,
     seL4_BootInfo};
 
 use crate::config::*;
+use crate::utils::clear_memory;
 
 use task_manager::*;
 use vspace::*;
@@ -516,9 +517,9 @@ unsafe fn rust_populate_bi_frame(
     ipcbuf_vptr: usize,
     extra_bi_size: usize,
 ) {
-    clearMemory(rootserver.boot_info as *mut u8, BI_FRAME_SIZE_BITS);
+    clear_memory(rootserver.boot_info as *mut u8, BI_FRAME_SIZE_BITS);
     if extra_bi_size != 0 {
-        clearMemory(
+        clear_memory(
             rootserver.extra_bi as *mut u8,
             calculate_extra_bi_size_bits(extra_bi_size),
         );
@@ -537,7 +538,7 @@ unsafe fn rust_populate_bi_frame(
 }
 
 unsafe fn create_ipcbuf_frame_cap(root_cnode_cap: &cap_t, pd_cap: &cap_t, vptr: usize) -> cap_t {
-    clearMemory(rootserver.ipc_buf as *mut u8, PAGE_BITS);
+    clear_memory(rootserver.ipc_buf as *mut u8, PAGE_BITS);
     let cap = rust_create_mapped_it_frame_cap(
         pd_cap,
         rootserver.ipc_buf,

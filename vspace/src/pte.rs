@@ -21,6 +21,10 @@ pub struct lookupPTSlot_ret_t {
 }
 
 impl pte_t {
+    pub fn get_ptr(&self) -> usize {
+        self as *const Self as usize
+    }
+
     pub fn new(ppn: usize, sw: usize, dirty: usize, accessed: usize, global: usize, user: usize, execute: usize, write: usize,
         read: usize, valid: usize) -> Self {
         

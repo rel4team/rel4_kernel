@@ -4,7 +4,7 @@ use task_manager::{tcb_t, get_current_domain};
 use vspace::{pptr_t, VMReadWrite};
 use cspace::interface::{cap_t, cte_t, insert_new_cap};
 
-use crate::{object::untyped::{FREE_INDEX_TO_OFFSET, GET_OFFSET_FREE_PTR, OFFSET_TO_FREE_IDNEX, GET_FREE_INDEX}, boot::clearMemory};
+use crate::{object::untyped::{FREE_INDEX_TO_OFFSET, GET_OFFSET_FREE_PTR, OFFSET_TO_FREE_IDNEX, GET_FREE_INDEX}, utils::clear_memory};
 
 #[link(name = "kernel_all.c")]
 extern "C" {
@@ -73,13 +73,13 @@ pub fn reset_untyped_cap(srcSlot: &mut cte_t) -> exception_t {
 
     if device_mem != 0 && block_size < chunk {
         if device_mem != 0 {
-            clearMemory(region_base as *mut u8, block_size);
+            clear_memory(region_base as *mut u8, block_size);
         }
         prev_cap.set_untyped_free_index(0);
     } else {
         let mut offset: isize = ROUND_DOWN!(offset - 1, chunk) as isize;
         while offset != -(BIT!(chunk) as isize) {
-            clearMemory(
+            clear_memory(
                 GET_OFFSET_FREE_PTR(region_base, offset as usize) as *mut u8,
                 chunk,
             );
