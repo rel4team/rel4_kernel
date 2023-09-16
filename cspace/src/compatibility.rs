@@ -92,6 +92,12 @@ pub fn cap_get_capType(cap: &cap_t) -> usize {
     cap.get_cap_type() as usize
 }
 
+#[inline]
+#[no_mangle]
+pub fn isMDBParentOf() {
+
+}
+
 
 #[inline]
 pub fn ensureNoChildren(slot: *mut cte_t) -> exception_t {

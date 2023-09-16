@@ -25,6 +25,11 @@ impl cte_t {
     pub fn get_ptr(&self) -> usize {
         self as *const cte_t as usize
     }
+
+    pub fn get_offset_slot(&mut self, index: usize) -> &'static mut Self {
+        convert_to_mut_type_ref::<Self>(self.get_ptr() + core::mem::size_of::<cte_t>() * index)
+    }
+
     pub fn derive_cap(&mut self, cap: &cap_t) -> deriveCap_ret {
         if cap.isArchCap() {
             return self.arch_derive_cap(cap);
@@ -336,6 +341,19 @@ pub fn cte_insert(new_cap: &cap_t, src_slot: &mut cte_t, dest_slot: &mut cte_t) 
         cte_ref.cteMDBNode.set_prev(dest_slot as *const cte_t as usize);
     }
 }
+
+pub fn insert_new_cap(parent: &mut cte_t, slot: &mut cte_t, cap: &cap_t) {
+    let next = parent.cteMDBNode.get_next();
+    slot.cap = cap.clone();
+    slot.cteMDBNode = mdb_node_t::new(next as usize, 1usize, 1usize,
+        parent as *const cte_t as usize);
+    if next != 0 {
+        let next_ref = convert_to_mut_type_ref::<cte_t>(next);
+        next_ref.cteMDBNode.set_prev(slot as *const cte_t as usize);
+    }
+    parent.cteMDBNode.set_next(slot as *const cte_t as usize);
+}
+
 /// 将一个cap插入slot中并删除原节点
 /// 
 /// 将一个new_cap插入到dest slot中并作为替代src slot在派生树中的位置
@@ -420,18 +438,6 @@ pub fn cap_removable(cap: &cap_t, slot: *mut cte_t) -> bool {
     }
 }
 
-
-pub fn insert_new_cap(parent: &mut cte_t, slot: &mut cte_t, cap: &cap_t) {
-    let next = parent.cteMDBNode.get_next();
-    slot.cap = cap.clone();
-    slot.cteMDBNode = mdb_node_t::new(next as usize, 1usize, 1usize,
-        parent as *const cte_t as usize);
-    if next != 0 {
-        let next_ref = convert_to_mut_type_ref::<cte_t>(next);
-        next_ref.cteMDBNode.set_prev(slot as *const cte_t as usize);
-    }
-    parent.cteMDBNode.set_next(slot as *const cte_t as usize);
-}
 
 fn setUntypedCapAsFull(srcCap: &cap_t, newCap: &cap_t, srcSlot: &mut cte_t) {
     if srcCap.get_cap_type() == CapTag::CapUntypedCap

@@ -17,8 +17,6 @@ pub const BIG_STRIDE: isize = 1024;
 pub const APP_BASE_ADDRESS: usize = 0x84000000;
 pub const APP_SIZE_LIMIT: usize = 0x20000;
 pub const PT_OFFSET_BITS: usize = 12;
-pub const seL4_LargePageBits: usize = 21;
-pub const seL4_HugePageBits: usize = 30;
 pub const KDEV_BASE: usize = 0xFFFFFFFFC0000000;
 pub const KS_LOG_PPTR: usize = 0xFFFFFFFFFFE00000;
 pub const RISCVPageBits: usize = 12;
@@ -107,7 +105,6 @@ pub const thread_control_update_ipc_buffer: usize = 0x2;
 pub const thread_control_update_space: usize = 0x4;
 pub const thread_control_update_mcp: usize = 0x8;
 
-pub const CONFIG_RESET_CHUNK_BITS: usize = 8;
 
 pub const seL4_WordBits: usize = 64;
 
@@ -155,14 +152,6 @@ pub const seL4_MinPrio: usize = 0;
 
 pub const CONFIG_MAX_NUM_WORK_UNITS_PER_PREEMPTION: usize = 100;
 pub const CONFIG_RETYPE_FAN_OUT_LIMIT: usize = 256;
-
-pub const seL4_UntypedObject: usize = 0;
-pub const seL4_TCBObject: usize = 1;
-pub const seL4_EndpointObject: usize = 2;
-pub const seL4_NotificationObject: usize = 3;
-pub const seL4_CapTableObject: usize = 4;
-pub const seL4_NonArchObjectTypeCount: usize = 5;
-pub const seL4_ObjectTypeCount: usize = 9;
 
 //seL4_VMFault_Msg
 pub const seL4_VMFault_IP: usize = 0;

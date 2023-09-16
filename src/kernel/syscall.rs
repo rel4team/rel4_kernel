@@ -21,7 +21,6 @@ use super::{
 
 use common::{structures::{exception_t, lookup_fault_missing_capability_new, seL4_Fault_UserException_new,
     seL4_Fault_CapFault_new}, BIT, sel4_config::tcbCaller};
-use cspace::interface::*;
 use log::debug;
 use task_manager::*;
 use ipc::*;

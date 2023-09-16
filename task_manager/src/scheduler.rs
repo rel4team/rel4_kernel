@@ -68,6 +68,11 @@ type prio_t = usize;
 
 
 #[inline]
+pub fn get_current_domain() -> usize {
+    unsafe { ksCurDomain }
+}
+
+#[inline]
 pub fn ready_queues_index(dom: usize, prio: usize) -> usize {
     dom * CONFIG_NUM_PRIORITIES + prio
 }

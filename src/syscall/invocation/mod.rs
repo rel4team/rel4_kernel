@@ -1,6 +1,7 @@
 mod decode;
 mod invoke_tcb;
 mod invoke_cnode;
+pub mod invoke_untyped;
 
 use core::intrinsics::unlikely;
 

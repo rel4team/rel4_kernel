@@ -57,6 +57,11 @@ impl tcb_t {
         }
     }
 
+    #[inline]
+    pub fn init(&mut self) {
+        self.tcbArch = arch_tcb_t::default();
+    }
+
     pub fn get_cspace_mut_ref(&mut self, i: usize) -> &'static mut cte_t {
         unsafe {
             let p = ((self as *mut tcb_t as usize) & !MASK!(seL4_TCBBits)) as *mut cte_t;

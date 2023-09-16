@@ -19,7 +19,6 @@ pub fn invoke_cnode_copy(src_slot: &mut cte_t, dest_slot: &mut cte_t, cap_right:
         unsafe { current_syscall_error._type = seL4_IllegalOperation; }
         return exception_t::EXCEPTION_SYSCALL_ERROR;
     }
-    // setThreadState(ksCurThread as *mut tcb_t, ThreadStateRestart);
     set_thread_state(get_currenct_thread(), ThreadState::ThreadStateRestart);
     cte_insert(&dc_ret.cap, src_slot, dest_slot);
 

@@ -1,6 +1,7 @@
 mod decode_tcb_invocation;
 mod decode_domain_invocation;
 mod decode_cnode_invocation;
+mod decode_untyped_invocation;
 
 use core::intrinsics::unlikely;
 
@@ -12,10 +13,10 @@ use task_manager::{set_thread_state, get_currenct_thread, ThreadState, tcb_t};
 
 use crate::{kernel::{boot::current_syscall_error, vspace::decodeRISCVMMUInvocation}, 
     object::{endpoint::performInvocation_Endpoint, notification::performInvocation_Notification, 
-        objecttype::performInvocation_Reply, untyped::decodeUntypedInvocation, 
+        objecttype::performInvocation_Reply,
         interrupt::{decodeIRQControlInvocation, decodeIRQHandlerInvocation}}};
 
-use self::{decode_tcb_invocation::decode_tcb_invocation, decode_domain_invocation::decode_domain_invocation, decode_cnode_invocation::decode_cnode_invocation};
+use self::{decode_tcb_invocation::decode_tcb_invocation, decode_domain_invocation::decode_domain_invocation, decode_cnode_invocation::decode_cnode_invocation, decode_untyped_invocation::decodeUntypedInvocation};
 
 
 #[no_mangle]

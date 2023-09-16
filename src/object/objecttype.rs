@@ -1,17 +1,11 @@
 
 use crate::{
     config::{
-        seL4_CapTableObject, seL4_EndpointObject, seL4_HugePageBits,
-        seL4_LargePageBits, seL4_NotificationObject,
-        seL4_TCBObject, seL4_UntypedObject,
         tcbCNodeEntries, IRQInactive,
     },
     kernel::{
         boot::current_lookup_fault,
-        thread::{
-            doReplyTransfer, Arch_initContext,
-        },
-        transfermsg::wordFromVMRights,
+        thread::doReplyTransfer,
         vspace::{
             deleteASID, deleteASIDPool,
         },
@@ -30,14 +24,9 @@ use super::{
     notification::cancelAllSignals
 };
 
-use common::{structures::exception_t, sel4_config::*};
+use common::{structures::exception_t, sel4_config::*, object::*};
 use cspace::interface::*;
 
-
-pub const seL4_RISCV_Giga_Page: usize = 5;
-pub const seL4_RISCV_4K_Page: usize = 6;
-pub const seL4_RISCV_Mega_Page: usize = 7;
-pub const seL4_RISCV_PageTableObject: usize = 8;
 
 
 #[no_mangle]
@@ -217,102 +206,6 @@ pub fn hasCancelSendRight(cap: &cap_t) -> bool {
                 && cap_endpoint_cap_get_capCanGrant(cap) != 0
         }
         _ => false,
-    }
-}
-
-#[no_mangle]
-pub fn createObject(
-    t: usize,
-    regionBase: *mut usize,
-    userSize: usize,
-    deviceMemory: bool,
-) -> cap_t {
-    match t {
-        seL4_TCBObject => {
-            let tcb = (regionBase as usize + TCB_OFFSET) as *mut tcb_t;
-            unsafe {
-                (*tcb).tcbArch = Arch_initContext();
-                (*tcb).tcbTimeSlice = CONFIG_TIME_SLICE;
-                (*tcb).domain = ksCurDomain;
-                tcbDebugAppend(tcb);
-            }
-            return cap_thread_cap_new(tcb as usize);
-        }
-        seL4_EndpointObject => cap_t::new_endpoint_cap(0, 1, 1, 1, 1, regionBase as usize),
-        seL4_NotificationObject => cap_notification_cap_new(0, 1, 1, regionBase as usize),
-        seL4_CapTableObject => cap_cnode_cap_new(userSize, 0, 0, regionBase as usize),
-        seL4_UntypedObject => {
-            cap_untyped_cap_new(0, deviceMemory as usize, userSize, regionBase as usize)
-        }
-        seL4_RISCV_4K_Page => cap_frame_cap_new(
-            asidInvalid,
-            regionBase as usize,
-            RISCV_4K_Page,
-            wordFromVMRights(VMReadWrite),
-            deviceMemory as usize,
-            0,
-        ),
-        seL4_RISCV_Giga_Page => cap_frame_cap_new(
-            asidInvalid,
-            regionBase as usize,
-            RISCV_Giga_Page,
-            wordFromVMRights(VMReadWrite),
-            deviceMemory as usize,
-            0,
-        ),
-        seL4_RISCV_Mega_Page => cap_frame_cap_new(
-            asidInvalid,
-            regionBase as usize,
-            RISCV_Mega_Page,
-            wordFromVMRights(VMReadWrite),
-            deviceMemory as usize,
-            0,
-        ),
-        seL4_RISCV_PageTableObject => {
-            cap_page_table_cap_new(asidInvalid, regionBase as usize, 0, 0)
-        }
-        _ => panic!("Invalid object type :{}", t),
-    }
-}
-
-pub fn getObjectSize(t: usize, userObjSize: usize) -> usize {
-    match t {
-        seL4_TCBObject => seL4_TCBBits,
-        seL4_EndpointObject => seL4_EndpointBits,
-        seL4_NotificationObject => seL4_NotificationBits,
-        seL4_CapTableObject => seL4_SlotBits + userObjSize,
-        seL4_UntypedObject => userObjSize,
-        seL4_RISCV_4K_Page | seL4_RISCV_PageTableObject => seL4_PageBits,
-        seL4_RISCV_Mega_Page => seL4_LargePageBits,
-        seL4_RISCV_Giga_Page => seL4_HugePageBits,
-        _ => 0,
-    }
-}
-
-#[no_mangle]
-pub fn createNewObjects(
-    t: usize,
-    parent: *mut cte_t,
-    destCNode: *mut cte_t,
-    destOffset: usize,
-    destLength: usize,
-    regionBase: *mut usize,
-    userSize: usize,
-    deviceMemory: bool,
-) {
-    let objectSize = getObjectSize(t, userSize);
-    let _totalObjectSize = destLength << objectSize;
-    let nextFreeArea = regionBase;
-    for i in 0..destLength {
-        let cap = createObject(
-            t,
-            (nextFreeArea as usize + (i << objectSize)) as *mut usize,
-            userSize,
-            deviceMemory,
-        );
-        unsafe {
-            insertNewCap(parent, destCNode.add(destOffset + i), &cap);
-        }
     }
 }
 

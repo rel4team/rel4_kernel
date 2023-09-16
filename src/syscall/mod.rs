@@ -1,5 +1,5 @@
 mod utils;
-mod invocation;
+pub mod invocation;
 
 use core::intrinsics::unlikely;
 

@@ -25,6 +25,8 @@ pub const PT_INDEX_BITS: usize = 9;
 pub const CONFIG_PT_LEVELS: usize = 3;
 pub const seL4_PageBits: usize = 12;
 pub const seL4_PageTableBits: usize = 12;
+pub const seL4_HugePageBits: usize = 30;
+pub const seL4_LargePageBits: usize = 21;
 
 
 // ASID relevant
@@ -102,3 +104,6 @@ pub const seL4_MsgMaxExtraCaps: usize = BIT!(seL4_MsgExtraCapBits) - 1;
 
 
 pub const seL4_IPCBufferSizeBits: usize = 10;
+
+
+pub const CONFIG_RESET_CHUNK_BITS: usize = 8;

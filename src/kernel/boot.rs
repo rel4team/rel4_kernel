@@ -7,14 +7,6 @@ use crate::structures::{
     extra_caps_t, syscall_error_t, 
 };
 
-use task_manager::*;
-
-#[link(name = "kernel_all.c")]
-extern "C" {
-    fn init_plat();
-    fn tcbDebugAppend(action: *mut tcb_t);
-}
-
 #[no_mangle]
 #[link_section = ".boot.bss"]
 pub static mut active_irq: [usize; 1] = [0; 1];
