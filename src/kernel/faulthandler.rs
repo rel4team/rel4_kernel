@@ -7,7 +7,7 @@ use super::{
     cspace::lookupCap,
 };
 use cspace::compatibility::*;
-use common::{structures::{exception_t, lookup_fault_missing_capability_new, seL4_Fault_t, seL4_Fault_CapFault_new, seL4_Fault_get_seL4_FaultType}, sel4_config::seL4_Fault_CapFault};
+use common::{structures::{exception_t, lookup_fault_missing_capability_new}, fault::*};
 
 #[no_mangle]
 pub fn handleFault(tptr: *mut tcb_t) {

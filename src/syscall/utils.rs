@@ -91,23 +91,10 @@ pub fn is_valid_vtable_root(cap: &cap_t) -> bool {
     cap.get_cap_type() == CapTag::CapPageTableCap && cap.get_pt_is_mapped() != 0
 }
 
-#[no_mangle]
-pub fn unbindMaybeNotification(ptr: *mut notification_t) {
-    unsafe {
-        (*ptr).safe_unbind_tcb()
-    }
-}
-
-#[no_mangle]
-pub fn unbindNotification(tcb: *mut tcb_t) {
-    unsafe {
-        safe_unbind_notification(&mut *tcb)
-    }
-}
 
 #[no_mangle]
 pub fn isValidVTableRoot(_cap: &cap_t) -> bool {
-    false
+    panic!("should not be invoked!")
 }
 
 pub fn lookup_slot_for_cnode_op(is_source: bool, root: &cap_t, cap_ptr: usize, depth: usize) -> lookupSlot_ret_t {

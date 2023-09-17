@@ -10,8 +10,3 @@ impl cap_t {
         cap
     }
 }
-
-#[inline]
-pub fn cap_domain_cap_new() -> cap_t {
-    cap_t::new_domain_cap()
-}

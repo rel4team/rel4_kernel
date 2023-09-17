@@ -20,24 +20,6 @@ impl satp_t {
 }
 
 #[inline]
-pub fn satp_new(mode: usize, asid: usize, ppn: usize) -> satp_t {
-    satp_t::new(mode, asid, ppn)
-}
-
-
-#[inline]
-pub unsafe fn write_satp(value: usize) {
-    core::arch::asm!("csrw satp,{0}",in(reg) value);
-}
-
-#[inline]
-pub unsafe fn read_satp() -> usize {
-    let temp: usize;
-    core::arch::asm!("csrr {0},satp",out(reg) temp);
-    temp
-}
-
-#[inline]
 #[no_mangle]
 pub fn sfence() {
     unsafe {
@@ -48,7 +30,7 @@ pub fn sfence() {
 #[inline]
 #[no_mangle]
 pub fn setVSpaceRoot(addr: paddr_t, asid: usize) {
-    let satp = satp_new(8usize, asid, addr >> 12);
+    let satp = satp_t::new(8usize, asid, addr >> 12);
     satp::write(satp.words);
     sfence();
 }

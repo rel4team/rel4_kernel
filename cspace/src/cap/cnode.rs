@@ -99,19 +99,3 @@ impl cap_t {
     }
     
 }
-
-#[inline]
-pub fn cap_cnode_cap_new(capCNodeRadix: usize, capCNodeGuardSize: usize, capCNodeGuard: usize, capCNodePtr: usize) -> cap_t {
-    cap_t::new_cnode_cap(capCNodeRadix, capCNodeGuardSize, capCNodeGuard, capCNodePtr)
-}
-
-
-#[inline]
-pub fn cap_cnode_cap_get_capCNodeRadix(cap: &cap_t) -> usize {
-    cap.get_cnode_radix()
-}
-
-#[inline]
-pub fn cap_cnode_cap_get_capCNodePtr(cap: &cap_t) -> usize {
-    cap.get_cnode_ptr()
-}

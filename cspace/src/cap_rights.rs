@@ -42,9 +42,3 @@ impl seL4_CapRights_t {
         (self.word & 0x1usize) >> 0
     }
 }
-
-
-#[inline]
-pub fn rightsFromWord(w: usize) -> seL4_CapRights_t {
-    seL4_CapRights_t::from_word(w)
-}

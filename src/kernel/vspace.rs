@@ -1,5 +1,5 @@
+use common::fault::seL4_Fault_VMFault_new;
 use common::message_info::*;
-use common::structures::seL4_Fault_VMFault_new;
 use common::{structures::exception_t, sel4_config::*};
 use vspace::*;
 use crate::{

@@ -280,8 +280,3 @@ pub fn is_cap_revocable(derived_cap: &cap_t, src_cap: &cap_t) -> bool {
         _ => false
     }
 }
-
-
-pub fn updateCapData(preserve: bool, newData: usize, _cap: &cap_t) -> cap_t {
-    _cap.update_data(preserve, newData)
-}

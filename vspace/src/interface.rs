@@ -2,7 +2,7 @@ use common::{BIT, sel4_config::{PT_INDEX_BITS, PPTR_BASE, PADDR_BASE, PPTR_TOP, 
     seL4_PageBits}, ROUND_DOWN, structures::{lookup_fault_t, exception_t}, utils::{convert_to_mut_type_ref, pageBitsForSize}};
 use cspace::interface::{cap_t, CapTag};
 use core::intrinsics::unlikely;
-use crate::pte::{pte_t, pte_next};
+use crate::pte::pte_t;
 use crate::utils::{RISCV_GET_PT_INDEX, RISCV_GET_LVL_PGSIZE, RISCV_GET_LVL_PGSIZE_BITS, kpptr_to_paddr};
 
 use crate::{satp::{setVSpaceRoot, sfence}, asid::{find_vspace_for_asid, asid_t}, utils::pptr_to_paddr, structures::{vptr_t, pptr_t}};
@@ -25,7 +25,7 @@ pub fn rust_map_kernel_window() {
     let mut paddr = PADDR_BASE;
     while pptr < PPTR_TOP {
         unsafe {
-            kernel_root_pageTable[RISCV_GET_PT_INDEX(pptr, 0)] = pte_next(paddr, true);
+            kernel_root_pageTable[RISCV_GET_PT_INDEX(pptr, 0)] = pte_t::pte_next(paddr, true);
         }
         pptr += RISCV_GET_LVL_PGSIZE(0);
         paddr += RISCV_GET_LVL_PGSIZE(0);
@@ -34,11 +34,11 @@ pub fn rust_map_kernel_window() {
     paddr = ROUND_DOWN!(KERNEL_ELF_PADDR_BASE, RISCV_GET_LVL_PGSIZE_BITS(0));
     unsafe {
         kernel_root_pageTable[RISCV_GET_PT_INDEX(KERNEL_ELF_PADDR_BASE + PPTR_BASE_OFFSET, 0)] =
-            pte_next(
+        pte_t::pte_next(
                 kpptr_to_paddr(kernel_image_level2_pt.as_ptr() as usize),
                 false,
             );
-        kernel_root_pageTable[RISCV_GET_PT_INDEX(pptr, 0)] = pte_next(
+        kernel_root_pageTable[RISCV_GET_PT_INDEX(pptr, 0)] = pte_t::pte_next(
             kpptr_to_paddr(kernel_image_level2_pt.as_ptr() as usize),
             false,
         );
@@ -47,7 +47,7 @@ pub fn rust_map_kernel_window() {
     let mut index = 0;
     while pptr < PPTR_TOP + RISCV_GET_LVL_PGSIZE(0) {
         unsafe {
-            kernel_image_level2_pt[index] = pte_next(paddr, true);
+            kernel_image_level2_pt[index] = pte_t::pte_next(paddr, true);
         }
         pptr += RISCV_GET_LVL_PGSIZE(1);
         paddr += RISCV_GET_LVL_PGSIZE(1);
@@ -100,13 +100,6 @@ pub fn set_vm_root(vspace_root: &cap_t) -> Result<(), lookup_fault_t> {
     ret
 }
 
-
-#[no_mangle]
-pub fn unmapPageTable(asid: asid_t, vptr: vptr_t, target_pt: *mut pte_t) {
-    unsafe {
-        (*target_pt).unmap_page_table(asid, vptr);
-    }
-}
 
 #[no_mangle]
 pub fn unmapPage(page_size: usize, asid: asid_t, vptr: vptr_t, pptr: pptr_t) -> Result<(), lookup_fault_t> {

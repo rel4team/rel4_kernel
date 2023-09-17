@@ -78,23 +78,23 @@ pub fn ready_queues_index(dom: usize, prio: usize) -> usize {
 }
 
 #[inline]
-pub fn prio_to_l1index(prio: usize) -> usize {
+fn prio_to_l1index(prio: usize) -> usize {
     prio >> wordRadix
 }
 
 #[inline]
-pub fn l1index_to_prio(l1index: usize) -> usize {
+fn l1index_to_prio(l1index: usize) -> usize {
     l1index << wordRadix
 }
 
 #[inline]
-pub fn invert_l1index(l1index: usize) -> usize {
+fn invert_l1index(l1index: usize) -> usize {
     let inverted = L2_BITMAP_SIZE - 1 - l1index;
     inverted
 }
 
 #[inline]
-pub fn getHighestPrio(dom: usize) -> prio_t {
+fn getHighestPrio(dom: usize) -> prio_t {
     unsafe {
         let l1index = wordBits - 1 - ksReadyQueuesL1Bitmap[dom].leading_zeros() as usize;
         let l1index_inverted = invert_l1index(l1index);

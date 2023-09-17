@@ -10,7 +10,7 @@ use crate::config::{
 
 use task_manager::*;
 
-use common::{sel4_config::*, structures::*, message_info::*};
+use common::{sel4_config::*, structures::*, message_info::*, fault::*};
 
 pub const fault_messages: [[usize; MAX_MSG_SIZE]; 2] = [
     [33, 1, 0, 9, 10, 11, 12, 13, 14, 15],

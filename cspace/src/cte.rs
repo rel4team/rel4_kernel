@@ -507,24 +507,10 @@ pub fn resolve_address_bits(node_cap: &cap_t, cap_ptr: usize, _n_bits: usize) ->
 }
 
 
-#[no_mangle]
-pub fn cteDelete(slot: *mut cte_t, exposed: bool) -> exception_t {
-    unsafe {
-        (*slot).delete_all(exposed)
-    }
-}
 
 #[no_mangle]
 pub fn cteDeleteOne(slot: *mut cte_t) {
     unsafe {
         (*slot).delete_one()
-    }
-}
-
-
-#[inline]
-pub fn cteRevoke(slot: *mut cte_t) -> exception_t {
-    unsafe {
-        (*slot).revoke()
     }
 }

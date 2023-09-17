@@ -1,14 +1,14 @@
 use core::intrinsics::unlikely;
 
+use common::fault::seL4_Fault_t;
 use common::message_info::seL4_MessageInfo_t;
 use common::utils::pageBitsForSize;
 use common::{structures::lookup_fault_t, MASK, utils::convert_to_mut_type_ref};
 use cspace::interface::{cte_t, resolve_address_bits, CapTag, cap_t, mdb_node_t, cte_insert};
 use vspace::{set_vm_root, pptr_t, VMReadWrite, VMReadOnly};
 
-// use crate::{structures::{notification_t, seL4_Fault_t}, config::{seL4_TCBBits, tcbVTable}};
 use common::sel4_config::{seL4_TCBBits, tcbVTable, tcbCTable, wordBits, tcbReply, tcbCaller, tcbBuffer, seL4_MsgMaxExtraCaps};
-use common::structures::{seL4_Fault_t, seL4_IPCBuffer, exception_t, seL4_Fault_CapFault_new};
+use common::structures::{seL4_IPCBuffer, exception_t};
 use crate::{SSTATUS, possible_switch_to, schedule_tcb, n_msgRegisters, msgRegister, msgInfoRegister};
 use crate::structures::lookupSlot_raw_ret_t;
 
@@ -328,7 +328,7 @@ impl tcb_t {
                 let cptr = buffer.get_extra_cptr(i);
                 let lu_ret = self.lookup_slot(cptr);
                 if unlikely(lu_ret.status != exception_t::EXCEPTION_NONE)  {
-                    return Err(seL4_Fault_CapFault_new(cptr, false as usize));
+                    return Err(seL4_Fault_t::new_cap_fault(cptr, false as usize));
                 }
                 res[i] = lu_ret.slot as usize;
                 i += 1;
@@ -411,13 +411,6 @@ pub fn getCSpace(ptr: usize, i: usize) -> *mut cte_t {
 }
 
 
-pub fn getCSpaceRef(ptr: usize, i: usize) -> &'static cte_t {
-    unsafe {
-        let thread =&mut *( ptr as *mut tcb_t);
-        thread.get_cspace(i)
-    }
-}
-
 pub fn getCSpaceMutRef(ptr: usize, i: usize) -> &'static mut cte_t {
     unsafe {
         let thread =&mut *( ptr as *mut tcb_t);
@@ -485,26 +478,6 @@ pub fn setNextPC(thread: *mut tcb_t, v: usize) {
 }
 
 
-
-pub fn setMCPriority(tptr: *mut tcb_t, mcp: usize) {
-    unsafe {
-        (*tptr).set_mcp_priority(mcp)
-    }
-}
-
-pub fn setPriority(tptr: *mut tcb_t, prio: usize) {
-    unsafe {
-       (*tptr).set_priority(prio);
-    }
-}
-
-#[no_mangle]
-pub fn setDomain(tptr: *mut tcb_t, _dom: usize) {
-    unsafe {
-        (*tptr).set_domain(_dom)
-    }
-}
-
 pub fn lookupSlot(thread: *const tcb_t, capptr: usize) -> lookupSlot_raw_ret_t {
     unsafe {
         (*thread).lookup_slot(capptr)
@@ -512,22 +485,10 @@ pub fn lookupSlot(thread: *const tcb_t, capptr: usize) -> lookupSlot_raw_ret_t {
 }
 
 #[no_mangle]
-pub fn setupReplyMaster(_thread: *mut tcb_t) {}
-
-
-#[no_mangle]
-pub fn suspend(target: *mut tcb_t) {
-    unsafe {
-        (*target).suspend()
-    }
+pub fn setupReplyMaster(_thread: *mut tcb_t) {
+    panic!("should not be invoked")
 }
 
-#[no_mangle]
-pub fn restart(target: *mut tcb_t) {
-    unsafe {
-        (*target).restart()
-    }
-}
 
 #[no_mangle]
 pub fn setupCallerCap(sender: *mut tcb_t, receiver: *mut tcb_t, canGrant: bool) {

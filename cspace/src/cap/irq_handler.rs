@@ -17,13 +17,3 @@ impl cap_t {
         (self.words[1] & 0xfffusize) >> 0
     }
 }
-
-#[inline]
-pub fn cap_irq_handler_cap_new(capIRQ: usize) -> cap_t {
-    cap_t::new_irq_handler_cap(capIRQ)
-}
-
-#[inline]
-pub fn cap_irq_handler_cap_get_capIRQ(cap: &cap_t) -> usize {
-    cap.get_irq_handler()
-}

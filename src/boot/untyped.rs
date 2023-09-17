@@ -6,7 +6,6 @@ use common::{sel4_config::{seL4_MaxUntypedBits, seL4_MinUntypedBits}, MASK, BIT,
 use cspace::interface::*;
 use log::debug;
 use vspace::*;
-use cspace::compatibility::*;
 
 pub fn create_untypeds(root_cnode_cap: &cap_t, boot_mem_reuse_reg: region_t) -> bool {
     unsafe {
@@ -156,7 +155,7 @@ fn provide_untyped_cap(
                 isDevice: device_memory as u8,
                 padding: [0; 6],
             };
-            let ut_cap = cap_untyped_cap_new(
+            let ut_cap = cap_t::new_untyped_cap(
                 MAX_FREE_INDEX(size_bits),
                 device_memory as usize,
                 size_bits,

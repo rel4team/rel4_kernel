@@ -9,7 +9,7 @@ use crate::{
         vspace::{
             deleteASID, deleteASIDPool,
         },
-    }, syscall::{unbindMaybeNotification, unbindNotification},
+    }, syscall::safe_unbind_notification,
 };
 
 use task_manager::*;
@@ -24,47 +24,36 @@ use super::{
     notification::cancelAllSignals
 };
 
-use common::{structures::exception_t, sel4_config::*, object::*};
+use common::{structures::exception_t, sel4_config::*, object::*, utils::convert_to_mut_type_ref};
 use cspace::interface::*;
 
-
-
 #[no_mangle]
-pub fn Arch_finaliseCap(cap: &cap_t, _final: bool) -> finaliseCap_ret {
+pub fn Arch_finaliseCap(cap: &cap_t, final_: bool) -> finaliseCap_ret {
     let mut fc_ret = finaliseCap_ret::default();
-    match cap_get_capType(cap) {
-        cap_frame_cap => {
-            if cap_frame_cap_get_capFMappedASID(cap) != 0 {
-                match unmapPage(
-                    cap_frame_cap_get_capFSize(cap),
-                    cap_frame_cap_get_capFMappedASID(cap),
-                    cap_frame_cap_get_capFMappedAddress(cap),
-                    cap_frame_cap_get_capFBasePtr(cap),
-                ) {
+    match cap.get_cap_type() {
+        CapTag::CapFrameCap => {
+            if cap.get_frame_mapped_asid() != 0 {
+                match unmapPage(cap.get_frame_size(), cap.get_frame_mapped_asid(), 
+                    cap.get_frame_mapped_address(), cap.get_frame_base_ptr()) {
                     Err(lookup_fault) => {
                         unsafe {
                             current_lookup_fault = lookup_fault
                         }
                     }
-                    _ => {}
+                    _ => {} 
                 }
             }
         }
-        cap_page_table_cap => {
-            if _final && (cap_page_table_cap_get_capPTIsMapped(cap) != 0) {
-                let asid = cap_page_table_cap_get_capPTMappedASID(cap);
-                let find_ret = findVSpaceForASID(asid);
-                let pte = cap_page_table_cap_get_capPTBasePtr(cap);
-                if find_ret.status == exception_t::EXCEPTION_NONE
-                    && find_ret.vspace_root.unwrap() as usize == pte
-                {
+
+        CapTag::CapPageTableCap => {
+            if final_ && cap.get_pt_is_mapped() != 0 {
+                let asid = cap.get_pt_mapped_asid();
+                let find_ret = find_vspace_for_asid(asid);
+                let pte = cap.get_pt_base_ptr();
+                if find_ret.status == exception_t::EXCEPTION_NONE && find_ret.vspace_root.unwrap() as usize == pte {
                     deleteASID(asid, pte as *mut pte_t);
                 } else {
-                    unmapPageTable(
-                        asid,
-                        cap_page_table_cap_get_capPTMappedAddress(cap),
-                        pte as *mut pte_t,
-                    );
+                    convert_to_mut_type_ref::<pte_t>(pte).unmap_page_table(asid, cap.get_pt_mapped_address());
                 }
                 if let Some(lookup_fault) = find_ret.lookup_fault {
                     unsafe {
@@ -73,19 +62,19 @@ pub fn Arch_finaliseCap(cap: &cap_t, _final: bool) -> finaliseCap_ret {
                 }
             }
         }
-        cap_asid_pool_cap => {
-            if _final {
+
+        CapTag::CapASIDPoolCap => {
+            if final_ {
                 deleteASIDPool(
-                    cap_asid_pool_cap_get_capASIDBase(cap),
-                    cap_asid_pool_cap_get_capASIDPool(cap) as *mut asid_pool_t,
+                    cap.get_asid_base(),
+                    cap.get_asid_pool() as *mut asid_pool_t,
                 );
             }
         }
-        cap_asid_control_cap => {}
         _ => {}
     }
-    fc_ret.remainder = cap_null_cap_new();
-    fc_ret.cleanupInfo = cap_null_cap_new();
+    fc_ret.remainder = cap_t::new_null_cap();
+    fc_ret.cleanupInfo = cap_t::new_null_cap();
     fc_ret
 }
 
@@ -101,28 +90,28 @@ pub fn finaliseCap(cap: &cap_t, _final: bool, _exposed: bool) -> finaliseCap_ret
     if cap.isArchCap() {
         return Arch_finaliseCap(cap, _final);
     }
-    match cap_get_capType(cap) {
-        cap_endpoint_cap => {
+    match cap.get_cap_type() {
+        CapTag::CapEndpointCap => {
             if _final {
-                cancelAllIPC(cap_endpoint_cap_get_capEPPtr(cap) as *mut endpoint_t);
+                cancelAllIPC(cap.get_ep_ptr() as *mut endpoint_t);
             }
-            fc_ret.remainder = cap_null_cap_new();
-            fc_ret.cleanupInfo = cap_null_cap_new();
+            fc_ret.remainder = cap_t::new_null_cap();
+            fc_ret.cleanupInfo = cap_t::new_null_cap();
             return fc_ret;
         }
-        cap_notification_cap => {
+        CapTag::CapNotificationCap => {
             if _final {
-                let ntfn = cap_notification_cap_get_capNtfnPtr(cap) as *mut notification_t;
-                unbindMaybeNotification(ntfn);
+                let ntfn =  convert_to_mut_type_ref::<notification_t>(cap.get_nf_ptr());
+                ntfn.safe_unbind_tcb();
                 cancelAllSignals(ntfn);
             }
-            fc_ret.remainder = cap_null_cap_new();
-            fc_ret.cleanupInfo = cap_null_cap_new();
+            fc_ret.remainder = cap_t::new_null_cap();
+            fc_ret.cleanupInfo = cap_t::new_null_cap();
             return fc_ret;
         }
-        cap_reply_cap | cap_null_cap | cap_domain_cap => {
-            fc_ret.remainder = cap_null_cap_new();
-            fc_ret.cleanupInfo = cap_null_cap_new();
+        CapTag::CapReplyCap | CapTag::CapNullCap | CapTag::CapDomainCap => {
+            fc_ret.remainder = cap_t::new_null_cap();
+            fc_ret.cleanupInfo = cap_t::new_null_cap();
             return fc_ret;
         }
         _ => {
@@ -132,67 +121,67 @@ pub fn finaliseCap(cap: &cap_t, _final: bool, _exposed: bool) -> finaliseCap_ret
         }
     }
 
-    match cap_get_capType(cap) {
-        cap_cnode_cap => {
+    match cap.get_cap_type() {
+        CapTag::CapCNodeCap => {
             if _final {
                 fc_ret.remainder = Zombie_new(
-                    1usize << cap_cnode_cap_get_capCNodeRadix(cap),
-                    cap_cnode_cap_get_capCNodeRadix(cap),
-                    cap_cnode_cap_get_capCNodePtr(cap),
+                    1usize << cap.get_cnode_radix(),
+                    cap.get_cnode_radix(),
+                    cap.get_cnode_ptr(),
                 );
-                fc_ret.cleanupInfo = cap_null_cap_new();
+                fc_ret.cleanupInfo = cap_t::new_null_cap();
                 return fc_ret;
             } else {
-                fc_ret.remainder = cap_null_cap_new();
-                fc_ret.cleanupInfo = cap_null_cap_new();
+                fc_ret.remainder = cap_t::new_null_cap();
+                fc_ret.cleanupInfo = cap_t::new_null_cap();
                 return fc_ret;
             }
         }
-        cap_thread_cap => {
+        CapTag::CapThreadCap => {
             if _final {
-                let tcb = cap_thread_cap_get_capTCBPtr(cap) as *mut tcb_t;
-                let cte_ptr = getCSpace(tcb as usize, tcbCTable) as *mut cte_t;
-                unbindNotification(tcb);
-                cancelIPC(tcb);
-                suspend(tcb);
+                let tcb = convert_to_mut_type_ref::<tcb_t>(cap.get_tcb_ptr());
+                let cte_ptr = tcb.get_cspace_mut_ref(tcbCTable);
+                safe_unbind_notification(tcb);
+                cancel_ipc(tcb);
+                tcb.suspend();
                 unsafe {
-                    tcbDebugRemove(tcb);
+                    tcbDebugRemove(tcb as *mut tcb_t);
                 }
                 fc_ret.remainder =
-                    Zombie_new(tcbCNodeEntries, ZombieType_ZombieTCB, cte_ptr as usize);
-                fc_ret.cleanupInfo = cap_null_cap_new();
+                    Zombie_new(tcbCNodeEntries, ZombieType_ZombieTCB, cte_ptr.get_ptr());
+                fc_ret.cleanupInfo = cap_t::new_null_cap();
                 return fc_ret;
             }
         }
-        cap_zombie_cap => {
+        CapTag::CapZombieCap => {
             fc_ret.remainder = cap.clone();
-            fc_ret.cleanupInfo = cap_null_cap_new();
+            fc_ret.cleanupInfo = cap_t::new_null_cap();
             return fc_ret;
         }
-        cap_irq_handler_cap => {
+        CapTag::CapIrqHandlerCap => {
             if _final {
-                let irq = cap_irq_handler_cap_get_capIRQ(cap);
+                let irq = cap.get_irq_handler();
                 deletingIRQHandler(irq);
-                fc_ret.remainder = cap_null_cap_new();
+                fc_ret.remainder = cap_t::new_null_cap();
                 fc_ret.cleanupInfo = cap.clone();
                 return fc_ret;
             }
         }
         _ => {
-            fc_ret.remainder = cap_null_cap_new();
-            fc_ret.cleanupInfo = cap_null_cap_new();
+            fc_ret.remainder = cap_t::new_null_cap();
+            fc_ret.cleanupInfo = cap_t::new_null_cap();
             return fc_ret;
         }
     }
-    fc_ret.remainder = cap_null_cap_new();
-    fc_ret.cleanupInfo = cap_null_cap_new();
+    fc_ret.remainder = cap_t::new_null_cap();
+    fc_ret.cleanupInfo = cap_t::new_null_cap();
     return fc_ret;
 }
 
 #[no_mangle]
 pub fn post_cap_deletion(cap: &cap_t) {
     if cap_get_capType(cap) == cap_irq_handler_cap {
-        let irq = cap_irq_handler_cap_get_capIRQ(cap);
+        let irq = cap.get_irq_handler();
         setIRQState(IRQInactive, irq);
     }
 }

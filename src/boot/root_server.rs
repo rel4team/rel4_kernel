@@ -159,7 +159,7 @@ unsafe fn create_initial_thread(
     ksCurDomain = ksDomSchedule[ksDomScheduleIdx].domain;
     ksDomainTime = ksDomSchedule[ksDomScheduleIdx].length;
 
-    let cap = cap_thread_cap_new(tcb as usize);
+    let cap = cap_t::new_thread_cap(tcb as usize);
     write_slot(ptr.add(seL4_CapInitThreadTCB), cap);
     // forget(*tcb);
     tcb
@@ -183,11 +183,11 @@ fn asid_init(root_cnode_cap: cap_t, it_pd_cap: cap_t) -> bool {
 
 
 fn create_it_asid_pool(root_cnode_cap: &cap_t) -> cap_t {
-    let ap_cap = unsafe { cap_asid_pool_cap_new(IT_ASID >> asidLowBits, rootserver.asid_pool) };
+    let ap_cap = unsafe { cap_t::new_asid_pool_cap(IT_ASID >> asidLowBits, rootserver.asid_pool) };
     unsafe {
         let ptr = root_cnode_cap.get_cap_ptr() as *mut cte_t;
         write_slot(ptr.add(seL4_CapInitThreadASIDPool), ap_cap.clone());
-        write_slot(ptr.add(seL4_CapASIDControl), cap_asid_control_cap_new());
+        write_slot(ptr.add(seL4_CapASIDControl), cap_t::new_asid_control_cap());
     }
     ap_cap
 }
@@ -250,7 +250,7 @@ unsafe fn root_server_mem_init(it_v_reg: v_region_t, extra_bi_size_bits: usize) 
 }
 
 unsafe fn create_root_cnode() -> cap_t {
-    let cap = cap_cnode_cap_new(
+    let cap = cap_t::new_cnode_cap(
         CONFIG_ROOT_CNODE_SIZE_BITS,
         wordBits - CONFIG_ROOT_CNODE_SIZE_BITS,
         0,
@@ -348,7 +348,7 @@ fn create_domain_cap(root_cnode_cap: &cap_t) {
             assert!(ksDomSchedule[i].length > 0);
         }
     }
-    let cap = cap_domain_cap_new();
+    let cap = cap_t::new_domain_cap();
     unsafe {
         let pos = root_cnode_cap.get_cap_ptr() as *mut cte_t;
         write_slot(pos.add(seL4_CapDomain), cap);
@@ -370,7 +370,7 @@ fn init_irqs(root_cnode_cap: &cap_t) {
 
 unsafe fn rust_create_it_address_space(root_cnode_cap: &cap_t, it_v_reg: v_region_t) -> cap_t {
     copyGlobalMappings(rootserver.vspace);
-    let lvl1pt_cap = cap_page_table_cap_new(IT_ASID, rootserver.vspace, 1, rootserver.vspace);
+    let lvl1pt_cap = cap_t::new_page_table_cap(IT_ASID, rootserver.vspace, 1, rootserver.vspace);
     let ptr = root_cnode_cap.get_cap_ptr() as *mut cte_t;
     let slot_pos_before = ndks_boot.slot_pos_cur;
     write_slot(ptr.add(seL4_CapInitThreadVspace), lvl1pt_cap.clone());
@@ -382,7 +382,7 @@ unsafe fn rust_create_it_address_space(root_cnode_cap: &cap_t, it_v_reg: v_regio
                 root_cnode_cap,
                 create_it_pt_cap(&lvl1pt_cap, it_alloc_paging(), pt_vptr, IT_ASID),
             ) {
-                return cap_null_cap_new();
+                return cap_t::new_null_cap();
             }
             pt_vptr += RISCV_GET_LVL_PGSIZE(i);
         }
@@ -500,14 +500,14 @@ pub fn rust_create_mapped_it_frame_cap(
     } else {
         frame_size = RISCVPageBits;
     }
-    let cap = cap_frame_cap_new(asid, pptr, frame_size, VMReadWrite, 0, vptr);
+    let cap = cap_t::new_frame_cap(asid, pptr, frame_size, VMReadWrite, 0, vptr);
     map_it_frame_cap(pd_cap, &cap);
     cap
 }
 
 
 fn rust_create_unmapped_it_frame_cap(pptr: pptr_t, _use_large: bool) -> cap_t {
-    cap_frame_cap_new(0, pptr, 0, 0, 0, 0)
+    cap_t::new_frame_cap(0, pptr, 0, 0, 0, 0)
 }
 
 

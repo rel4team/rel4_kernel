@@ -163,83 +163,21 @@ impl pte_t {
 }
 
 
-#[inline]
-pub fn pte_ptr_get_valid(pte_ptr: *const pte_t) -> usize {
-    unsafe {
-        (*pte_ptr).get_vaild()
-    }
+#[no_mangle]
+pub fn pte_next(_phys_addr: usize, _is_leaf: bool) -> pte_t {
+    panic!("should not be invoked!")
 }
 
-#[inline]
-pub fn pte_ptr_get_ppn(pte_ptr: *const pte_t) -> usize {
-    unsafe {
-        (*pte_ptr).get_ppn()
-    }
-}
-#[inline]
-pub fn pte_ptr_get_execute(pte_ptr: *const pte_t) -> usize {
-    unsafe {
-        (*pte_ptr).get_execute()
-    }
-}
-
-#[inline]
-pub fn pte_ptr_get_write(pte_ptr: *const pte_t) -> usize {
-    unsafe {
-        (*pte_ptr).get_write()
-    }
-}
-
-#[inline]
-pub fn pte_ptr_get_read(pte_ptr: *const pte_t) -> usize {
-    unsafe {
-        (*pte_ptr).get_read()
-    }
-}
 
 #[no_mangle]
-pub fn makeUserPTE(paddr: usize, executable: bool, vm_rights: usize) -> pte_t {
-    pte_t::make_user_pte(paddr, executable, vm_rights)
+pub fn isPTEPageTable(_pte: *mut pte_t) -> bool {
+    panic!("should not be invoked!")
 }
 
-#[inline]
-pub fn pte_new(ppn: usize, sw: usize, dirty: usize, accessed: usize, global: usize, user: usize, execute: usize, write: usize,
-    read: usize, valid: usize) -> pte_t {
-    pte_t::new(ppn, sw, dirty, accessed, global, user, execute, write, read, valid)
-}
 
 #[no_mangle]
-pub fn pte_pte_invalid_new() -> pte_t {
-    pte_t::pte_invalid()
-}
-
-#[inline]
-#[no_mangle]
-pub fn pte_next(phys_addr: usize, is_leaf: bool) -> pte_t {
-    pte_t::pte_next(phys_addr, is_leaf)
-}
-
-
-#[inline]
-#[no_mangle]
-pub fn isPTEPageTable(pte: *mut pte_t) -> bool {
-    unsafe {
-        (*pte).is_pte_table()
-    }
-}
-
-#[inline]
-pub fn getPPtrFromHWPTE(pte: *mut pte_t) -> *mut pte_t {
-    unsafe {
-        (*pte).get_pte_from_ppn_mut() as *mut pte_t
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn lookupPTSlot(lvl1pt: *mut pte_t, vptr: vptr_t) -> lookupPTSlot_ret_t {
-    unsafe {
-        (*lvl1pt).lookup_pt_slot(vptr)
-    }
+pub extern "C" fn lookupPTSlot(_lvl1pt: *mut pte_t, _vptr: vptr_t) -> lookupPTSlot_ret_t {
+    panic!("should not be invoked!")
 }
 
 #[no_mangle]

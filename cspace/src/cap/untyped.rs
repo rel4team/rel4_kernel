@@ -67,39 +67,3 @@ impl cap_t {
         ret
     }
 }
-
-
-#[inline]
-pub fn cap_untyped_cap_new(capFreeIndex: usize, capIsDevice: usize, capBlockSize: usize, capPtr: usize) -> cap_t {
-    cap_t::new_untyped_cap(capFreeIndex, capIsDevice, capBlockSize, capPtr)
-}
-
-#[inline]
-pub fn cap_untyped_cap_get_capIsDevice(cap: &cap_t) -> usize {
-    cap.get_untyped_is_device()
-}
-
-#[inline]
-pub fn cap_untyped_cap_get_capBlockSize(cap: &cap_t) -> usize {
-    cap.get_untyped_block_size()
-}
-#[inline]
-pub fn cap_untyped_cap_get_capFreeIndex(cap: &cap_t) -> usize {
-    cap.get_untyped_free_index()
-}
-
-#[inline]
-pub fn cap_untyped_cap_set_capFreeIndex(cap: &mut cap_t, v64: usize) {
-   cap.set_untyped_free_index(v64)
-}
-
-#[inline]
-pub fn cap_untyped_cap_ptr_set_capFreeIndex(cap: &mut cap_t, v64: usize) {
-    cap.set_untyped_free_index(v64)
-}
-
-#[inline]
-pub fn cap_untyped_cap_get_capPtr(cap: &cap_t) -> usize {
-    cap.get_untyped_ptr()
-}
-

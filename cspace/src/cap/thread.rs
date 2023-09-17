@@ -22,13 +22,3 @@ impl cap_t {
         ret
     }
 }
-
-#[inline]
-pub fn cap_thread_cap_new(capTCBPtr: usize) -> cap_t {
-    cap_t::new_thread_cap(capTCBPtr)
-}
-
-#[inline]
-pub fn cap_thread_cap_get_capTCBPtr(cap: &cap_t) -> usize {
-    cap.get_tcb_ptr()
-}

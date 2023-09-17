@@ -90,8 +90,8 @@ pub fn find_vspace_for_asid(asid: asid_t) -> findVSpaceForASID_ret {
 }
 
 #[no_mangle]
-pub fn findVSpaceForASID(asid: asid_t) -> findVSpaceForASID_ret {
-    find_vspace_for_asid(asid)
+pub fn findVSpaceForASID(_asid: asid_t) -> findVSpaceForASID_ret {
+    panic!("should not be invoked!")
 }
 
 fn hwASIDFlush(asid: asid_t) {

@@ -10,8 +10,3 @@ impl cap_t {
         cap
     }
 }
-
-#[inline]
-pub fn cap_null_cap_new() -> cap_t {
-    cap_t::new_null_cap()
-}

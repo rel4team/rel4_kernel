@@ -5,7 +5,6 @@ use crate::{structures::{
 }, syscall::lookupSlotForCNodeOp};
 
 use task_manager::*;
-use cspace::compatibility::*;
 use common::structures::exception_t;
 use cspace::interface::*;
 
@@ -17,7 +16,7 @@ pub extern "C" fn lookupCapAndSlot(thread: *const tcb_t, cPtr: usize) -> lookupC
         let ret = lookupCapAndSlot_ret_t {
             status: lu_ret.status,
             slot: 0 as *mut cte_t,
-            cap: cap_null_cap_new(),
+            cap: cap_t::new_null_cap(),
         };
         return ret;
     }
@@ -37,7 +36,7 @@ pub extern "C" fn lookupCap(thread: *const tcb_t, cPtr: usize) -> lookupCap_ret_
     if lu_ret.status != exception_t::EXCEPTION_NONE {
         return lookupCap_ret_t {
             status: lu_ret.status,
-            cap: cap_null_cap_new(),
+            cap: cap_t::new_null_cap(),
         };
     }
     unsafe {

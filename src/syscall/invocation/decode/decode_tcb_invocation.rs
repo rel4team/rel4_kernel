@@ -400,7 +400,6 @@ fn decode_bind_notification(cap: &cap_t) -> exception_t {
 }
 
 fn decode_unbind_notification(cap: &cap_t) -> exception_t {
-    // let tcb = cap_thread_cap_get_capTCBPtr(cap) as *mut tcb_t;
     let tcb = convert_to_mut_type_ref::<tcb_t>(cap.get_tcb_ptr());
     if tcb.tcbBoundNotification == 0 {
         debug!("TCB BindNotification: TCB already has no bound Notification.");

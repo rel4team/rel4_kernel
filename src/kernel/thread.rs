@@ -13,7 +13,7 @@ use core::{
     arch::asm,
     intrinsics::{likely, unlikely},
 };
-use common::{message_info::*, utils::convert_to_type_ref, structures::seL4_IPCBuffer};
+use common::{message_info::*, utils::convert_to_type_ref, structures::seL4_IPCBuffer, fault::*};
 
 use super::{
     boot::{
@@ -22,7 +22,7 @@ use super::{
     fault::{handleFaultReply, setMRs_fault, setMRs_lookup_failure},
 };
 
-use common::{structures::{exception_t, seL4_Fault_get_seL4_FaultType}, BIT, sel4_config::*};
+use common::{structures::exception_t, BIT, sel4_config::*};
 use cspace::interface::*;
 
 #[no_mangle]

@@ -17,7 +17,6 @@ pub fn invoke_page_table_unmap(cap: &mut cap_t) -> exception_t {
 }
 
 pub fn invoke_page_table_map(pt_cap: &mut cap_t, pt_slot: &mut pte_t, asid: usize, vaddr: usize) -> exception_t {
-    // let paddr = pptr_to_paddr(cap_page_table_cap_get_capPTBasePtr(cap));
     let paddr = pptr_to_paddr(pt_cap.get_pt_base_ptr());
     let pte = pte_t::new(
         paddr >> seL4_PageBits,

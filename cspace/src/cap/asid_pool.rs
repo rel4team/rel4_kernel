@@ -28,19 +28,3 @@ impl cap_t {
         ret
     }
 }
-
-
-#[inline]
-pub fn cap_asid_pool_cap_new(capASIDBase: usize, capASIDPool: usize) -> cap_t {
-    cap_t::new_asid_pool_cap(capASIDBase, capASIDPool)
-}
-
-#[inline]
-pub fn cap_asid_pool_cap_get_capASIDBase(cap: &cap_t) -> usize {
-    cap.get_asid_base()
-}
-
-#[inline]
-pub fn cap_asid_pool_cap_get_capASIDPool(cap: &cap_t) -> usize {
-    cap.get_asid_pool()
-}

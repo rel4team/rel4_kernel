@@ -7,8 +7,9 @@
 
 mod notification;
 mod endpoint;
+pub mod transfer;
 
-use common::{utils::convert_to_mut_type_ref, structures::seL4_Fault_NullFault_new, sel4_config::tcbReply};
+use common::{utils::convert_to_mut_type_ref, sel4_config::tcbReply, fault::seL4_Fault_t};
 use cspace::interface::cte_t;
 pub use endpoint::*;
 pub use notification::*;
@@ -28,7 +29,7 @@ pub fn cancel_ipc(tcb: &mut tcb_t) {
         }
 
         ThreadState::ThreadStateBlockedOnReply => {
-            tcb.tcbFault = seL4_Fault_NullFault_new();
+            tcb.tcbFault = seL4_Fault_t::new_null_fault();
             let slot = tcb.get_cspace(tcbReply);
             let caller_slot_ptr = slot.cteMDBNode.get_next();
             if caller_slot_ptr != 0 {

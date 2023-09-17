@@ -6,8 +6,7 @@ use task_manager::*;
 use log::error;
 use vspace::*;
 use core::intrinsics::{likely, unlikely};
-use common::{sel4_config::{wordBits, tcbCTable, tcbVTable, tcbReply, tcbCaller, seL4_Fault_NullFault, seL4_MsgExtraCapBits}, MASK,
-    structures::seL4_Fault_get_seL4_FaultType, message_info::*};
+use common::{sel4_config::{wordBits, tcbCTable, tcbVTable, tcbReply, tcbCaller, seL4_MsgExtraCapBits}, MASK, message_info::*, fault::*};
 use cspace::interface::*;
 
 #[inline]
@@ -22,19 +21,19 @@ pub fn lookup_fp(_cap: &cap_t, cptr: usize) -> cap_t {
     let mut radix: usize;
     let mut slot: *mut cte_t;
     if unlikely(!cap_capType_equals(&cap, cap_cnode_cap)) {
-        return cap_null_cap_new();
+        return cap_t::new_null_cap();
     }
     loop {
         guardBits = cap.get_cnode_guard_size();
-        radixBits = cap_cnode_cap_get_capCNodeRadix(&cap);
+        radixBits = cap.get_cnode_radix();
         cptr2 = cptr << bits;
         capGuard = cap.get_cnode_guard();
         if likely(guardBits != 0) && unlikely(cptr2 >> (wordBits - guardBits) != capGuard) {
-            return cap_null_cap_new();
+            return cap_t::new_null_cap();
         }
 
         radix = cptr2 << guardBits >> (wordBits - radixBits);
-        slot = unsafe { (cap_cnode_cap_get_capCNodePtr(&cap) as *mut cte_t).add(radix) };
+        slot = unsafe { (cap.get_cnode_ptr() as *mut cte_t).add(radix) };
         cap = unsafe { (*slot).cap };
         bits += guardBits + radixBits;
 
@@ -43,7 +42,7 @@ pub fn lookup_fp(_cap: &cap_t, cptr: usize) -> cap_t {
         }
     }
     if bits > wordBits {
-        return cap_null_cap_new();
+        return cap_t::new_null_cap();
     }
     return cap;
 }
@@ -121,7 +120,7 @@ pub fn mdb_node_ptr_set_mdbPrev_np(ptr: &mut mdb_node_t, prev: usize) {
 #[inline]
 #[no_mangle]
 pub fn isValidVTableRoot_fp(cap: &cap_t) -> bool {
-    cap_capType_equals(cap, cap_page_table_cap) && cap_page_table_cap_get_capPTIsMapped(cap) != 0
+    cap_capType_equals(cap, cap_page_table_cap) && cap.get_pt_is_mapped() != 0
 }
 
 #[inline]
@@ -192,14 +191,14 @@ pub fn fastpath_call(cptr: usize, msgInfo: usize) {
 
     let newVTable = unsafe { &(*getCSpace(dest as usize, tcbVTable)).cap };
 
-    let cap_pd = cap_page_table_cap_get_capPTBasePtr(newVTable) as *mut pte_t;
+    let cap_pd = newVTable.get_pt_base_ptr() as *mut pte_t;
 
     if unlikely(!isValidVTableRoot_fp(newVTable)) {
         slowpath(SysCall as usize);
     }
 
     let mut stored_hw_asid: pte_t = pte_t { words: [0] };
-    stored_hw_asid.words[0] = cap_page_table_cap_get_capPTMappedASID(newVTable);
+    stored_hw_asid.words[0] = newVTable.get_pt_mapped_asid();
 
     let dom = 0;
     unsafe {
@@ -312,14 +311,14 @@ pub fn fastpath_reply_recv(cptr: usize, msgInfo: usize) {
 
     let newVTable = unsafe { &(*getCSpace(caller as usize, tcbVTable)).cap };
 
-    let cap_pd = cap_page_table_cap_get_capPTBasePtr(newVTable) as *mut pte_t;
+    let cap_pd = newVTable.get_pt_base_ptr() as *mut pte_t;
 
     if unlikely(!isValidVTableRoot_fp(newVTable)) {
         slowpath(SysReplyRecv as usize);
     }
 
     let mut stored_hw_asid: pte_t = pte_t { words: [0] };
-    stored_hw_asid.words[0] = cap_page_table_cap_get_capPTMappedASID(newVTable);
+    stored_hw_asid.words[0] = newVTable.get_pt_mapped_asid();
 
     let dom = 0;
 
@@ -359,7 +358,7 @@ pub fn fastpath_reply_recv(cptr: usize, msgInfo: usize) {
     unsafe {
         let node = (*callerSlot).cteMDBNode.get_prev() as *mut cte_t;
         mdb_node_ptr_mset_mdbNext_mdbRevocable_mdbFirstBadged(&mut (*node).cteMDBNode, 0, 1, 1);
-        (*callerSlot).cap = cap_null_cap_new();
+        (*callerSlot).cap = cap_t::new_null_cap();
         (*callerSlot).cteMDBNode = mdb_node_t::new(0, 0, 0, 0);
         fastpath_copy_mrs(length, ksCurThread, caller);
 

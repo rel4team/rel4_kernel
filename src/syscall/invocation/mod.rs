@@ -7,7 +7,7 @@ mod invoke_ipc;
 
 use core::intrinsics::unlikely;
 
-use common::{structures::{exception_t, seL4_Fault_CapFault_new}, message_info::seL4_MessageInfo_t};
+use common::{structures::exception_t, message_info::seL4_MessageInfo_t, fault::seL4_Fault_t};
 use log::debug;
 use task_manager::{get_currenct_thread, msgInfoRegister, capRegister, ThreadState, set_thread_state, n_msgRegisters};
 
@@ -26,7 +26,7 @@ pub fn handleInvocation(isCall: bool, isBlocking: bool) -> exception_t {
     if unlikely(lu_ret.status != exception_t::EXCEPTION_NONE) {
         debug!("Invocation of invalid cap {:#x}.", cptr);
         unsafe {
-            current_fault = seL4_Fault_CapFault_new(cptr, 0);
+            current_fault = seL4_Fault_t::new_cap_fault(cptr, 0);
         }
         if isBlocking {
             handleFault(thread);

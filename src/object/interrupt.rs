@@ -96,7 +96,7 @@ pub fn invokeIRQControl(
     controlSlot: *mut cte_t,
 ) -> exception_t {
     setIRQState(IRQSignal, irq);
-    cteInsert(&cap_irq_handler_cap_new(irq), controlSlot, handlerSlot);
+    cteInsert(&cap_t::new_irq_handler_cap(irq), controlSlot, handlerSlot);
     exception_t::EXCEPTION_NONE
 }
 
