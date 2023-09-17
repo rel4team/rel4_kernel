@@ -13,7 +13,7 @@ use cspace::compatibility::*;
 use task_manager::*;
 use ipc::*;
 
-use common::{structures::exception_t, message_info::*};
+use common::message_info::*;
 use cspace::interface::*;
 
 #[no_mangle]
@@ -222,25 +222,4 @@ pub fn cancelAllIPC(epptr: *mut endpoint_t) {
             }
         }
     }
-}
-
-#[no_mangle]
-pub fn performInvocation_Endpoint(
-    ep: *const endpoint_t,
-    badge: usize,
-    canGrant: bool,
-    canGrantReply: bool,
-    block: bool,
-    call: bool,
-) -> exception_t {
-    sendIPC(
-        block,
-        call,
-        badge,
-        canGrant,
-        canGrantReply,
-        unsafe { ksCurThread },
-        ep as *mut endpoint_t,
-    );
-    exception_t::EXCEPTION_NONE
 }

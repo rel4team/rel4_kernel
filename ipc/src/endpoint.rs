@@ -1,5 +1,6 @@
-use common::utils::convert_to_mut_type_ref;
-use task_manager::{tcb_queue_t, tcb_t, ThreadState, set_thread_state, rescheduleRequired};
+use common::utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref};
+use task_manager::{tcb_queue_t, tcb_t, ThreadState, set_thread_state, rescheduleRequired, schedule_tcb};
+use vspace::pptr_t;
 
 
 pub const EPState_Idle: usize = EPState::Idle as usize;
@@ -20,6 +21,11 @@ pub struct endpoint_t {
 }
 
 impl endpoint_t {
+    #[inline]
+    pub fn get_ptr(&self) -> pptr_t {
+        self as *const Self as pptr_t
+    }
+
     #[inline]
     pub fn set_queue_head(&mut self, v64: usize) {
         self.words[1] &= !0xffffffffffffffffusize;
@@ -109,6 +115,97 @@ impl endpoint_t {
         }
     }
 
+    pub fn send_ipc(&mut self, blocking: bool, src_thread: &mut tcb_t,
+        do_call: bool, can_grant: bool, badge: usize, can_grant_reply: usize) {
+        match self.get_state() {
+            EPState::Idle | EPState::Send => {
+                if blocking {
+                    src_thread.tcbState.set_ts_type(ThreadState::ThreadStateBlockedOnSend as usize);
+                    src_thread.tcbState.set_blocking_object(self.get_ptr());
+                    src_thread.tcbState.set_blocking_ipc_can_grant(can_grant as usize);
+                    src_thread.tcbState.set_blocking_ipc_badge(badge);
+                    src_thread.tcbState.set_blocking_ipc_can_grant_reply(can_grant_reply as usize);
+                    src_thread.tcbState.set_blocking_ipc_is_call(do_call as usize);
+                    schedule_tcb(src_thread);
+
+                    let mut queue = self.get_queue();
+                    queue.ep_append(src_thread);
+                    self.set_state(EPState::Send as usize);
+                    self.set_queue(&queue);
+                }
+            }
+
+            EPState::Recv => {
+                let mut queue = self.get_queue();
+                let op_dest_thread = convert_to_option_mut_type_ref::<tcb_t>(queue.head);
+                assert!(op_dest_thread.is_some());
+                let dest_thread = op_dest_thread.unwrap();
+                queue.ep_dequeue(dest_thread);
+                // TOOD
+
+            }
+        }
+        // match endpoint_ptr_get_state(epptr) {
+        //     EPState_Idle | EPState_Send => {
+        //         if blocking {
+        //             thread_state_set_tsType(&mut (*thread).tcbState, ThreadStateBlockedOnSend);
+        //             thread_state_set_blockingObject(&mut (*thread).tcbState, epptr as usize);
+        //             thread_state_set_blockingIPCCanGrant(
+        //                 &mut (*thread).tcbState,
+        //                 canGrant as usize,
+        //             );
+        //             thread_state_set_blockingIPCBadge(&mut (*thread).tcbState, badge);
+        //             thread_state_set_blockingIPCCanGrantReply(
+        //                 &mut (*thread).tcbState,
+        //                 canGrantReply as usize,
+        //             );
+        //             thread_state_set_blockingIPCIsCall(&mut (*thread).tcbState, do_call as usize);
+
+        //             scheduleTCB(thread);
+
+        //             let mut queue = ep_ptr_get_queue(epptr);
+        //             queue = tcbEPAppend(thread, queue);
+        //             endpoint_ptr_set_state(epptr, EPState_Send);
+        //             ep_ptr_set_queue(epptr, queue);
+        //         }
+        //     }
+        //     EPState_Recv => {
+        //         let mut queue = ep_ptr_get_queue(epptr);
+        //         let dest = queue.head as *mut tcb_t;
+        //         assert!(dest as usize != 0);
+
+        //         queue = tcbEPDequeue(dest, queue);
+        //         let temp = queue.head as usize;
+        //         ep_ptr_set_queue(epptr, queue);
+
+        //         if temp == 0 {
+        //             endpoint_ptr_set_state(epptr, EPState_Idle);
+        //         }
+        //         doIPCTransfer(thread, epptr, badge, canGrant, dest);
+        //         let replyCanGrant = if thread_state_get_blockingIPCCanGrant(&(*dest).tcbState) != 0
+        //         {
+        //             true
+        //         } else {
+        //             false
+        //         };
+        //         setThreadState(dest, ThreadStateRunning);
+        //         possibleSwitchTo(dest);
+        //         if do_call {
+        //             if canGrant || canGrantReply {
+        //                 setupCallerCap(thread, dest, replyCanGrant);
+        //             } else {
+        //                 setThreadState(thread, ThreadStateInactive);
+        //             }
+        //         }
+        //     }
+        //     _ => {
+        //         panic!(
+        //             "unknown epptr state in sendIPC(): {}",
+        //             endpoint_ptr_get_state(epptr)
+        //         );
+        //     }
+        // }
+    }
 }
 
 
@@ -167,3 +264,78 @@ pub fn ep_ptr_get_queue(epptr: *const endpoint_t) -> tcb_queue_t {
     (*epptr).get_queue()
    }
 }
+
+
+// #[no_mangle]
+// pub fn sendIPC(
+//     blocking: bool,
+//     do_call: bool,
+//     badge: usize,
+//     canGrant: bool,
+//     canGrantReply: bool,
+//     thread: *mut tcb_t,
+//     epptr: *mut endpoint_t,
+// ) {
+//     // unsafe {
+//     //     match endpoint_ptr_get_state(epptr) {
+//     //         EPState_Idle | EPState_Send => {
+//     //             if blocking {
+//     //                 thread_state_set_tsType(&mut (*thread).tcbState, ThreadStateBlockedOnSend);
+//     //                 thread_state_set_blockingObject(&mut (*thread).tcbState, epptr as usize);
+//     //                 thread_state_set_blockingIPCCanGrant(
+//     //                     &mut (*thread).tcbState,
+//     //                     canGrant as usize,
+//     //                 );
+//     //                 thread_state_set_blockingIPCBadge(&mut (*thread).tcbState, badge);
+//     //                 thread_state_set_blockingIPCCanGrantReply(
+//     //                     &mut (*thread).tcbState,
+//     //                     canGrantReply as usize,
+//     //                 );
+//     //                 thread_state_set_blockingIPCIsCall(&mut (*thread).tcbState, do_call as usize);
+
+//     //                 scheduleTCB(thread);
+
+//     //                 let mut queue = ep_ptr_get_queue(epptr);
+//     //                 queue = tcbEPAppend(thread, queue);
+//     //                 endpoint_ptr_set_state(epptr, EPState_Send);
+//     //                 ep_ptr_set_queue(epptr, queue);
+//     //             }
+//     //         }
+//     //         EPState_Recv => {
+//     //             let mut queue = ep_ptr_get_queue(epptr);
+//     //             let dest = queue.head as *mut tcb_t;
+//     //             assert!(dest as usize != 0);
+
+//     //             queue = tcbEPDequeue(dest, queue);
+//     //             let temp = queue.head as usize;
+//     //             ep_ptr_set_queue(epptr, queue);
+
+//     //             if temp == 0 {
+//     //                 endpoint_ptr_set_state(epptr, EPState_Idle);
+//     //             }
+//     //             doIPCTransfer(thread, epptr, badge, canGrant, dest);
+//     //             let replyCanGrant = if thread_state_get_blockingIPCCanGrant(&(*dest).tcbState) != 0
+//     //             {
+//     //                 true
+//     //             } else {
+//     //                 false
+//     //             };
+//     //             setThreadState(dest, ThreadStateRunning);
+//     //             possibleSwitchTo(dest);
+//     //             if do_call {
+//     //                 if canGrant || canGrantReply {
+//     //                     setupCallerCap(thread, dest, replyCanGrant);
+//     //                 } else {
+//     //                     setThreadState(thread, ThreadStateInactive);
+//     //                 }
+//     //             }
+//     //         }
+//     //         _ => {
+//     //             panic!(
+//     //                 "unknown epptr state in sendIPC(): {}",
+//     //                 endpoint_ptr_get_state(epptr)
+//     //             );
+//     //         }
+//     //     }
+//     // }
+// }

@@ -8,7 +8,7 @@ use log::debug;
 use task_manager::{tcb_t, set_thread_state, get_currenct_thread, ThreadState};
 
 use crate::{
-    kernel::boot::{current_syscall_error, current_extra_caps, get_extra_cap_by_index},
+    kernel::boot::{current_syscall_error, get_extra_cap_by_index},
     config::{n_frameRegisters, n_gpRegisters}, syscall::{utils::{get_syscall_arg, check_prio, check_ipc_buffer_vaild}, is_valid_vtable_root}};
 
 use super::super::invoke_tcb::*;
@@ -116,9 +116,7 @@ fn decode_write_registers(cap: &cap_t, length: usize, buffer: Option<&seL4_IPCBu
 fn decode_copy_registers(cap: &cap_t, _length: usize, buffer: Option<&seL4_IPCBuffer>) -> exception_t {
     let flags = get_syscall_arg(0, buffer);
 
-    let source_cap = unsafe {
-        &(*current_extra_caps.excaprefs[0]).cap
-    };
+    let source_cap = get_extra_cap_by_index(0).unwrap().cap;
 
     if cap.get_cap_type() != CapTag::CapThreadCap {
         debug!("TCB CopyRegisters: Truncated message.");

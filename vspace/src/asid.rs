@@ -1,8 +1,8 @@
 use core::arch::asm;
 
-use common::{BIT, structures::{exception_t, lookup_fault_t, lookup_fault_invalid_root_new}, MASK, sel4_config::asidHighBits, sel4_config::asidLowBits};
+use common::{BIT, structures::{exception_t, lookup_fault_t, lookup_fault_invalid_root_new}, MASK, sel4_config::asidHighBits, sel4_config::asidLowBits, utils::convert_to_option_mut_type_ref};
 use cspace::interface::cap_t;
-use crate::{pte::{pte_t}, interface::set_vm_root};
+use crate::{pte::{pte_t}, interface::set_vm_root, pptr_t};
 
 #[no_mangle]
 pub static mut riscvKSASIDTable: [*mut asid_pool_t; BIT!(asidHighBits)] =
@@ -13,6 +13,24 @@ pub struct asid_pool_t {
     pub array: [*mut pte_t; BIT!(asidLowBits)],
 }
 
+impl asid_pool_t {
+    pub fn get_ptr(&self) -> pptr_t {
+        self as *const Self as pptr_t
+    }
+
+    pub fn get_vspace_by_index(&mut self, index: usize) -> Option<&'static mut pte_t> {
+        if index >= BIT!(asidLowBits) {
+            return None;
+        }
+        convert_to_option_mut_type_ref::<pte_t>(self.array[index] as usize)
+    }
+
+    pub fn set_vspace_by_index(&mut self, index: usize, vspace_ptr: pptr_t) {
+        assert!(index < BIT!(asidLowBits));
+        self.array[index] = vspace_ptr as *mut pte_t;
+    }
+}
+
 pub type asid_t = usize;
 
 #[repr(C)]
@@ -21,6 +39,22 @@ pub struct findVSpaceForASID_ret {
     pub status: exception_t,
     pub vspace_root: Option<*mut pte_t>,
     pub lookup_fault: Option<lookup_fault_t>,
+}
+
+pub fn get_asid_pool_by_index(index: usize) -> Option<&'static mut asid_pool_t> {
+    unsafe {
+        if index >= BIT!(asidHighBits) {
+            return None;
+        }
+        return convert_to_option_mut_type_ref::<asid_pool_t>(riscvKSASIDTable[index] as usize)
+    }
+}
+
+pub fn set_asid_pool_by_index(index: usize, pool_ptr: pptr_t) {
+    assert!(index < BIT!(asidHighBits));
+    unsafe {
+        riscvKSASIDTable[index] = pool_ptr as *mut asid_pool_t;
+    }
 }
 
 #[no_mangle]
@@ -60,7 +94,7 @@ pub fn findVSpaceForASID(asid: asid_t) -> findVSpaceForASID_ret {
     find_vspace_for_asid(asid)
 }
 
-pub fn hwASIDFlush(asid: asid_t) {
+fn hwASIDFlush(asid: asid_t) {
     unsafe {
         asm!("sfence.vma x0, {0}",in(reg) asid);
     }

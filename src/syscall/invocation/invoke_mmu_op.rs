@@ -1,9 +1,9 @@
-use common::{structures::exception_t, utils::convert_to_mut_type_ref, sel4_config::{seL4_PageTableBits, seL4_PageBits, asidInvalid}, message_info::seL4_MessageInfo_t};
-use cspace::interface::{cap_t, cte_t, seL4_CapRights_t};
+use common::{structures::exception_t, utils::{convert_to_mut_type_ref, pageBitsForSize}, sel4_config::{seL4_PageTableBits, seL4_PageBits, asidInvalid, RISCV_4K_Page, asidLowBits}, message_info::seL4_MessageInfo_t, MASK};
+use cspace::interface::{cap_t, cte_t, seL4_CapRights_t, cte_insert};
 use task_manager::{get_currenct_thread, msgInfoRegister, set_thread_state, ThreadState};
-use vspace::{pte_t, sfence, pptr_to_paddr, unmapPage, vm_attributes_t, maskVMRights};
+use vspace::{pte_t, sfence, pptr_to_paddr, unmapPage, vm_attributes_t, maskVMRights, pptr_t, set_asid_pool_by_index, asid_pool_t, copyGlobalMappings};
 
-use crate::{utils::clear_memory, config::badgeRegister, kernel::boot::current_lookup_fault};
+use crate::{utils::{clear_memory, MAX_FREE_INDEX}, config::badgeRegister, kernel::boot::current_lookup_fault};
 
 
 pub fn invoke_page_table_unmap(cap: &mut cap_t) -> exception_t {
@@ -51,34 +51,50 @@ pub fn invoke_page_get_address(vbase_ptr: usize, call: bool) -> exception_t {
     exception_t::EXCEPTION_NONE
 }
 
-pub fn invoke_page_unmap(frame_cap: &mut cap_t, frame_slot: &mut cte_t) -> exception_t {
-    if frame_cap.get_pt_mapped_asid() != asidInvalid {
-        match unmapPage(frame_cap.get_frame_size(), frame_cap.get_frame_mapped_asid(),
-        frame_cap.get_pt_mapped_address(), frame_cap.get_frame_base_ptr()) {
+pub fn invoke_page_unmap(frame_slot: &mut cte_t) -> exception_t {
+    if frame_slot.cap.get_pt_mapped_asid() != asidInvalid {
+        match unmapPage(frame_slot.cap.get_frame_size(), frame_slot.cap.get_frame_mapped_asid(),
+        frame_slot.cap.get_pt_mapped_address(), frame_slot.cap.get_frame_base_ptr()) {
             Err(lookup_fault) => {
                 unsafe { current_lookup_fault = lookup_fault; }
             }
             _ => {}
         }
     }
-    frame_cap.set_frame_mapped_address(0);
-    frame_cap.set_pt_mapped_asid(asidInvalid);
-    frame_slot.cap = *frame_cap;
+    frame_slot.cap.set_frame_mapped_address(0);
+    frame_slot.cap.set_pt_mapped_asid(asidInvalid);
     exception_t::EXCEPTION_NONE
 }
 
-
-pub fn invoke_page_map(frame_cap: &mut cap_t, w_rights_mask: usize, vaddr: usize, asid: usize, attr: vm_attributes_t,
+pub fn invoke_page_map(_frame_cap: &mut cap_t, w_rights_mask: usize, vaddr: usize, asid: usize, attr: vm_attributes_t,
     pt_slot: &mut pte_t, frame_slot: &mut cte_t) -> exception_t {
-    let frame_vm_rights = frame_cap.get_frame_vm_rights();
+    let frame_vm_rights = frame_slot.cap.get_frame_vm_rights();
     let vm_rights = maskVMRights(frame_vm_rights, seL4_CapRights_t::from_word(w_rights_mask));
-    let frame_addr = pptr_to_paddr(frame_cap.get_frame_base_ptr());
-    frame_cap.set_frame_mapped_address(vaddr);
-    frame_cap.set_frame_mapped_asid(asid);
+    let frame_addr = pptr_to_paddr(frame_slot.cap.get_frame_base_ptr());
+    frame_slot.cap.set_frame_mapped_address(vaddr);
+    frame_slot.cap.set_frame_mapped_asid(asid);
     let executable = attr.get_execute_never() == 0;
     let pte = pte_t::make_user_pte(frame_addr, executable, vm_rights);
     set_thread_state(get_currenct_thread(), ThreadState::ThreadStateRestart);
-    frame_slot.cap = *frame_cap;
     pt_slot.update(pte);
+    exception_t::EXCEPTION_NONE
+}
+
+pub fn invoke_asid_control(frame_ptr: pptr_t, slot: &mut cte_t, parent_slot: &mut cte_t, asid_base: usize) -> exception_t {
+    parent_slot.cap.set_untyped_free_index(MAX_FREE_INDEX(parent_slot.cap.get_untyped_block_size()));
+    clear_memory(frame_ptr as *mut u8, pageBitsForSize(RISCV_4K_Page));
+    cte_insert(&cap_t::new_asid_pool_cap(asid_base, frame_ptr), parent_slot, slot);
+    assert_eq!(asid_base & MASK!(asidLowBits), 0);
+    set_asid_pool_by_index(asid_base >> asidLowBits, frame_ptr);
+    exception_t::EXCEPTION_NONE
+}
+
+pub fn invoke_asid_pool(asid: usize, pool: &mut asid_pool_t, vspace_slot: &mut cte_t) -> exception_t {
+    let region_base = vspace_slot.cap.get_pt_base_ptr();
+    vspace_slot.cap.set_pt_is_mapped(1);
+    vspace_slot.cap.set_pt_mapped_address(0);
+    vspace_slot.cap.set_pt_mapped_asid(asid);
+    copyGlobalMappings(region_base);
+    pool.set_vspace_by_index(asid & MASK!(asidLowBits), region_base);
     exception_t::EXCEPTION_NONE
 }

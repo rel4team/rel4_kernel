@@ -5,7 +5,6 @@ use crate::{
     object::tcb::{
         copyMRs, lookupExtraCaps
     },
-    structures::cap_transfer_t,
 };
 use cspace::compatibility::*;
 use task_manager::*;
@@ -20,9 +19,7 @@ use super::{
     boot::{
         current_extra_caps, current_lookup_fault, current_syscall_error,
     },
-    cspace::{lookupCap, rust_lookupTargetSlot},
     fault::{handleFaultReply, setMRs_fault, setMRs_lookup_failure},
-    transfermsg::capTransferFromWords,
 };
 
 use common::{structures::{exception_t, seL4_Fault_get_seL4_FaultType}, BIT, sel4_config::*};
@@ -129,7 +126,7 @@ pub fn transferCaps(
         let mut destSlot = getReceiveSlots(receiver, receivedBuffer);
         let mut i = 0;
         while i < seL4_MsgMaxExtraCaps && current_extra_caps.excaprefs[i] as usize != 0 {
-            let slot = current_extra_caps.excaprefs[i];
+            let slot = current_extra_caps.excaprefs[i] as *mut cte_t;
             let cap = &(*slot).cap;
             if cap_get_capType(cap) == cap_endpoint_cap
                 && (cap_endpoint_cap_get_capEPPtr(cap) == endpoint as usize)
@@ -233,12 +230,12 @@ pub fn doNormalTransfer(
 
         if unlikely(status != exception_t::EXCEPTION_NONE) {
             unsafe {
-                current_extra_caps.excaprefs[0] = 0 as *mut cte_t;
+                current_extra_caps.excaprefs[0] = 0;
             }
         }
     } else {
         unsafe {
-            current_extra_caps.excaprefs[0] = 0 as *mut cte_t;
+            current_extra_caps.excaprefs[0] = 0;
         }
     }
     let msgTransferred = copyMRs(
@@ -260,30 +257,17 @@ pub fn doNormalTransfer(
 }
 
 #[no_mangle]
-pub fn getReceiveSlots(thread: *mut tcb_t, buffer: *mut usize) -> *mut cte_t {
-    if buffer as usize == 0 {
-        return 0 as *mut cte_t;
-    }
-    let ct = loadCapTransfer(buffer);
-    let cptr = ct.ctReceiveRoot;
-    let luc_ret = lookupCap(thread, cptr);
-    let cnode = &luc_ret.cap;
-    let lus_ret = rust_lookupTargetSlot(cnode, ct.ctReceiveIndex, ct.ctReceiveDepth);
-    if lus_ret.status != exception_t::EXCEPTION_NONE {
-        return 0 as *mut cte_t;
-    }
+pub fn getReceiveSlots(thread: *mut tcb_t, _buffer: *mut usize) -> *mut cte_t {
     unsafe {
-        if cap_get_capType(&(*lus_ret.slot).cap) != cap_null_cap {
-            return 0 as *mut cte_t;
+        match (*thread).get_receive_slot() {
+            Some(slot) => {
+                return slot as *mut cte_t;
+            },
+            None => {
+                0 as *mut cte_t
+            },
         }
     }
-    lus_ret.slot
-}
-
-#[no_mangle]
-pub fn loadCapTransfer(buffer: *mut usize) -> cap_transfer_t {
-    let offset = seL4_MsgMaxLength + 2 + seL4_MsgMaxExtraCaps;
-    unsafe { capTransferFromWords(buffer.add(offset)) }
 }
 
 #[no_mangle]

@@ -166,7 +166,7 @@ pub fn Arch_decodeIRQControlInvocation(
         let index = getSyscallArg(2, buffer);
         let depth = getSyscallArg(3, buffer);
 
-        let cnodeCap = unsafe { (*current_extra_caps.excaprefs[0]).cap.clone() };
+        let cnodeCap = unsafe { (*(current_extra_caps.excaprefs[0] as *mut cte_t) ).cap.clone() };
 
         let status = Arch_checkIRQ(irq);
 
@@ -232,7 +232,7 @@ pub fn decodeIRQControlInvocation(
         let index = getSyscallArg(1, buffer);
         let depth = getSyscallArg(2, buffer);
 
-        let cnodeCap = unsafe { (*current_extra_caps.excaprefs[0]).cap.clone() };
+        let cnodeCap = unsafe { (*(current_extra_caps.excaprefs[0] as *mut cte_t) ).cap.clone() };
 
         let status = Arch_checkIRQ(irq);
 
@@ -334,8 +334,8 @@ pub fn decodeIRQHandlerInvocation(invLabel: MessageLabel, irq: usize) -> excepti
                 current_syscall_error._type = seL4_TruncatedMessage;
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
             }
-            let ntfnCap = &(*current_extra_caps.excaprefs[0]).cap;
-            let slot = current_extra_caps.excaprefs[0];
+            let ntfnCap = &(*(current_extra_caps.excaprefs[0] as *mut cte_t)).cap;
+            let slot = current_extra_caps.excaprefs[0] as *mut cte_t;
 
             if cap_get_capType(ntfnCap) != cap_notification_cap
                 || cap_notification_cap_get_capNtfnCanSend(ntfnCap) == 0

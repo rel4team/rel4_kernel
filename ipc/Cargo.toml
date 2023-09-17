@@ -9,4 +9,5 @@ edition = "2021"
 common = { path = "../common" }
 task_manager = { path = "../task_manager" }
 cspace = { path = "../cspace" }
+vspace = { path = "../vspace" }
 log = "0.4"

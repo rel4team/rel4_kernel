@@ -36,7 +36,7 @@ pub static mut current_syscall_error: syscall_error_t = syscall_error_t {
 #[no_mangle]
 #[link_section = ".boot.bss"]
 pub static mut current_extra_caps: extra_caps_t = extra_caps_t {
-    excaprefs: [0 as *mut cte_t; seL4_MsgMaxExtraCaps],
+    excaprefs: [0; seL4_MsgMaxExtraCaps],
 };
 
 #[inline]

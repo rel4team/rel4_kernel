@@ -1,12 +1,15 @@
+use core::intrinsics::unlikely;
+
+use common::message_info::seL4_MessageInfo_t;
 use common::utils::pageBitsForSize;
 use common::{structures::lookup_fault_t, MASK, utils::convert_to_mut_type_ref};
 use cspace::interface::{cte_t, resolve_address_bits, CapTag, cap_t, mdb_node_t, cte_insert};
 use vspace::{set_vm_root, pptr_t, VMReadWrite, VMReadOnly};
 
 // use crate::{structures::{notification_t, seL4_Fault_t}, config::{seL4_TCBBits, tcbVTable}};
-use common::sel4_config::{seL4_TCBBits, tcbVTable, tcbCTable, wordBits, tcbReply, tcbCaller, tcbBuffer};
-use common::structures::{seL4_Fault_t, seL4_IPCBuffer};
-use crate::{SSTATUS, possible_switch_to, schedule_tcb, n_msgRegisters, msgRegister};
+use common::sel4_config::{seL4_TCBBits, tcbVTable, tcbCTable, wordBits, tcbReply, tcbCaller, tcbBuffer, seL4_MsgMaxExtraCaps};
+use common::structures::{seL4_Fault_t, seL4_IPCBuffer, exception_t, seL4_Fault_CapFault_new};
+use crate::{SSTATUS, possible_switch_to, schedule_tcb, n_msgRegisters, msgRegister, msgInfoRegister};
 use crate::structures::lookupSlot_raw_ret_t;
 
 use super::{registers::n_contextRegisters, ready_queues_index, ksReadyQueues, addToBitmap, removeFromBitmap, NextIP, FaultIP, ksIdleThread, ksCurThread,
@@ -315,6 +318,28 @@ impl tcb_t {
         return None;
     }
 
+    #[inline]
+    pub fn lookup_extra_caps(&self, res: &mut [pptr_t; seL4_MsgMaxExtraCaps]) -> Result<(), seL4_Fault_t>{
+        let info = seL4_MessageInfo_t::from_word_security(self.get_register(msgInfoRegister));
+        if let Some(buffer) = self.lookup_ipc_buffer(false) {
+            let length = info.get_extra_caps();
+            let mut i = 0;
+            while i < length {
+                let cptr = buffer.get_extra_cptr(i);
+                let lu_ret = self.lookup_slot(cptr);
+                if unlikely(lu_ret.status != exception_t::EXCEPTION_NONE)  {
+                    return Err(seL4_Fault_CapFault_new(cptr, false as usize));
+                }
+                res[i] = lu_ret.slot as usize;
+                i += 1;
+            }
+            if i < seL4_MsgMaxExtraCaps {
+                res[i] = 0;
+            }
+        }
+        Ok(())
+    }
+
     pub fn lookup_mut_ipc_buffer(&mut self, is_receiver: bool) -> Option<&'static mut seL4_IPCBuffer> {
         let w_buffer_ptr = self.tcbIPCBuffer;
         let buffer_cap = self.get_cspace(tcbBuffer).cap;
@@ -344,6 +369,24 @@ impl tcb_t {
             self.set_register(msgRegister[offset], reg);
             return offset + 1;
         }
+    }
+
+    #[inline]
+    pub fn get_receive_slot(&mut self) -> Option<&'static mut cte_t> {
+        if let Some(buffer) = self.lookup_ipc_buffer(true) {
+            let cptr= buffer.receiveCNode;
+            let lu_ret = self.lookup_slot(cptr);
+            if lu_ret.status != exception_t::EXCEPTION_NONE {
+                return None;
+            }
+            let cnode_cap = unsafe { &(*lu_ret.slot).cap };
+            let lus_ret = resolve_address_bits(cnode_cap, buffer.receiveIndex, buffer.receiveDepth);
+            if unlikely(lus_ret.status != exception_t::EXCEPTION_NONE || lus_ret.bitsRemaining != 0) {
+                return None;
+            }
+            return Some(convert_to_mut_type_ref::<cte_t>(lus_ret.slot as usize))
+        }
+        return None
     }
 
 }
@@ -402,8 +445,6 @@ pub fn tcbSchedAppend(tcb: *mut tcb_t) {
         (*tcb).sched_append();
     }
 }
-
-
 
 #[inline]
 pub fn setRegister(thread: *mut tcb_t, reg: usize, w: usize) {
@@ -514,3 +555,4 @@ pub fn lookupIPCBuffer(isReceiver: bool, thread: *mut tcb_t) -> usize {
         }
     }
 }
+

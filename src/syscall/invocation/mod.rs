@@ -2,7 +2,8 @@ pub mod decode;
 mod invoke_tcb;
 mod invoke_cnode;
 mod invoke_untyped;
-pub mod invoke_mmu_op;
+mod invoke_mmu_op;
+mod invoke_ipc;
 
 use core::intrinsics::unlikely;
 
@@ -33,7 +34,7 @@ pub fn handleInvocation(isCall: bool, isBlocking: bool) -> exception_t {
         return exception_t::EXCEPTION_NONE;
     }
     let buffer = thread.lookup_ipc_buffer(false);
-    let status = lookup_extra_caps(thread, buffer, &info);
+    let status = lookup_extra_caps(thread);
     if unlikely(status != exception_t::EXCEPTION_NONE) {
         debug!("Lookup of extra caps failed.");
         if isBlocking {

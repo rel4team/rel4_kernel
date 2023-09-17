@@ -12,8 +12,8 @@ use ipc::{endpoint_t, notification_t};
 use log::debug;
 use task_manager::{set_thread_state, get_currenct_thread, ThreadState, tcb_t};
 
-use crate::{kernel::{boot::current_syscall_error, vspace::decodeRISCVMMUInvocation}, 
-    object::{endpoint::performInvocation_Endpoint, notification::performInvocation_Notification, 
+use crate::{kernel::boot::current_syscall_error, 
+    object::{notification::performInvocation_Notification, 
         objecttype::performInvocation_Reply,
         interrupt::{decodeIRQControlInvocation, decodeIRQHandlerInvocation}}};
 
@@ -21,8 +21,11 @@ use self::{
     decode_tcb_invocation::decode_tcb_invocation, 
     decode_domain_invocation::decode_domain_invocation,
     decode_cnode_invocation::decode_cnode_invocation,
-    decode_untyped_invocation::decode_untyed_invocation
+    decode_untyped_invocation::decode_untyed_invocation,
+    decode_mmu_invocation::decode_mmu_invocation,
 };
+
+use super::invoke_ipc::performInvocation_Endpoint;
 
 
 #[no_mangle]
@@ -110,7 +113,7 @@ pub fn decodeInvocation(
             decodeIRQHandlerInvocation(invLabel, cap.get_irq_handler())
         }
         _ => {
-            decodeRISCVMMUInvocation(invLabel, length, capIndex, slot, cap, call, buffer)
+            decode_mmu_invocation(invLabel, length, unsafe { &mut *slot }, call, convert_to_option_type_ref::<seL4_IPCBuffer>(buffer as usize))
         }
     }
 }
