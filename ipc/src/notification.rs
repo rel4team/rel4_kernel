@@ -1,6 +1,7 @@
-use common::utils::convert_to_mut_type_ref;
-use task_manager::{tcb_queue_t, tcb_t, set_thread_state, ThreadState};
+use common::utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref};
+use task_manager::{tcb_queue_t, tcb_t, set_thread_state, ThreadState, rescheduleRequired};
 
+#[derive(PartialEq, Eq)]
 pub enum NtfnState {
     Idle = 0,
     Waiting = 1,
@@ -120,6 +121,22 @@ impl notification_t {
             self.set_state(NtfnState::Idle as usize);
         }
         set_thread_state(tcb, ThreadState::ThreadStateInactive);
+    }
+
+    #[inline]
+    pub fn cacncel_all_signal(&mut self) {
+        if self.get_state() ==  NtfnState::Waiting {
+            let mut op_thread = convert_to_option_mut_type_ref::<tcb_t>(self.get_queue_head());
+            self.set_state(NtfnState::Idle as usize);
+            self.set_queue_head(0);
+            self.set_queue_tail(0);
+            while let Some(thread) =  op_thread {
+                set_thread_state(thread, ThreadState::ThreadStateRestart);
+                thread.sched_enqueue();
+                op_thread = convert_to_option_mut_type_ref::<tcb_t>(thread.tcbEPNext);
+            }
+            rescheduleRequired();
+        }
     }
 
     #[inline]

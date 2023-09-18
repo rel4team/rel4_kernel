@@ -17,11 +17,9 @@ use ipc::*;
 use vspace::*;
 use cspace::compatibility::*;
 use super::{
-    endpoint::cancelAllIPC,
     interrupt::{
         deletingIRQHandler, setIRQState,
     },
-    notification::cancelAllSignals
 };
 
 use common::{structures::exception_t, sel4_config::*, object::*, utils::convert_to_mut_type_ref};
@@ -93,7 +91,8 @@ pub fn finaliseCap(cap: &cap_t, _final: bool, _exposed: bool) -> finaliseCap_ret
     match cap.get_cap_type() {
         CapTag::CapEndpointCap => {
             if _final {
-                cancelAllIPC(cap.get_ep_ptr() as *mut endpoint_t);
+                // cancelAllIPC(cap.get_ep_ptr() as *mut endpoint_t);
+                convert_to_mut_type_ref::<endpoint_t>(cap.get_ep_ptr()).cancel_all_ipc()
             }
             fc_ret.remainder = cap_t::new_null_cap();
             fc_ret.cleanupInfo = cap_t::new_null_cap();
@@ -103,7 +102,7 @@ pub fn finaliseCap(cap: &cap_t, _final: bool, _exposed: bool) -> finaliseCap_ret
             if _final {
                 let ntfn =  convert_to_mut_type_ref::<notification_t>(cap.get_nf_ptr());
                 ntfn.safe_unbind_tcb();
-                cancelAllSignals(ntfn);
+                ntfn.cacncel_all_signal();
             }
             fc_ret.remainder = cap_t::new_null_cap();
             fc_ret.cleanupInfo = cap_t::new_null_cap();

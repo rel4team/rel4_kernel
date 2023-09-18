@@ -48,11 +48,6 @@ pub const PADDR_BASE: usize = 0x0;
 pub const PPTR_BASE_OFFSET: usize = PPTR_BASE - PADDR_BASE;
 pub const PADDR_TOP: usize = PPTR_TOP - PPTR_BASE_OFFSET;
 
-// lookup_fault
-pub const lookup_fault_invalid_root: usize = 0;
-pub const lookup_fault_missing_capability: usize = 1;
-pub const lookup_fault_depth_mismatch: usize = 2;
-pub const lookup_fault_guard_mismatch: usize = 3;
 
 // scheduler relevant
 pub const CONFIG_NUM_DOMAINS: usize = 1;
@@ -95,7 +90,8 @@ pub const seL4_NumErrors: usize = 11;
 pub const seL4_MsgMaxLength: usize = 120;
 pub const seL4_MsgExtraCapBits: usize = 2;
 pub const seL4_MsgMaxExtraCaps: usize = BIT!(seL4_MsgExtraCapBits) - 1;
-
+pub const MessageID_Syscall: usize = 0;
+pub const MessageID_Exception: usize = 1;
 
 pub const seL4_IPCBufferSizeBits: usize = 10;
 

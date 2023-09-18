@@ -1,9 +1,9 @@
 use core::intrinsics::unlikely;
 
 use common::{
-    message_info::MessageLabel, structures::{exception_t, seL4_IPCBuffer, lookup_fault_missing_capability_new, lookup_fault_invalid_root_new}, 
+    message_info::MessageLabel, structures::{exception_t, seL4_IPCBuffer}, 
     sel4_config::*, MASK, 
-    utils::{convert_to_mut_type_ref, pageBitsForSize}, BIT,
+    utils::{convert_to_mut_type_ref, pageBitsForSize}, BIT, fault::*,
 };
 use cspace::interface::{cte_t, CapTag, cap_t};
 use log::debug;

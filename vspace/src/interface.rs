@@ -1,5 +1,5 @@
 use common::{BIT, sel4_config::{PT_INDEX_BITS, PPTR_BASE, PADDR_BASE, PPTR_TOP, KERNEL_ELF_BASE, KERNEL_ELF_PADDR_BASE, PPTR_BASE_OFFSET, 
-    seL4_PageBits}, ROUND_DOWN, structures::{lookup_fault_t, exception_t}, utils::{convert_to_mut_type_ref, pageBitsForSize}};
+    seL4_PageBits}, ROUND_DOWN, structures::exception_t, utils::{convert_to_mut_type_ref, pageBitsForSize}, fault::*};
 use cspace::interface::{cap_t, CapTag};
 use core::intrinsics::unlikely;
 use crate::pte::pte_t;

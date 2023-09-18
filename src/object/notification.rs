@@ -103,21 +103,3 @@ pub fn performInvocation_Notification(ntfn: *mut notification_t, badge: usize) -
     exception_t::EXCEPTION_NONE
 }
 
-#[no_mangle]
-pub fn cancelAllSignals(ntfnPtr: *mut notification_t) {
-    if notification_ptr_get_state(ntfnPtr) == NtfnState_Waiting {
-        let mut thread = notification_ptr_get_ntfnQueue_head(ntfnPtr) as *mut tcb_t;
-        notification_ptr_set_state(ntfnPtr, NtfnState_Idle);
-        notification_ptr_set_ntfnQueue_head(ntfnPtr, 0);
-        notification_ptr_set_ntfnQueue_tail(ntfnPtr, 0);
-
-        while thread as usize != 0 {
-            setThreadState(thread, ThreadStateRestart);
-            tcbSchedEnqueue(thread);
-            unsafe {
-                thread = (*thread).tcbEPNext as *mut tcb_t;
-            }
-        }
-        rescheduleRequired();
-    }
-}

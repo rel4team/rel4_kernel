@@ -89,9 +89,7 @@ pub const RISCVSupervisorTimer: usize = 9223372036854775813;
 
 pub const n_frameRegisters: usize = 16;
 pub const n_gpRegisters: usize = 16;
-pub const n_exceptionMessage: usize = 2;
-pub const n_syscallMessage: usize = 10;
-pub const MAX_MSG_SIZE: usize = n_syscallMessage;
+
 
 pub const frameRegisters: [usize; n_frameRegisters] =
     [33, 0, 1, 2, 7, 8, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26];
@@ -133,17 +131,6 @@ pub const MS_IN_S: usize = 1000;
 pub const RESET_CYCLES: usize = (TIMER_CLOCK_HZ / MS_IN_S) * 2;
 
 
-pub const seL4_CapFault_IP: usize = 0;
-pub const seL4_CapFault_Addr: usize = 1;
-pub const seL4_CapFault_InRecvPhase: usize = 2;
-pub const seL4_CapFault_LookupFailureType: usize = 3;
-pub const seL4_CapFault_BitsLeft: usize = 4;
-pub const seL4_CapFault_DepthMismatch_BitsFound: usize = 5;
-pub const seL4_CapFault_GuardMismatch_GuardFound: usize = seL4_CapFault_DepthMismatch_BitsFound;
-pub const seL4_CapFault_GuardMismatch_BitsFound: usize = 6;
-
-pub const MessageID_Syscall: usize = 0;
-pub const MessageID_Exception: usize = 1;
 
 pub const seL4_MinPrio: usize = 0;
 

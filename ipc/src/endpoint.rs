@@ -88,6 +88,41 @@ impl endpoint_t {
         set_thread_state(tcb, ThreadState::ThreadStateInactive);
     }
 
+    #[inline]
+    pub fn cancel_all_ipc(&mut self) {
+        match self.get_state() {
+            EPState::Idle => {}
+            _ => {
+                let mut op_thread = convert_to_option_mut_type_ref::<tcb_t>(self.get_queue_head());
+                self.set_state(EPState::Idle as usize);
+                self.set_queue_head(0);
+                self.set_queue_tail(0);
+                while let Some(thread) = op_thread {
+                    set_thread_state(thread, ThreadState::ThreadStateRestart);
+                    thread.sched_enqueue();
+                    op_thread = convert_to_option_mut_type_ref::<tcb_t>(thread.tcbEPNext);
+                }
+                rescheduleRequired();
+            }
+        }
+        // match endpoint_ptr_get_state(epptr) {
+        //     EPState_Idle => {}
+        //     _ => {
+        //         let mut thread = endpoint_ptr_get_epQueue_head(epptr) as *mut tcb_t;
+        //         endpoint_ptr_set_state(epptr, EPState_Idle);
+        //         endpoint_ptr_set_epQueue_head(epptr, 0);
+        //         endpoint_ptr_set_epQueue_tail(epptr, 0);
+        //         while thread as usize != 0 {
+        //             let ptr = thread as *const tcb_t;
+        //             setThreadState(ptr as *mut tcb_t, ThreadStateRestart);
+        //             tcbSchedEnqueue(ptr as *mut tcb_t);
+        //             thread = (*ptr).tcbEPNext as *mut tcb_t;
+        //         }
+        //         rescheduleRequired();
+        //     }
+        // }
+    }
+
     pub fn cancel_badged_sends(&mut self, badge: usize) {
         match self.get_state() {
             EPState::Idle | EPState::Recv => {}

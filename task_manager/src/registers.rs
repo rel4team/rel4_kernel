@@ -40,3 +40,12 @@ pub const NextIP: usize = 34;
 pub const n_contextRegisters: usize = 35;
 pub const n_msgRegisters: usize = 4;
 pub const msgRegister: [usize; n_msgRegisters] = [11, 12, 13, 14];
+
+
+pub const n_syscallMessage: usize = 10;
+pub const n_exceptionMessage: usize = 2;
+pub const MAX_MSG_SIZE: usize = n_syscallMessage;
+pub const fault_messages: [[usize; MAX_MSG_SIZE]; 2] = [
+    [33, 1, 0, 9, 10, 11, 12, 13, 14, 15],
+    [33, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+];

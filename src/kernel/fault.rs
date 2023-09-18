@@ -1,21 +1,13 @@
 
 use crate::config::{
-    n_exceptionMessage, n_syscallMessage, seL4_CapFault_Addr, seL4_CapFault_BitsLeft,
-    seL4_CapFault_DepthMismatch_BitsFound, seL4_CapFault_GuardMismatch_BitsFound,
-    seL4_CapFault_GuardMismatch_GuardFound, seL4_CapFault_IP, seL4_CapFault_InRecvPhase,
-    seL4_CapFault_LookupFailureType, seL4_VMFault_Addr, seL4_VMFault_FSR,
-    seL4_VMFault_IP, seL4_VMFault_PrefetchFault, MessageID_Exception, MessageID_Syscall,
-    MAX_MSG_SIZE,
+    seL4_VMFault_Addr, seL4_VMFault_FSR,
+    seL4_VMFault_IP, seL4_VMFault_PrefetchFault,
 };
 
 use task_manager::*;
 
 use common::{sel4_config::*, structures::*, message_info::*, fault::*};
 
-pub const fault_messages: [[usize; MAX_MSG_SIZE]; 2] = [
-    [33, 1, 0, 9, 10, 11, 12, 13, 14, 15],
-    [33, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-];
 
 use super::thread::setMR;
 
@@ -228,38 +220,6 @@ pub fn setMRs_lookup_failure(
             )
         }
         _ => panic!("invalid lookup failure"),
-    }
-}
-
-#[no_mangle]
-pub fn copyMRsFault(
-    sender: *mut tcb_t,
-    receiver: *mut tcb_t,
-    id: usize,
-    length: usize,
-    receiveIPCBuffer: *mut usize,
-) {
-    let len = if length < n_msgRegisters {
-        length
-    } else {
-        n_msgRegisters
-    };
-    let mut i = 0;
-    while i < len {
-        setRegister(
-            receiver,
-            msgRegister[i],
-            getRegister(sender, fault_messages[id][i]),
-        );
-        i += 1;
-    }
-    if receiveIPCBuffer as usize != 0 {
-        while i < length {
-            unsafe {
-                *(receiveIPCBuffer.add(i + 1)) = getRegister(sender, fault_messages[id][i]);
-            }
-            i += 1;
-        }
     }
 }
 

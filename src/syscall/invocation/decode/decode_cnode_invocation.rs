@@ -1,5 +1,5 @@
 use common::{message_info::MessageLabel, sel4_config::{seL4_IllegalOperation, seL4_TruncatedMessage, seL4_FailedLookup, seL4_DeleteFirst}, 
-structures::{exception_t, lookup_fault_missing_capability_new, seL4_IPCBuffer}, utils::convert_to_mut_type_ref};
+structures::{exception_t, seL4_IPCBuffer}, utils::convert_to_mut_type_ref, fault::lookup_fault_missing_capability_new};
 use cspace::interface::{cap_t, cte_t, CapTag, seL4_CapRights_t};
 use log::debug;
 
