@@ -1,4 +1,4 @@
-use crate::sel4_config::seL4_MsgMaxLength;
+use crate::{sel4_config::seL4_MsgMaxLength, define_bitfield};
 
 #[derive(Eq, PartialEq, Debug, Clone, Copy, PartialOrd, Ord)]
 pub enum MessageLabel {
@@ -43,28 +43,21 @@ pub enum MessageLabel {
     nArchInvocationLabels                   = 38,
 }
 
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct seL4_MessageInfo_t {
-    pub words: [usize; 1],
+define_bitfield!{
+    seL4_MessageInfo_t, u64, 0, 0 => {
+        new, 0 => {
+            label, get_usize_label, set_label, 12, 52, false,
+            capsUnwrapped, get_caps_unwrapped, set_caps_unwrapped, 9, 3, false,
+            extraCaps, get_extra_caps, set_extra_caps, 7, 2, false,
+            length, get_length, set_length, 0, 7, false
+        }
+    }
 }
 
 impl seL4_MessageInfo_t {
     #[inline]
-    pub fn new(label: usize, capsUnwrapped: usize, extraCaps: usize, length: usize,) -> Self {
-        let seL4_MessageInfo = seL4_MessageInfo_t {
-            words: [0
-                | (label & 0xfffffffffffffusize) << 12
-                | (capsUnwrapped & 0x7usize) << 9
-                | (extraCaps & 0x3usize) << 7
-                | (length & 0x7fusize) << 0],
-        };
-        seL4_MessageInfo
-    }
-
-    #[inline]
     pub fn from_word(w: usize) -> Self {
-        Self { words: [w] }
+        Self (w as u64)
     }
 
     #[inline]
@@ -78,53 +71,14 @@ impl seL4_MessageInfo_t {
 
     #[inline]
     pub fn to_word(&self) -> usize {
-        self.words[0]
-    }
-
-    #[inline]
-    pub fn get_length(&self) -> usize {
-        self.words[0] & 0x7fusize
-    }
-
-    #[inline]
-    pub fn set_length(&mut self, v64: usize) {
-        self.words[0] &= !0x7fusize;
-        self.words[0] |= v64 & 0x7f;
-    }
-
-    #[inline]
-    pub fn get_extra_caps(&self) -> usize {
-        (self.words[0] & 0x180usize) >> 7
-    }
-
-    #[inline]
-    pub fn set_extra_caps(&mut self, v64: usize) {
-        self.words[0] &= !0x180usize;
-        self.words[0] |= (v64 << 7) & 0x180;
-    }
-
-    #[inline]
-    pub fn get_caps_unwrapped(&self) -> usize {
-        (self.words[0] & 0xe00usize) >> 9
-    }
-
-    #[inline]
-    pub fn set_caps_unwrapped(&mut self, v64: usize) {
-        self.words[0] &= !0xe00usize;
-        self.words[0] |= (v64 << 9) & 0xe00;
+        self.0 as usize
     }
 
     #[inline]
     pub fn get_label(&self) -> MessageLabel {
         unsafe {
-            core::mem::transmute::<u8, MessageLabel>(((self.words[0] & 0xfffffffffffff000usize) >> 12) as u8)
+            core::mem::transmute::<u8, MessageLabel>(self.get_usize_label() as u8)
         }
-    }
-
-    #[inline]
-    pub fn set_label(&mut self, v64: usize) {
-        self.words[0] &= !0xfffffffffffff000usize;
-        self.words[0] |= (v64 << 12) & 0xfffffffffffff000;
     }
 }
 
@@ -180,13 +134,6 @@ pub fn seL4_MessageInfo_ptr_set_capsUnwrapped(ptr: *mut seL4_MessageInfo_t, v64:
 pub fn seL4_MessageInfo_ptr_get_label(ptr: *const seL4_MessageInfo_t) -> usize {
     unsafe {
         (*ptr).get_label() as usize
-    }
-}
-
-#[inline]
-pub fn seL4_MessageInfo_ptr_set_label(ptr: *mut seL4_MessageInfo_t, v64: usize) {
-    unsafe {
-        (*ptr).set_label(v64)
     }
 }
 

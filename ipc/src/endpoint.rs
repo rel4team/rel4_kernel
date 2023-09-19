@@ -1,4 +1,4 @@
-use common::utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref};
+use common::{utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref}, define_bitfield};
 use task_manager::{tcb_queue_t, tcb_t, ThreadState, set_thread_state, rescheduleRequired, schedule_tcb};
 use vspace::pptr_t;
 
@@ -14,10 +14,14 @@ pub enum EPState {
     Recv = 2,
 }
 
-#[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct endpoint_t {
-    pub words: [usize; 2],
+define_bitfield!{
+    endpoint_t, u128, 0, 0 => {
+        new, 0 => {
+            queue_head, get_queue_head, set_queue_head, 64, 64, false,
+            queue_tail, get_queue_tail, set_queue_tail, 2, 37, true,
+            state, get_usize_state, set_state, 0, 2, false
+        }
+    }
 }
 
 impl endpoint_t {
@@ -27,42 +31,9 @@ impl endpoint_t {
     }
 
     #[inline]
-    pub fn set_queue_head(&mut self, v64: usize) {
-        self.words[1] &= !0xffffffffffffffffusize;
-        self.words[1] |= (v64 << 0) & 0xffffffffffffffff;
-    }
-
-    #[inline]
-    pub fn get_queue_head(&self) -> usize {
-        let ret = (self.words[1] & 0xffffffffffffffffusize) >> 0;
-        ret
-    }
-
-    #[inline]
-    pub fn set_queue_tail(&mut self, v64: usize) {
-        self.words[0] &= !0x7ffffffffcusize;
-        self.words[0] |= (v64 << 0) & 0x7ffffffffc;
-    }
-
-    #[inline]
-    pub fn get_queue_tail(&self) -> usize {
-        let mut ret = (self.words[0] & 0x7ffffffffcusize) >> 0;
-        if (ret & (1usize << (38))) != 0 {
-            ret |= 0xffffff8000000000;
-        }
-        ret
-    }
-
-    #[inline]
-    pub fn set_state(&mut self, v64: usize) {
-        self.words[0] &= !0x3usize;
-        self.words[0] |= (v64 << 0) & 0x3;
-    }
-    
-    #[inline]
     pub fn get_state(&self) -> EPState {
         unsafe {
-            core::mem::transmute::<u8, EPState>((self.words[0] & 0x3usize) as u8)
+            core::mem::transmute::<u8, EPState>(self.get_usize_state() as u8)
         }
     }
 

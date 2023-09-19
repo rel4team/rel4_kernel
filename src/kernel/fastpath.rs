@@ -79,14 +79,17 @@ pub fn cap_reply_cap_ptr_new_np(
 #[no_mangle]
 pub fn endpoint_ptr_mset_epQueue_tail_state(ptr: *mut endpoint_t, tail: usize, state: usize) {
     unsafe {
-        (*ptr).words[0] = tail | state;
+        // (*ptr).words[0] = tail | state;
+        (*ptr).set_queue_tail(tail);
+        (*ptr).set_state(state);
     }
 }
 #[inline]
 #[no_mangle]
 pub fn endpoint_ptr_set_epQueue_head_np(ptr: *mut endpoint_t, head: usize) {
     unsafe {
-        (*ptr).words[1] = head;
+        // (*ptr).words[1] = head;
+        (*ptr).set_queue_head(head);
     }
 }
 
