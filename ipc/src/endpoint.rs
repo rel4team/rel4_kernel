@@ -1,4 +1,4 @@
-use common::{utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref}, define_bitfield};
+use common::{utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref}, plus_define_bitfield};
 use task_manager::{tcb_queue_t, tcb_t, ThreadState, set_thread_state, rescheduleRequired, schedule_tcb};
 use vspace::pptr_t;
 
@@ -14,12 +14,12 @@ pub enum EPState {
     Recv = 2,
 }
 
-define_bitfield!{
-    endpoint_t, u128, 0, 0 => {
+plus_define_bitfield! {
+    endpoint_t, 2, 0, 0, 0 => {
         new, 0 => {
-            queue_head, get_queue_head, set_queue_head, 64, 64, false,
-            queue_tail, get_queue_tail, set_queue_tail, 2, 37, true,
-            state, get_usize_state, set_state, 0, 2, false
+            queue_head, get_queue_head, set_queue_head, 1, 0, 64, 0, false,
+            queue_tail, get_queue_tail, set_queue_tail, 0, 2, 37, 2, true,
+            state, get_usize_state, set_state, 0, 0, 2, 0, false
         }
     }
 }

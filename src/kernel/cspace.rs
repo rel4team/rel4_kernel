@@ -4,6 +4,7 @@ use crate::{structures::{
     lookupCapAndSlot_ret_t, lookupCap_ret_t
 }, syscall::lookupSlotForCNodeOp};
 
+use log::debug;
 use task_manager::*;
 use common::structures::exception_t;
 use cspace::interface::*;
@@ -12,6 +13,7 @@ use cspace::interface::*;
 #[no_mangle]
 pub extern "C" fn lookupCapAndSlot(thread: *const tcb_t, cPtr: usize) -> lookupCapAndSlot_ret_t {
     let lu_ret = lookupSlot(thread, cPtr);
+    // debug!("[lookupCapAndSlot] cptr: {}, res: {:?}, cap", cPtr, lu_ret);
     if lu_ret.status != exception_t::EXCEPTION_NONE {
         let ret = lookupCapAndSlot_ret_t {
             status: lu_ret.status,
@@ -26,6 +28,7 @@ pub extern "C" fn lookupCapAndSlot(thread: *const tcb_t, cPtr: usize) -> lookupC
             slot: lu_ret.slot,
             cap: (*lu_ret.slot).cap.clone(),
         };
+        // debug!("[lookupCapAndSlot] cptr: {}, res: {:?}", cPtr, ret);
         ret
     }
 }

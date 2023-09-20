@@ -1,41 +1,63 @@
-use crate::define_bitfield;
+use crate::plus_define_bitfield;
 
-define_bitfield! {
-    lookup_fault_t, u128, 0, 2 => {
+plus_define_bitfield! {
+    lookup_fault_t, 2, 0, 0, 2 => {
         new_root_invalid, lookup_fault_invalid_root => {},
         new_missing_cap, lookup_fault_missing_capability => {
-            bits_left, missing_cap_get_bits_left, missing_cap_set_bits_left, 2, 7, false
+            bits_left, missing_cap_get_bits_left, missing_cap_set_bits_left, 0, 2, 7, 0, false
         },
         new_depth_mismatch, lookup_fault_depth_mismatch => {
-            bits_found, depth_mismatch_get_bits_found, depth_mismatch_set_bits_found, 9, 7, false, 
-            bits_left, depth_mismatch_get_bits_left,  depth_mismatch_set_bits_left, 2, 7, false
+            bits_found, depth_mismatch_get_bits_found, depth_mismatch_set_bits_found, 0, 9, 7, 0, false,
+            bits_left, depth_mismatch_get_bits_left,  depth_mismatch_set_bits_left, 0, 2, 7, 0, false
         },
         new_guard_mismatch, lookup_fault_depth_mismatch => {
-            guard_found, guard_mismatch_get_guard_found, guard_mismatch_set_guard_found, 64, 64, false,
-            bits_found, guard_mismatch_get_bits_found, guard_mismatch_set_bits_found, 9, 7, false, 
-            bits_left, guard_mismatch_get_bits_left,  guard_mismatch_set_bits_left, 2, 7, false
+            guard_found, guard_mismatch_get_guard_found, guard_mismatch_set_guard_found, 1, 0, 64, 0, false,
+            bits_found, guard_mismatch_get_bits_found, guard_mismatch_set_bits_found, 0, 9, 7, 0, false,
+            bits_left, guard_mismatch_get_bits_left,  guard_mismatch_set_bits_left, 0, 2, 7, 0, false
         }
     }
 }
 
-define_bitfield! {
-    seL4_Fault_t, u128, 0, 4 => {
+// define_bitfield! {
+//     seL4_Fault_t, u128, 0, 4 => {
+//         new_null_fault, seL4_Fault_NullFault => {},
+//         new_cap_fault, seL4_Fault_CapFault => {
+//             address, cap_fault_get_address, cap_fault_set_address, 64, 64, false, false,
+//             in_receive_phase, cap_fault_get_in_receive_phase, cap_fault_set_in_receive_phase, 63, 1, false, false
+//         },
+//         new_unknown_syscall_fault, seL4_Fault_UnknownSyscall => {
+//             syscall_number, unknown_syscall_get_syscall_number, unknown_syscall_set_syscall_number, 64, 64, false, false
+//         },
+//         new_user_exeception, seL4_Fault_UserException => {
+//             number, user_exeception_get_number, user_exeception_set_number, 32, 32, false, false,
+//             code, user_exeception_get_code, user_exeception_set_code, 4, 28, false, false
+//         },
+//         new_vm_fault, seL4_Fault_VMFault => {
+//             address, vm_fault_get_address, vm_fault_set_address, 64, 64, false, false,
+//             fsr, vm_fault_get_fsr, vm_fault_set_fsr, 27, 5, false, false,
+//             instruction_fault, vm_fault_get_instruction_fault, vm_fault_set_instruction_fault, 19, 1, false, false
+//         }
+//     }
+// }
+
+plus_define_bitfield! {
+    seL4_Fault_t, 2, 0, 0, 4 => {
         new_null_fault, seL4_Fault_NullFault => {},
         new_cap_fault, seL4_Fault_CapFault => {
-            address, cap_fault_get_address, cap_fault_set_address, 64, 64, false,
-            in_receive_phase, cap_fault_get_in_receive_phase, cap_fault_set_in_receive_phase, 63, 1, false
+            address, cap_fault_get_address, cap_fault_set_address, 1, 0, 64, 0, false,
+            in_receive_phase, cap_fault_get_in_receive_phase, cap_fault_set_in_receive_phase, 0, 63, 1, 0, false
         },
         new_unknown_syscall_fault, seL4_Fault_UnknownSyscall => {
-            syscall_number, unknown_syscall_get_syscall_number, unknown_syscall_set_syscall_number, 64, 64, false
+            syscall_number, unknown_syscall_get_syscall_number, unknown_syscall_set_syscall_number, 1, 0, 64, 0, false
         },
         new_user_exeception, seL4_Fault_UserException => {
-            number, user_exeception_get_number, user_exeception_set_number, 32, 32, false,
-            code, user_exeception_get_code, user_exeception_set_code, 4, 28, false
+            number, user_exeception_get_number, user_exeception_set_number, 0, 32, 32, 0, false,
+            code, user_exeception_get_code, user_exeception_set_code, 0, 4, 28, 0, false
         },
         new_vm_fault, seL4_Fault_VMFault => {
-            address, vm_fault_get_address, vm_fault_set_address, 64, 64, false,
-            fsr, vm_fault_get_fsr, vm_fault_set_fsr, 27, 5, false,
-            instruction_fault, vm_fault_get_instruction_fault, vm_fault_set_instruction_fault, 19, 1, false
+            address, vm_fault_get_address, vm_fault_set_address, 1, 0, 64, 0, false,
+            fsr, vm_fault_get_fsr, vm_fault_set_fsr, 0, 27, 5, 0, false,
+            instruction_fault, vm_fault_get_instruction_fault, vm_fault_set_instruction_fault, 0, 19, 1, 0, false
         }
     }
 }

@@ -397,14 +397,15 @@ pub fn cte_swap(cap1: &cap_t, slot1: &mut cte_t, cap2: &cap_t, slot2: &mut cte_t
             convert_to_mut_type_ref::<cte_t>(next_ptr).cteMDBNode.set_prev(slot2 as *const cte_t as usize);
         }
     }
-    let val1 = cap1.words[0];
-    let val2 = cap1.words[1];
+    // let val1 = cap1.words[0];
+    // let val2 = cap1.words[1];
     slot1.cap = cap2.clone();
     //FIXME::result not right due to compiler
 
-    slot2.cap = cap_t {
-        words: [val1, val2],
-    };
+    // slot2.cap = cap_t {
+    //     words: [val1, val2],
+    // };
+    slot2.cap = cap1.clone();
     slot1.cteMDBNode = mdb2;
     slot2.cteMDBNode = mdb1;
     {

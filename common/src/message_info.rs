@@ -1,4 +1,4 @@
-use crate::{sel4_config::seL4_MsgMaxLength, define_bitfield};
+use crate::{sel4_config::seL4_MsgMaxLength, plus_define_bitfield};
 
 #[derive(Eq, PartialEq, Debug, Clone, Copy, PartialOrd, Ord)]
 pub enum MessageLabel {
@@ -43,13 +43,13 @@ pub enum MessageLabel {
     nArchInvocationLabels                   = 38,
 }
 
-define_bitfield!{
-    seL4_MessageInfo_t, u64, 0, 0 => {
+plus_define_bitfield! {
+    seL4_MessageInfo_t, 1, 0, 0, 0 => {
         new, 0 => {
-            label, get_usize_label, set_label, 12, 52, false,
-            capsUnwrapped, get_caps_unwrapped, set_caps_unwrapped, 9, 3, false,
-            extraCaps, get_extra_caps, set_extra_caps, 7, 2, false,
-            length, get_length, set_length, 0, 7, false
+            label, get_usize_label, set_label, 0, 12, 52, 0, false,
+            capsUnwrapped, get_caps_unwrapped, set_caps_unwrapped, 0, 9, 3, 0, false,
+            extraCaps, get_extra_caps, set_extra_caps, 0, 7, 2, 0, false,
+            length, get_length, set_length, 0, 0, 7, 0, false
         }
     }
 }
@@ -57,7 +57,9 @@ define_bitfield!{
 impl seL4_MessageInfo_t {
     #[inline]
     pub fn from_word(w: usize) -> Self {
-        Self (w as u64)
+        Self {
+            words: [w]
+        }
     }
 
     #[inline]
@@ -71,7 +73,7 @@ impl seL4_MessageInfo_t {
 
     #[inline]
     pub fn to_word(&self) -> usize {
-        self.0 as usize
+        self.words[0]
     }
 
     #[inline]

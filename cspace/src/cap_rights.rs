@@ -1,44 +1,28 @@
-use common::MASK;
+use common::{MASK, plus_define_bitfield};
 const seL4_CapRightsBits: usize = 4;
 
-/// 通过mask操作用于对cap_t的权限进行取子集操作
-/// 
-/// 目前只对四类Cap有效：CapEndpointCap、CapNotificationCap、CapReplyCap、CapFrameCap
-/// 
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct seL4_CapRights_t {
-    pub word: usize,
+plus_define_bitfield! {
+    seL4_CapRights_t, 1, 0, 0, 0 => {
+        new, 0 => {
+            allow_grant_reply, get_allow_grant_reply, set_allow_grant_reply, 0, 3, 1, 0, false,
+            allow_grant, get_allow_grant, set_allow_grant, 0, 2, 1, 0, false,
+            allow_read, get_allow_read, set_allow_read, 0, 1, 1, 0, false,
+            allow_write, get_allow_write, set_allow_write, 0, 0, 1, 0, false
+        }
+    }
 }
+
 
 impl seL4_CapRights_t {
     #[inline]
     pub fn from_word(word: usize) -> Self {
-        Self { word }
+        Self {
+            words: [word]
+        }
     }
 
     #[inline]
     pub fn to_word(&self) -> usize {
-        self.word & MASK!(seL4_CapRightsBits)
-    }
-
-    #[inline]
-    pub fn get_allow_grant_reply(&self) -> usize {
-        (self.word & & 0x8usize) >> 3
-    }
-
-    #[inline]
-    pub fn get_allow_grant(&self) -> usize {
-        (self.word & 0x4usize) >> 2
-    }
-
-    #[inline]
-    pub fn get_allow_read(&self) -> usize {
-        (self.word & 0x2usize) >> 1
-    }
-    
-    #[inline]
-    pub fn get_allow_write(&self) -> usize {
-        (self.word & 0x1usize) >> 0
+        self.words[0] as usize & MASK!(seL4_CapRightsBits)
     }
 }

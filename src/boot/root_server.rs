@@ -160,6 +160,10 @@ unsafe fn create_initial_thread(
     ksDomainTime = ksDomSchedule[ksDomScheduleIdx].length;
 
     let cap = cap_t::new_thread_cap(tcb as usize);
+    let tmp = unsafe {
+        &*(&cap as *const cap_t as usize as *const [usize; 2])
+    };
+    debug!("root server tcb cap: {:#x}, {:#x}, {:?}", tmp[0], tmp[1], cap);
     write_slot(ptr.add(seL4_CapInitThreadTCB), cap);
     // forget(*tcb);
     tcb

@@ -1,69 +1,55 @@
 use crate::sel4_config::{RISCVPageBits, RISCVMegaPageBits, RISCVGigaPageBits, RISCV_4K_Page, RISCV_Mega_Page, RISCV_Giga_Page};
 
 #[macro_export]
-macro_rules! define_bitfield {
-    ($name:ident, $total_bits:ident, $type_offset:expr, $type_bits:expr =>
-        { $($variant:ident, $type_value:expr => { $($field:ident, $get_field:ident, $set_field:ident, $offset:expr, $bits:expr, $addr:expr),* }),* }) => {
-        #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-        pub struct $name(pub $total_bits);
-
+macro_rules! plus_define_bitfield {
+    ($name:ident, $total_words:expr, $type_index:expr, $type_offset:expr, $type_bits:expr =>
+        { $($variant:ident, $type_value:expr => { $($field:ident, $get_field:ident, $set_field:ident, $index:expr, $offset:expr, $bits:expr, $shift:expr, $sign_ext: expr),* }),* }) => {
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+        pub struct $name {
+            pub words: [usize; $total_words],
+        }
+        
         impl $name {
             $(
                 #[inline]
                 pub fn $variant($($field: usize),*) -> Self {
-                    let mut value: $total_bits = 0;
+                    let mut value = $name::default();
                     $(
-                        let mask = (1 << $bits) - 1;
-                        value |= (($field as $total_bits) & mask) << $offset;
+                        let mask = (((1u128 << $bits) - 1)) as usize;
+                        value.words[$index] |= ((($field >> $shift) & mask) << $offset);
                     )*
-                    let mask = (1 << $type_bits) - 1;
-                    value |= (($type_value as $total_bits) & mask) << $type_offset;
+                    value.words[$type_index] |= (($type_value & ((1usize << $type_bits) - 1)) << $type_offset);
 
-                    $name(value)
+                    value
                 }
 
                 $(
                     #[inline]
                     pub fn $get_field(&self) -> usize {
-                        let mask = (1 << $bits) - 1;
-                        let mut value = ((self.0 >> $offset) & mask) as usize;
-                        
-                        if $addr {
-                            value = (value << ($offset % 64)) as usize;
-                            if (value & (1usize << ($bits + $offset - 1))) != 0 {
-                                value |= (!((1usize << $bits + $offset) - 1));
-                            }
-                            value
-                        } else {
-                            value
+                        let mask = ((1u128 << $bits) - 1) as usize;
+                        let mut ret = ((self.words[$index] >> $offset) & mask) << $shift;
+                        if $sign_ext && (ret & (1usize << 38)) != 0 {
+                            ret |= 0xffffff8000000000;
                         }
+                        ret
                     }
 
                     #[inline]
                     pub fn $set_field(&mut self, new_field: usize) {
-                        let mask = (1 << $bits) - 1;
-                        self.0 &= !(mask << $offset);
-                        if $addr {
-                            self.0 |= ((new_field as $total_bits) & (mask << $offset))
-                        } else {
-                            self.0 |= (((new_field as $total_bits) & mask) << $offset);
-                        }
-
-                        
+                        let mask = ((1u128 << $bits) - 1) as usize;
+                        self.words[$index] &= !(mask << $offset);
+                        self.words[$index] |= (((new_field >> $shift) & mask) << $offset);
                     }
                 )*
             )*
             
             #[inline]
             pub fn get_type(&self) -> usize {
-                let mask = (1 << $type_bits) - 1;
-                let value = ((self.0 >> $type_offset) & mask) as usize;
-                value
+                (self.words[$type_index] >> $type_offset) & ((1usize << $type_bits) - 1)
             }
         }
     };
 }
-
 
 #[macro_export]
 macro_rules! MASK {

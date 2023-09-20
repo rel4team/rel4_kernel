@@ -71,8 +71,9 @@ pub fn cap_reply_cap_ptr_new_np(
     capReplyMaster: usize,
     capTCBPtr: usize,
 ) {
-    ptr.words[1] = capTCBPtr;
-    ptr.words[0] = capReplyMaster | (capReplyCanGrant << 1) | (cap_reply_cap << 59);
+    // ptr.words[1] = capTCBPtr;
+    // ptr.words[0] = capReplyMaster | (capReplyCanGrant << 1) | (cap_reply_cap << 59);
+    *ptr = cap_t::new_reply_cap(capReplyCanGrant, capReplyMaster, capTCBPtr);
 }
 
 #[inline]
@@ -111,13 +112,17 @@ pub fn mdb_node_ptr_mset_mdbNext_mdbRevocable_mdbFirstBadged(
     mdbRevocable: usize,
     mdbFirstBadged: usize,
 ) {
-    ptr.words[1] = mdbNext | (mdbRevocable << 1) | mdbFirstBadged;
+    // ptr.words[1] = mdbNext | (mdbRevocable << 1) | mdbFirstBadged;
+    ptr.set_next(mdbNext);
+    ptr.set_revocable(mdbRevocable);
+    ptr.set_first_badged(mdbFirstBadged);
 }
 
 #[inline]
 #[no_mangle]
 pub fn mdb_node_ptr_set_mdbPrev_np(ptr: &mut mdb_node_t, prev: usize) {
-    ptr.words[0] = prev;
+    // ptr.words[0] = prev;
+    ptr.set_prev(prev);
 }
 
 #[inline]
