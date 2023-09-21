@@ -1,12 +1,10 @@
 
 
 use crate::config::*;
-use common::{BIT, utils::convert_to_mut_type_ref, sel4_config::{PADDR_TOP, PPTR_TOP, PPTR_BASE, asidLowBits, IT_ASID, CONFIG_PT_LEVELS, seL4_PageBits}, ROUND_DOWN, ROUND_UP};
+use common::{BIT, utils::convert_to_mut_type_ref, sel4_config::*, ROUND_DOWN, ROUND_UP};
 use cspace::interface::*;
 use log::debug;
-use crate::{
-    structures::{p_region_t, region_t, v_region_t},
-};
+use crate::structures::{p_region_t, region_t, v_region_t};
 use vspace::*;
 use super::ndks_boot;
 

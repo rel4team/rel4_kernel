@@ -76,22 +76,6 @@ impl endpoint_t {
                 rescheduleRequired();
             }
         }
-        // match endpoint_ptr_get_state(epptr) {
-        //     EPState_Idle => {}
-        //     _ => {
-        //         let mut thread = endpoint_ptr_get_epQueue_head(epptr) as *mut tcb_t;
-        //         endpoint_ptr_set_state(epptr, EPState_Idle);
-        //         endpoint_ptr_set_epQueue_head(epptr, 0);
-        //         endpoint_ptr_set_epQueue_tail(epptr, 0);
-        //         while thread as usize != 0 {
-        //             let ptr = thread as *const tcb_t;
-        //             setThreadState(ptr as *mut tcb_t, ThreadStateRestart);
-        //             tcbSchedEnqueue(ptr as *mut tcb_t);
-        //             thread = (*ptr).tcbEPNext as *mut tcb_t;
-        //         }
-        //         rescheduleRequired();
-        //     }
-        // }
     }
 
     pub fn cancel_badged_sends(&mut self, badge: usize) {

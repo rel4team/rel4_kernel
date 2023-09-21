@@ -6,7 +6,7 @@ use crate::config::{
 
 use task_manager::*;
 
-use common::{sel4_config::*, structures::*, message_info::*, fault::*};
+use common::{sel4_config::*, message_info::*, fault::*};
 
 
 use super::thread::setMR;

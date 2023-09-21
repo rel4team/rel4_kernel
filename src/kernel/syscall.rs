@@ -118,8 +118,8 @@ pub fn handleReply() {
 #[no_mangle]
 pub fn handleYield() {
     unsafe {
-        tcbSchedDequeue(ksCurThread);
-        tcbSchedAppend(ksCurThread);
+        get_currenct_thread().sched_dequeue();
+        get_currenct_thread().sched_append();
         rescheduleRequired();
     }
 }

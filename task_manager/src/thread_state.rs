@@ -1,8 +1,4 @@
-#[repr(C)]
-#[derive(Debug, PartialEq, Copy, Clone)]
-pub struct thread_state_t {
-    pub words: [usize; 3],
-}
+use common::plus_define_bitfield;
 
 #[derive(PartialEq, PartialOrd)]
 pub enum ThreadState {
@@ -17,101 +13,17 @@ pub enum ThreadState {
     ThreadStateExited = 8,
 }
 
-impl thread_state_t {
-    #[inline]
-    pub fn state_new() -> Self {
-        let state = thread_state_t { words: [0; 3] };
-        state
-    }
-
-    #[inline]
-    pub fn get_blocking_ipc_badge(&self) -> usize {
-        let mut ret = self.words[2] & 0xffffffffffffffffusize;
-        if (ret & (1usize << (38))) != 0 {
-            ret |= 0xffffff8000000000;
+plus_define_bitfield! {
+    thread_state_t, 3, 0, 0, 0 => {
+        state_new, 0 => {
+            blocking_ipc_badge, get_blocking_ipc_badge, set_blocking_ipc_badge, 2, 0, 64, 0, false,
+            blocking_ipc_can_grant, get_blocking_ipc_can_grant, set_blocking_ipc_can_grant, 1, 3, 1, 0, false,
+            blocking_ipc_can_grant_relpy, get_blocking_ipc_can_grant_reply, set_blocking_ipc_can_grant_reply, 1, 2, 1, 0, false,
+            blocking_ipc_is_call, get_blocking_ipc_is_call, set_blocking_ipc_is_call, 1, 1, 1, 0, false,
+            tcb_queued, get_tcb_queued, set_tcb_queued, 1, 0, 1, 0, false,
+            blocking_object, get_blocking_object, set_blocking_object, 0, 4, 35, 4, true,
+            ts_type, get_ts_type, set_ts_type, 0, 0, 4, 0, false
         }
-        ret
-    }
-
-    #[inline]
-    pub fn set_blocking_ipc_badge(&mut self, v64: usize) {
-        self.words[2] &= !0xffffffffffffffffusize;
-        self.words[2] |= v64 & 0xffffffffffffffffusize;
-    }
-
-    #[inline]
-    pub fn get_blocking_ipc_can_grant(&self) -> usize {
-        let ret = (self.words[1] & 0x8usize) >> 3;
-        ret
-    }
-
-    #[inline]
-    pub fn set_blocking_ipc_can_grant(&mut self, v64: usize) {
-        self.words[1] &= !0x8usize;
-        self.words[1] |= (v64 << 3) & 0x8usize;
-    }
-
-    #[inline]
-    pub fn get_blocking_ipc_can_grant_relpy(&self) -> usize {
-        let ret = (self.words[1] & 0x4usize) >> 2;
-        ret
-    }
-
-    #[inline]
-    pub fn set_blocking_ipc_can_grant_reply(&mut self, v64: usize) {
-        self.words[1] &= !0x4usize;
-        self.words[1] |= (v64 << 2) & 0x4usize;
-    }
-
-    #[inline]
-    pub fn get_blocking_ipc_is_call(&self) -> usize {
-        let ret = (self.words[1] & 0x2usize) >> 1;
-        ret
-    }
-
-    #[inline]
-    pub fn set_blocking_ipc_is_call(&mut self, v64: usize) {
-        self.words[1] &= !0x2usize;
-        self.words[1] |= (v64 << 1) & 0x2usize;
-    }
-
-    #[inline]
-    pub fn get_tcb_queued(&self) -> usize {
-        let ret = (self.words[1] & 0x1usize) >> 0;
-        ret
-    }
-
-    #[inline]
-    pub fn set_tcb_queued(&mut self, v64: usize) {
-        self.words[1] &= !0x1usize;
-        self.words[1] |= (v64 << 0) & 0x1usize;
-    }
-
-    #[inline]
-    pub fn get_blocking_object(&self) -> usize {
-        let mut ret = (self.words[0] & 0x7ffffffff0usize) << 0;
-        if (ret & (1usize << (38))) != 0 {
-            ret |= 0xffffff8000000000;
-        }
-        ret
-    }
-
-    #[inline]
-    pub fn set_blocking_object(&mut self, v64: usize) {
-        self.words[0] &= !0x7ffffffff0usize;
-        self.words[0] |= (v64 >> 0) & 0x7ffffffff0usize;
-    }
-
-    #[inline]
-    pub fn get_ts_type(&self) -> usize {
-        let ret = self.words[0] & 0xfusize;
-        ret
-    }
-
-    #[inline]
-    pub fn set_ts_type(&mut self, v64: usize) {
-        self.words[0] &= !0xfusize;
-        self.words[0] |= v64 & 0xfusize;
     }
 }
 
@@ -163,7 +75,7 @@ pub fn thread_state_set_blockingIPCCanGrant(thread_state_ptr: &mut thread_state_
 
 #[inline]
 pub fn thread_state_get_blockingIPCCanGrantReply(thread_state_ptr: &thread_state_t) -> usize {
-    thread_state_ptr.get_blocking_ipc_can_grant_relpy()
+    thread_state_ptr.get_blocking_ipc_can_grant_reply()
 }
 
 #[inline]

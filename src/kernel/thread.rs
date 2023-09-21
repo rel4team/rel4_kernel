@@ -57,7 +57,7 @@ pub fn idle_thread() {
 
 #[no_mangle]
 pub fn configureIdleThread(_tcb: *const tcb_t) {
-    
+    panic!("should not be invoked!")
 }
 
 #[no_mangle]

@@ -16,10 +16,8 @@ use task_manager::*;
 use ipc::*;
 use vspace::*;
 use cspace::compatibility::*;
-use super::{
-    interrupt::{
-        deletingIRQHandler, setIRQState,
-    },
+use super::interrupt::{
+    deletingIRQHandler, setIRQState,
 };
 
 use common::{structures::exception_t, sel4_config::*, object::*, utils::convert_to_mut_type_ref};
@@ -207,12 +205,4 @@ pub fn performInvocation_Reply(
         doReplyTransfer(ksCurThread, thread, slot, canGrant);
     }
     exception_t::EXCEPTION_NONE
-}
-
-#[no_mangle]
-pub fn Arch_isFrameType(_type: usize) -> bool {
-    match _type {
-        seL4_RISCV_4K_Page | seL4_RISCV_Giga_Page | seL4_RISCV_Mega_Page => true,
-        _ => false,
-    }
 }

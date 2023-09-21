@@ -1,4 +1,4 @@
-use common::utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref};
+use common::{utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref}, plus_define_bitfield};
 use task_manager::{tcb_queue_t, tcb_t, set_thread_state, ThreadState, rescheduleRequired};
 
 #[derive(PartialEq, Eq)]
@@ -12,87 +12,24 @@ pub const NtfnState_Idle: usize = NtfnState::Idle as usize;
 pub const NtfnState_Waiting: usize = NtfnState::Waiting as usize;
 pub const NtfnState_Active: usize = NtfnState::Active as usize;
 
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
-pub struct notification_t {
-    pub words: [usize; 4],
+plus_define_bitfield! {
+    notification_t, 4, 0, 0, 0 => {
+        new, 0 => {
+            bound_tcb, get_bound_tcb, set_bound_tcb, 3, 0, 39, 0, true,
+            msg_identifier, get_msg_identifier, set_msg_identifier, 2, 0, 64, 0, false,
+            queue_head, get_queue_head, set_queue_head, 1, 0, 39, 0, true,
+            queue_tail, get_queue_tail, set_queue_tail, 0, 25, 39, 0, true,
+            state, get_usize_state, set_state, 0, 0, 2, 0, false
+        }
+    }
 }
 
 impl notification_t {
     #[inline]
-    pub fn get_bound_tcb(&self) -> usize {
-        let mut ret: usize;
-        ret = self.words[3] & 0x7fffffffffusize;
-        if (ret & (1usize << (38))) != 0 {
-            ret |= 0xffffff8000000000;
-        }
-        ret
-    }
-
-    #[inline]
-    pub fn set_bound_tcb(&mut self, v64: usize) {
-        self.words[3] &= !0x7fffffffffusize;
-        self.words[3] |= (v64 >> 0) & 0x7fffffffffusize;
-    }
-
-    #[inline]
-    pub fn get_msg_identifier(&self) -> usize {
-        let ret: usize;
-        ret = self.words[2] & 0xffffffffffffffffusize;
-        ret
-    }
-
-    #[inline]
-    pub fn set_msg_identifier(&mut self, v64: usize) {
-        self.words[2] &= !0xffffffffffffffffusize;
-        self.words[2] |= (v64 >> 0) & 0xffffffffffffffffusize;
-    }
-
-    #[inline]
-    pub fn get_queue_head(&self) -> usize {
-        let mut ret: usize;
-        ret = self.words[1] & 0x7fffffffffusize;
-        if (ret & (1usize << (38))) != 0 {
-            ret |= 0xffffff8000000000;
-        }
-        ret
-    }
-
-    #[inline]
-    pub fn set_queue_head(&mut self, v64: usize) {
-        self.words[1] &= !0x7fffffffffusize;
-        self.words[1] |= (v64 >> 0) & 0x7fffffffff;
-    }
-
-    #[inline]
-    pub fn get_queue_tail(&self) -> usize {
-        let mut ret: usize;
-        ret = (self.words[0] & 0xfffffffffe000000usize) >> 25;
-        if (ret & (1usize << (38))) != 0 {
-            ret |= 0xffffff8000000000;
-        }
-        ret
-    }
-
-    #[inline]
-    pub fn set_queue_tail(&mut self, v64: usize) {
-        self.words[0] &= !0xfffffffffe000000usize;
-        self.words[0] |= (v64 << 25) & 0xfffffffffe000000usize;
-    }
-
-    #[inline]
     pub fn get_state(&self) -> NtfnState {
-        let ret: usize;
-        ret = self.words[0] & 0x3usize;
         unsafe {
-            core::mem::transmute::<u8, NtfnState>(ret as u8)
+            core::mem::transmute::<u8, NtfnState>(self.get_usize_state() as u8)
         }
-    }
-
-    #[inline]
-    pub fn set_state(&mut self, v64: usize) {
-        self.words[0] &= !0x3usize;
-        self.words[0] |= (v64 >> 0) & 0x3usize;
     }
 
     #[inline]

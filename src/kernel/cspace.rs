@@ -4,7 +4,6 @@ use crate::{structures::{
     lookupCapAndSlot_ret_t, lookupCap_ret_t
 }, syscall::lookupSlotForCNodeOp};
 
-use log::debug;
 use task_manager::*;
 use common::structures::exception_t;
 use cspace::interface::*;
