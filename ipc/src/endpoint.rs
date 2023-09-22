@@ -131,6 +131,10 @@ impl endpoint_t {
                 assert!(op_dest_thread.is_some());
                 let dest_thread = op_dest_thread.unwrap();
                 queue.ep_dequeue(dest_thread);
+                self.set_queue(&queue);
+                if queue.empty() {
+                    self.set_state(EPState::Idle as usize);
+                }
                 // TOOD
 
             }

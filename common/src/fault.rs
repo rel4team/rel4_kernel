@@ -46,6 +46,13 @@ pub const seL4_Fault_UnknownSyscall: usize = FaultType::UnknownSyscall as usize;
 pub const seL4_Fault_UserException: usize = FaultType::UserException as usize;
 pub const seL4_Fault_VMFault: usize = FaultType::VMFault as usize;
 
+//seL4_VMFault_Msg
+pub const seL4_VMFault_IP: usize = 0;
+pub const seL4_VMFault_Addr: usize = 1;
+pub const seL4_VMFault_PrefetchFault: usize = 2;
+pub const seL4_VMFault_FSR: usize = 3;
+pub const seL4_VMFault_Length: usize = 4;
+
 pub const seL4_CapFault_IP: usize = 0;
 pub const seL4_CapFault_Addr: usize = 1;
 pub const seL4_CapFault_InRecvPhase: usize = 2;

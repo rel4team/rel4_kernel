@@ -19,7 +19,7 @@ use super::{
     boot::{
         current_extra_caps, current_lookup_fault, current_syscall_error,
     },
-    fault::{handleFaultReply, setMRs_fault, setMRs_lookup_failure},
+    fault::handleFaultReply,
 };
 
 use common::{structures::exception_t, BIT, sel4_config::*};
@@ -320,7 +320,7 @@ pub fn setMRs_syscall_error(thread: *mut tcb_t, receivedIPCBuffer: *mut usize) -
                     false
                 };
                 setMR(thread, receivedIPCBuffer, 0, flag as usize);
-                return setMRs_lookup_failure(thread, receivedIPCBuffer, &current_lookup_fault, 1);
+                return (*thread).set_lookup_fault_mrs(1, &current_lookup_fault);
             }
             seL4_IllegalOperation
             | seL4_AlignmentError

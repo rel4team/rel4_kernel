@@ -137,10 +137,4 @@ pub const seL4_MinPrio: usize = 0;
 pub const CONFIG_MAX_NUM_WORK_UNITS_PER_PREEMPTION: usize = 100;
 pub const CONFIG_RETYPE_FAN_OUT_LIMIT: usize = 256;
 
-//seL4_VMFault_Msg
-pub const seL4_VMFault_IP: usize = 0;
-pub const seL4_VMFault_Addr: usize = 1;
-pub const seL4_VMFault_PrefetchFault: usize = 2;
-pub const seL4_VMFault_FSR: usize = 3;
-pub const seL4_VMFault_Length: usize = 4;
 

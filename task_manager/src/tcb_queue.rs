@@ -36,6 +36,11 @@ impl tcb_queue_t {
             self.tail = tcb.tcbEPPrev;
         }
     }
+
+    #[inline]
+    pub fn empty(&self) -> bool {
+        return self.head == 0
+    }
 }
 
 #[no_mangle]
