@@ -1,26 +1,20 @@
 
 use crate::{
-    config::{
-        tcbCNodeEntries, IRQInactive,
-    },
+    config::tcbCNodeEntries,
     kernel::{
         boot::current_lookup_fault,
-        thread::doReplyTransfer,
         vspace::{
             deleteASID, deleteASIDPool,
         },
-    }, syscall::safe_unbind_notification,
+    }, syscall::safe_unbind_notification, interrupt::*,
 };
 
 use task_manager::*;
-use ipc::*;
+use ipc::{*, transfer::do_reply_transfer};
 use vspace::*;
 use cspace::compatibility::*;
-use super::interrupt::{
-    deletingIRQHandler, setIRQState,
-};
 
-use common::{structures::exception_t, sel4_config::*, object::*, utils::convert_to_mut_type_ref};
+use common::{structures::exception_t, sel4_config::*, utils::convert_to_mut_type_ref};
 use cspace::interface::*;
 
 #[no_mangle]
@@ -202,7 +196,8 @@ pub fn performInvocation_Reply(
     canGrant: bool,
 ) -> exception_t {
     unsafe {
-        doReplyTransfer(ksCurThread, thread, slot, canGrant);
+        // doReplyTransfer(ksCurThread, thread, slot, canGrant);
+        do_reply_transfer(get_currenct_thread(), &mut *thread, &mut *slot, canGrant);
     }
     exception_t::EXCEPTION_NONE
 }

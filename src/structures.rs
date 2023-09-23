@@ -137,14 +137,6 @@ impl Default for lookupCap_ret_t {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct cap_transfer_t {
-    pub ctReceiveRoot: usize,
-    pub ctReceiveIndex: usize,
-    pub ctReceiveDepth: usize,
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct lookupCapAndSlot_ret_t {
     pub status: exception_t,
     pub cap: cap_t,

@@ -114,12 +114,6 @@ pub const maxIRQ: usize = KERNEL_TIMER_IRQ;
 
 pub const irqInvalid: usize = 0;
 
-// irq_state
-pub const IRQInactive: usize = 0;
-pub const IRQSignal: usize = 1;
-pub const IRQTimer: usize = 2;
-pub const IRQReserved: usize = 3;
-
 pub const SEL4_BOOTINFO_HEADER_FDT: usize = 6;
 pub const SEL4_BOOTINFO_HEADER_PADDING: usize = 0;
 pub const CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS: usize = 230;

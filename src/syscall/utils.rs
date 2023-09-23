@@ -104,7 +104,7 @@ pub fn lookup_slot_for_cnode_op(is_source: bool, root: &cap_t, cap_ptr: usize, d
         unsafe {
             current_syscall_error._type = seL4_FailedLookup;
             current_syscall_error.failedLookupWasSource = is_source as usize;
-            current_lookup_fault = lookup_fault_invalid_root_new();
+            current_lookup_fault = lookup_fault_t::new_root_invalid();
         }
         ret.status = exception_t::EXCEPTION_SYSCALL_ERROR;
         return ret;
@@ -134,7 +134,7 @@ pub fn lookup_slot_for_cnode_op(is_source: bool, root: &cap_t, cap_ptr: usize, d
         unsafe {
             current_syscall_error._type = seL4_FailedLookup;
             current_syscall_error.failedLookupWasSource = is_source as usize;
-            current_lookup_fault = lookup_fault_depth_mismatch_new(0, res_ret.bitsRemaining);
+            current_lookup_fault = lookup_fault_t::new_depth_mismatch(0, res_ret.bitsRemaining);
         }
         ret.status = exception_t::EXCEPTION_SYSCALL_ERROR;
         return ret;

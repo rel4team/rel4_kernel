@@ -163,7 +163,6 @@ impl cap_t {
 
     pub fn get_cap_type(&self) -> CapTag {
         unsafe {
-            // core::mem::transmute::<u8, CapTag>(((self.words[0] >> 59) & 0x1f) as u8)
             core::mem::transmute::<u8, CapTag>(self.get_type() as u8)
         }
     }

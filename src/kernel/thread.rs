@@ -1,29 +1,15 @@
-use crate::{
-    config::{
-        CONFIG_KERNEL_STACK_BITS, SSTATUS_SPIE, SSTATUS_SPP,
-    },
-    object::tcb::{
-        copyMRs, lookupExtraCaps
-    },
+use crate::config::{
+    CONFIG_KERNEL_STACK_BITS, SSTATUS_SPIE, SSTATUS_SPP,
 };
-use cspace::compatibility::*;
+
 use task_manager::*;
-use ipc::*;
-use core::{
-    arch::asm,
-    intrinsics::{likely, unlikely},
-};
-use common::{message_info::*, utils::convert_to_type_ref, structures::seL4_IPCBuffer, fault::*};
 
-use super::{
-    boot::{
-        current_extra_caps, current_lookup_fault, current_syscall_error,
-    },
-    fault::handleFaultReply,
-};
+use core::arch::asm;
+use common::{utils::convert_to_type_ref, structures::seL4_IPCBuffer};
 
-use common::{structures::exception_t, BIT, sel4_config::*};
-use cspace::interface::*;
+use super::boot::{current_lookup_fault, current_syscall_error};
+
+use common::{BIT, sel4_config::*};
 
 #[no_mangle]
 pub static mut kernel_stack_alloc: [[u8; BIT!(CONFIG_KERNEL_STACK_BITS)]; CONFIG_MAX_NUM_NODES] =
@@ -60,105 +46,6 @@ pub fn configureIdleThread(_tcb: *const tcb_t) {
     panic!("should not be invoked!")
 }
 
-#[no_mangle]
-pub fn doReplyTransfer(sender: *mut tcb_t, receiver: *mut tcb_t, slot: *mut cte_t, grant: bool) {
-    unsafe {
-        assert!(thread_state_get_tsType(&(*receiver).tcbState) == ThreadStateBlockedOnReply);
-    }
-    let fault_type = unsafe { seL4_Fault_get_seL4_FaultType(&(*receiver).tcbFault) };
-    if likely(fault_type == seL4_Fault_NullFault) {
-        doIPCTransfer(sender, 0 as *mut endpoint_t, 0, grant, receiver);
-        cteDeleteOne(slot);
-        setThreadState(receiver, ThreadStateRunning);
-        possibleSwitchTo(receiver);
-    } else {
-        cteDeleteOne(slot);
-        let restart = handleFaultReply(receiver, sender);
-
-        if restart {
-            setThreadState(receiver, ThreadStateRestart);
-            possibleSwitchTo(receiver);
-        } else {
-            setThreadState(receiver, ThreadStateInactive);
-        }
-    }
-}
-
-#[no_mangle]
-pub fn doFaultTransfer(
-    badge: usize,
-    sender: *mut tcb_t,
-    receiver: *mut tcb_t,
-    receivedIPCBuffer: *mut usize,
-) {
-    let sent = setMRs_fault(sender, receiver, receivedIPCBuffer);
-    let msgInfo = unsafe {
-        seL4_MessageInfo_new(
-            seL4_Fault_get_seL4_FaultType(&(*sender).tcbFault),
-            0,
-            0,
-            sent,
-        )
-    };
-    setRegister(receiver, msgInfoRegister, wordFromMessageInfo(msgInfo));
-    setRegister(receiver, badgeRegister, badge);
-}
-
-#[no_mangle]
-pub fn transferCaps(
-    info: seL4_MessageInfo_t,
-    endpoint: *mut endpoint_t,
-    receiver: *mut tcb_t,
-    receivedBuffer: *mut usize,
-) -> seL4_MessageInfo_t {
-    unsafe {
-        seL4_MessageInfo_ptr_set_extraCaps(
-            (&info) as *const seL4_MessageInfo_t as *mut seL4_MessageInfo_t,
-            0,
-        );
-        seL4_MessageInfo_ptr_set_capsUnwrapped(
-            (&info) as *const seL4_MessageInfo_t as *mut seL4_MessageInfo_t,
-            0,
-        );
-        if current_extra_caps.excaprefs[0] as usize == 0 || receivedBuffer as usize == 0 {
-            return info;
-        }
-        let mut destSlot = getReceiveSlots(receiver, receivedBuffer);
-        let mut i = 0;
-        while i < seL4_MsgMaxExtraCaps && current_extra_caps.excaprefs[i] as usize != 0 {
-            let slot = current_extra_caps.excaprefs[i] as *mut cte_t;
-            let cap = &(*slot).cap;
-            if cap_get_capType(cap) == cap_endpoint_cap
-                && (cap_endpoint_cap_get_capEPPtr(cap) == endpoint as usize)
-            {
-                setExtraBadge(receivedBuffer, cap_endpoint_cap_get_capEPBadge(cap), i);
-                seL4_MessageInfo_ptr_set_capsUnwrapped(
-                    (&info) as *const seL4_MessageInfo_t as *mut seL4_MessageInfo_t,
-                    seL4_MessageInfo_ptr_get_capsUnwrapped((&info) as *const seL4_MessageInfo_t)
-                        | (1 << i),
-                );
-            } else {
-                if destSlot as usize == 0 {
-                    break;
-                }
-                let dc_ret = deriveCap(slot, cap);
-                if dc_ret.status != exception_t::EXCEPTION_NONE
-                    || cap_get_capType(&dc_ret.cap) == cap_null_cap
-                {
-                    break;
-                }
-                cteInsert(&dc_ret.cap, slot, destSlot);
-                destSlot = 0 as *mut cte_t;
-            }
-            i += 1;
-        }
-        seL4_MessageInfo_ptr_set_extraCaps(
-            (&info) as *const seL4_MessageInfo_t as *mut seL4_MessageInfo_t,
-            i,
-        );
-        return info;
-    }
-}
 
 #[no_mangle]
 pub fn doNBRecvFailedTransfer(thread: *mut tcb_t) {
@@ -185,97 +72,6 @@ pub fn setMR(receiver: *mut tcb_t, receivedBuffer: *mut usize, offset: usize, re
 
 pub fn Arch_initContext() -> arch_tcb_t {
    arch_tcb_t::default()
-}
-
-#[no_mangle]
-pub fn doIPCTransfer(
-    sender: *mut tcb_t,
-    endpoint: *mut endpoint_t,
-    badge: usize,
-    grant: bool,
-    receiver: *mut tcb_t,
-) {
-    let receiveBuffer = lookupIPCBuffer(true, receiver) as *mut usize;
-    unsafe {
-        if likely(seL4_Fault_get_seL4_FaultType(&(*sender).tcbFault) == seL4_Fault_NullFault) {
-            let sendBuffer = lookupIPCBuffer(false, sender) as *mut usize;
-            doNormalTransfer(
-                sender,
-                sendBuffer,
-                endpoint,
-                badge,
-                grant,
-                receiver,
-                receiveBuffer,
-            );
-        } else {
-            doFaultTransfer(badge, sender, receiver, receiveBuffer);
-        }
-    }
-}
-
-#[no_mangle]
-pub fn doNormalTransfer(
-    sender: *mut tcb_t,
-    sendBuffer: *mut usize,
-    endpoint: *mut endpoint_t,
-    badge: usize,
-    canGrant: bool,
-    receiver: *mut tcb_t,
-    receivedBuffer: *mut usize,
-) {
-    let mut tag = messageInfoFromWord(getRegister(sender, msgInfoRegister));
-    if canGrant {
-        let status = lookupExtraCaps(sender, sendBuffer, &tag);
-
-        if unlikely(status != exception_t::EXCEPTION_NONE) {
-            unsafe {
-                current_extra_caps.excaprefs[0] = 0;
-            }
-        }
-    } else {
-        unsafe {
-            current_extra_caps.excaprefs[0] = 0;
-        }
-    }
-    let msgTransferred = copyMRs(
-        sender,
-        sendBuffer,
-        receiver,
-        receivedBuffer,
-        seL4_MessageInfo_ptr_get_length((&tag) as *const seL4_MessageInfo_t),
-    );
-
-    tag = transferCaps(tag, endpoint, receiver, receivedBuffer);
-
-    seL4_MessageInfo_ptr_set_length(
-        (&tag) as *const seL4_MessageInfo_t as *mut seL4_MessageInfo_t,
-        msgTransferred,
-    );
-    setRegister(receiver, msgInfoRegister, wordFromMessageInfo(tag));
-    setRegister(receiver, badgeRegister, badge);
-}
-
-#[no_mangle]
-pub fn getReceiveSlots(thread: *mut tcb_t, _buffer: *mut usize) -> *mut cte_t {
-    unsafe {
-        match (*thread).get_receive_slot() {
-            Some(slot) => {
-                return slot as *mut cte_t;
-            },
-            None => {
-                0 as *mut cte_t
-            },
-        }
-    }
-}
-
-#[no_mangle]
-pub fn setExtraBadge(bufferPtr: *mut usize, badge: usize, i: usize) {
-    unsafe {
-        let ptr = bufferPtr.add(seL4_MsgMaxLength + 2 + i);
-        *ptr = badge;
-    }
 }
 
 #[no_mangle]

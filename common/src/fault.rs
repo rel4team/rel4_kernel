@@ -22,7 +22,7 @@ plus_define_bitfield! {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FaultType {
     NullFault = 0,
     CapFault = 1,
@@ -68,29 +68,10 @@ pub fn seL4_Fault_get_seL4_FaultType(seL4_Fault: &seL4_Fault_t) -> usize {
     seL4_Fault.get_type() as usize
 }
 
-#[inline]
-pub fn seL4_Fault_NullFault_new() -> seL4_Fault_t {
-    seL4_Fault_t::new_null_fault()
-}
 
 #[inline]
 pub fn seL4_Fault_CapFault_new(address: usize, inReceivePhase: usize) -> seL4_Fault_t {
     seL4_Fault_t::new_cap_fault(address, inReceivePhase)
-}
-
-#[inline]
-pub fn seL4_Fault_CapFault_get_address(seL4_Fault: &seL4_Fault_t) -> usize {
-    seL4_Fault.cap_fault_get_address()
-}
-
-#[inline]
-pub fn seL4_Fault_CapFault_get_inReceivePhase(seL4_Fault: &seL4_Fault_t) -> usize {
-    seL4_Fault.cap_fault_get_in_receive_phase()
-}
-
-#[inline]
-pub fn seL4_Fault_UnknownSyscall_new(syscallNumber: usize) -> seL4_Fault_t {
-    seL4_Fault_t::new_unknown_syscall_fault(syscallNumber)
 }
 
 #[inline]
@@ -104,33 +85,8 @@ pub fn seL4_Fault_UserException_new(number: usize, code: usize) -> seL4_Fault_t 
 }
 
 #[inline]
-pub fn seL4_Fault_UserException_get_number(seL4_Fault: &seL4_Fault_t) -> usize {
-    seL4_Fault.user_exeception_get_number()
-}
-
-#[inline]
-pub fn seL4_Fault_UserException_get_code(seL4_Fault: &seL4_Fault_t) -> usize {
-    seL4_Fault.user_exeception_get_code()
-}
-
-#[inline]
 pub fn seL4_Fault_VMFault_new(address: usize, FSR: usize, instructionFault: bool) -> seL4_Fault_t {
     seL4_Fault_t::new_vm_fault(address, FSR, instructionFault as usize)
-}
-
-#[inline]
-pub fn seL4_Fault_VMFault_get_address(seL4_Fault: &seL4_Fault_t) -> usize {
-    seL4_Fault.vm_fault_get_address()
-}
-
-#[inline]
-pub fn seL4_Fault_VMFault_get_FSR(seL4_Fault: &seL4_Fault_t) -> usize {
-    seL4_Fault.vm_fault_get_fsr()
-}
-
-#[inline]
-pub fn seL4_Fault_VMFault_get_instructionFault(seL4_Fault: &seL4_Fault_t) -> usize {
-    seL4_Fault.vm_fault_get_instruction_fault()
 }
 
 
@@ -177,60 +133,6 @@ impl lookup_fault_t {
 
 
 #[inline]
-pub fn lookup_fault_get_lufType(lookup_fault: &lookup_fault_t) -> usize {
-    lookup_fault.get_type() as usize
-}
-
-#[inline]
-pub fn lookup_fault_invalid_root_new() -> lookup_fault_t {
-    lookup_fault_t::new_root_invalid()
-}
-
-#[inline]
 pub fn lookup_fault_missing_capability_new(bitsLeft: usize) -> lookup_fault_t {
     lookup_fault_t::new_missing_cap(bitsLeft)
-}
-
-#[inline]
-pub fn lookup_fault_missing_capability_get_bitsLeft(lookup_fault: &lookup_fault_t) -> usize {
-    lookup_fault.missing_cap_get_bits_left()
-}
-
-#[inline]
-pub fn lookup_fault_depth_mismatch_new(bitsFound: usize, bitsLeft: usize) -> lookup_fault_t {
-    lookup_fault_t::new_depth_mismatch(bitsFound, bitsLeft)
-}
-
-#[inline]
-pub fn lookup_fault_depth_mismatch_get_bitsFound(lookup_fault: &lookup_fault_t) -> usize {
-    lookup_fault.depth_mismatch_get_bits_found()
-}
-
-#[inline]
-pub fn lookup_fault_depth_mismatch_get_bitsLeft(lookup_fault: &lookup_fault_t) -> usize {
-    lookup_fault.depth_mismatch_get_bits_left()
-}
-
-#[inline]
-pub fn lookup_fault_guard_mismatch_new(
-    guardFound: usize,
-    bitsFound: usize,
-    bitsLeft: usize,
-) -> lookup_fault_t {
-    lookup_fault_t::new_guard_mismatch(guardFound, bitsFound, bitsLeft)
-}
-
-#[inline]
-pub fn lookup_fault_guard_mismatch_get_guardFound(lookup_fault: &lookup_fault_t) -> usize {
-    lookup_fault.guard_mismatch_get_guard_found()
-}
-
-#[inline]
-pub fn lookup_fault_guard_mismatch_get_bitsFound(lookup_fault: &lookup_fault_t) -> usize {
-    lookup_fault.guard_mismatch_get_bits_found()
-}
-
-#[inline]
-pub fn lookup_fault_guard_mismatch_get_bitsLeft(lookup_fault: &lookup_fault_t) -> usize {
-    lookup_fault.guard_mismatch_get_bits_left()
 }

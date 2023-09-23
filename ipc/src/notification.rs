@@ -1,5 +1,7 @@
 use common::{utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref}, plus_define_bitfield};
-use task_manager::{tcb_queue_t, tcb_t, set_thread_state, ThreadState, rescheduleRequired};
+use task_manager::{tcb_queue_t, tcb_t, set_thread_state, ThreadState, rescheduleRequired, badgeRegister, possible_switch_to};
+
+use crate::cancel_ipc;
 
 #[derive(PartialEq, Eq)]
 pub enum NtfnState {
@@ -99,6 +101,47 @@ impl notification_t {
     pub fn get_ptr(&self) -> usize {
         self as *const notification_t as usize
     }
+
+    #[inline]
+    pub fn send_signal(&mut self, badge: usize) {
+        match self.get_state() {
+            NtfnState::Idle => {
+                if let Some(tcb) = convert_to_option_mut_type_ref::<tcb_t>(self.get_bound_tcb()) {
+                    if tcb.get_state() == ThreadState::ThreadStateBlockedOnReceive{
+                        cancel_ipc(tcb);
+                        set_thread_state(tcb, ThreadState::ThreadStateRunning);
+                        tcb.set_register(badgeRegister, badge);
+                        possible_switch_to(tcb);
+                    } else {
+                        self.active(badge);
+                    }
+                } else {
+                    self.active(badge);
+                }
+            }
+            NtfnState::Waiting => {
+                let mut queue = self.get_queue();
+                if let Some(dest) = convert_to_option_mut_type_ref::<tcb_t>(queue.head) {
+                    queue.ep_dequeue(dest);
+                    self.set_queue(&queue);
+                    if queue.empty() {
+                        self.set_state(NtfnState::Idle as usize);
+                    }
+                    set_thread_state(dest, ThreadState::ThreadStateRunning);
+                    dest.set_register(badgeRegister, badge);
+                    possible_switch_to(dest);
+                } else {
+                    panic!("queue is empty!")
+                }
+            }
+            NtfnState::Active => {
+                let mut badge2 = self.get_msg_identifier();
+                badge2 |= badge;
+                self.set_msg_identifier(badge2);
+            }
+        }
+    }
+
 }
 
 #[inline]
@@ -109,51 +152,9 @@ pub fn notification_ptr_get_ntfnBoundTCB(notification_ptr: *const notification_t
 }
 
 #[inline]
-pub fn notification_ptr_set_ntfnBoundTCB(ptr: *mut notification_t, v64: usize) {
-    unsafe {
-        (*ptr).set_bound_tcb(v64)
-    }
-}
-
-#[inline]
 pub fn notification_ptr_get_ntfnMsgIdentifier(notification_ptr: *const notification_t) -> usize {
     unsafe {
         (*notification_ptr).get_msg_identifier()
-    }
-}
-
-#[inline]
-pub fn notification_ptr_set_ntfnMsgIdentifier(ptr: *mut notification_t, v64: usize) {
-    unsafe {
-        (*ptr).set_msg_identifier(v64)
-    }
-}
-
-#[inline]
-pub fn notification_ptr_get_ntfnQueue_head(notification_ptr: *const notification_t) -> usize {
-    unsafe {
-        (*notification_ptr).get_queue_head()
-    }
-}
-
-#[inline]
-pub fn notification_ptr_set_ntfnQueue_head(ptr: *mut notification_t, v64: usize) {
-    unsafe {
-        (*ptr).set_queue_head(v64)
-    }
-}
-
-#[inline]
-pub fn notification_ptr_get_ntfnQueue_tail(notification_ptr: *const notification_t) -> usize {
-    unsafe {
-        (*notification_ptr).get_queue_tail()
-    }
-}
-
-#[inline]
-pub fn notification_ptr_set_ntfnQueue_tail(ptr: *mut notification_t, v64: usize) {
-    unsafe {
-        (*ptr).set_queue_tail(v64)
     }
 }
 
@@ -183,12 +184,5 @@ pub fn ntfn_ptr_get_queue(ptr: *const notification_t) -> tcb_queue_t {
 pub fn ntfn_ptr_set_queue(ptr: *mut notification_t, ntfn_queue: tcb_queue_t) {
     unsafe {
         (*ptr).set_queue(&ntfn_queue)
-    }
-}
-
-#[inline]
-pub fn ntfn_ptr_set_active(ntfnPtr: *mut notification_t, badge: usize) {
-    unsafe {
-        (*ntfnPtr).active(badge)
     }
 }

@@ -1,104 +1,21 @@
-use core::{arch::asm, intrinsics::unlikely};
+use core::intrinsics::unlikely;
 
 use crate::{
-    config::{
-        irqInvalid, maxIRQ, IRQInactive,
-        IRQReserved, IRQSignal, IRQTimer,
-        KERNEL_TIMER_IRQ, SIE_STIE, SIP_SEIP,
-        SIP_STIP,
-    },
-    kernel::{
-        boot::{active_irq, current_extra_caps, current_syscall_error},
-        cspace::rust_lookupTargetSlot,
-        thread::getExtraCPtr,
-    },
-    riscv::{read_sip, resetTimer},
-    syscall::{getSyscallArg, ensureEmptySlot},
+    config::maxIRQ,
+    kernel::boot::{current_extra_caps, current_syscall_error},
+    riscv::resetTimer,
+    interrupt::*,
 };
 
-use common::message_info::*;
+use common::{message_info::*, utils::convert_to_mut_type_ref};
 
-use super::notification::sendSignal;
 use cspace::compatibility::*;
-use common::{structures::exception_t, BIT, sel4_config::*};
+use common::{structures::exception_t, sel4_config::*};
 use cspace::interface::*;
 use ipc::*;
 use task_manager::*;
 use log::debug;
 
-#[no_mangle]
-pub static mut intStateIRQTable: [usize; 2] = [0; 2];
-
-pub static mut intStateIRQNode: usize = 0;
-
-#[no_mangle]
-pub extern "C" fn intStateIRQNodeToR(ptr: *mut usize) {
-    unsafe {
-        intStateIRQNode = ptr as usize;
-    }
-}
-
-#[inline]
-pub fn set_sie_mask(mask_high: usize) {
-    unsafe {
-        let _temp: usize;
-        asm!("csrrs {0},sie,{1}",out(reg)_temp,in(reg)mask_high);
-    }
-}
-#[inline]
-pub fn clear_sie_mask(mask_low: usize) {
-    unsafe {
-        let _temp: usize;
-        asm!("csrrc {0},sie,{1}",out(reg)_temp,in(reg)mask_low);
-    }
-}
-
-#[inline]
-pub fn maskInterrupt(disable: bool, irq: usize) {
-    if irq == KERNEL_TIMER_IRQ {
-        if disable {
-            clear_sie_mask(BIT!(SIE_STIE));
-        } else {
-            set_sie_mask(BIT!(SIE_STIE));
-        }
-    }
-}
-
-pub fn isIRQPending() -> bool {
-    let sip = read_sip();
-    if (sip & (BIT!(SIP_STIP) | BIT!(SIP_SEIP))) != 0 {
-        true
-    } else {
-        false
-    }
-}
-
-#[no_mangle]
-pub fn deletingIRQHandler(irq: usize) {
-    unsafe {
-        let slot = (intStateIRQNode as *mut cte_t).add(irq);
-        cteDeleteOne(slot);
-    }
-}
-
-#[no_mangle]
-pub fn setIRQState(state: usize, irq: usize) {
-    unsafe {
-        intStateIRQTable[irq] = state;
-        maskInterrupt(state == 0, irq);
-    }
-}
-
-#[no_mangle]
-pub fn invokeIRQControl(
-    irq: usize,
-    handlerSlot: *mut cte_t,
-    controlSlot: *mut cte_t,
-) -> exception_t {
-    setIRQState(IRQSignal, irq);
-    cteInsert(&cap_t::new_irq_handler_cap(irq), controlSlot, handlerSlot);
-    exception_t::EXCEPTION_NONE
-}
 
 #[no_mangle]
 pub fn invokeIRQHandler_SetIRQHandler(irq: usize, cap: &cap_t, slot: *mut cte_t) {
@@ -118,164 +35,6 @@ pub fn deletedIRQHandler(irq: usize) {
     setIRQState(IRQInactive, irq);
 }
 
-#[no_mangle]
-pub fn ackInterrupt(_irq: usize) {
-    unsafe {
-        active_irq[0] = irqInvalid;
-    }
-}
-
-#[no_mangle]
-pub fn isIRQActive(irq: usize) -> bool {
-    unsafe { intStateIRQTable[irq] != IRQInactive }
-}
-
-#[no_mangle]
-pub fn Arch_checkIRQ(irq: usize) -> exception_t {
-    if irq > maxIRQ || irq == irqInvalid {
-        unsafe {
-            current_syscall_error._type = seL4_RangeError;
-            current_syscall_error.rangeErrorMin = 1;
-            current_syscall_error.rangeErrorMax = maxIRQ;
-            debug!(
-                "Rejecting request for IRQ {}. IRQ is out of range [1..maxIRQ].",
-                irq
-            );
-            return exception_t::EXCEPTION_SYSCALL_ERROR;
-        }
-    }
-    exception_t::EXCEPTION_NONE
-}
-
-#[no_mangle]
-pub fn Arch_decodeIRQControlInvocation(
-    invLabel: MessageLabel,
-    length: usize,
-    srcSlot: *mut cte_t,
-    buffer: *mut usize,
-) -> exception_t {
-    if invLabel == MessageLabel::RISCVIRQIssueIRQHandlerTrigger {
-        unsafe {
-            if length < 4 || current_extra_caps.excaprefs[0] as usize == 0 {
-                current_syscall_error._type = seL4_TruncatedMessage;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
-        }
-        let irq = getSyscallArg(0, buffer);
-        let trigger = getSyscallArg(1, buffer) != 0;
-        let index = getSyscallArg(2, buffer);
-        let depth = getSyscallArg(3, buffer);
-
-        let cnodeCap = unsafe { (*(current_extra_caps.excaprefs[0] as *mut cte_t) ).cap.clone() };
-
-        let status = Arch_checkIRQ(irq);
-
-        if status != exception_t::EXCEPTION_NONE {
-            return status;
-        }
-
-        if isIRQActive(irq) {
-            unsafe {
-                current_syscall_error._type = seL4_RevokeFirst;
-                debug!("Rejecting request for IRQ {}. Already active.", irq);
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
-        }
-
-        let lu_ret = rust_lookupTargetSlot(&cnodeCap, index, depth);
-        if lu_ret.status != exception_t::EXCEPTION_NONE {
-            debug!(
-                "Target slot for new IRQ Handler cap invalid: cap {:#x}, IRQ {}.",
-                getExtraCPtr(buffer, 0),
-                irq
-            );
-            return lu_ret.status;
-        }
-        let destSlot = lu_ret.slot;
-        unsafe {
-            setThreadState(ksCurThread, ThreadStateRestart);
-        }
-        return Arch_invokeIRQControl(irq, destSlot, srcSlot, trigger);
-    } else {
-        unsafe {
-            current_syscall_error._type = seL4_IllegalOperation;
-            return exception_t::EXCEPTION_SYSCALL_ERROR;
-        }
-    }
-}
-
-#[no_mangle]
-pub fn Arch_invokeIRQControl(
-    irq: usize,
-    handlerSlot: *mut cte_t,
-    controlSlot: *mut cte_t,
-    _trigger: bool,
-) -> exception_t {
-    invokeIRQControl(irq, handlerSlot, controlSlot)
-}
-
-#[no_mangle]
-pub fn decodeIRQControlInvocation(
-    invLabel: MessageLabel,
-    length: usize,
-    srcSlot: *mut cte_t,
-    buffer: *mut usize,
-) -> exception_t {
-    if invLabel == MessageLabel::IRQIssueIRQHandler {
-        unsafe {
-            if length < 3 || current_extra_caps.excaprefs[0] as usize == 0 {
-                current_syscall_error._type = seL4_TruncatedMessage;
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
-        }
-        let irq = getSyscallArg(0, buffer);
-        let index = getSyscallArg(1, buffer);
-        let depth = getSyscallArg(2, buffer);
-
-        let cnodeCap = unsafe { (*(current_extra_caps.excaprefs[0] as *mut cte_t) ).cap.clone() };
-
-        let status = Arch_checkIRQ(irq);
-
-        if status != exception_t::EXCEPTION_NONE {
-            return status;
-        }
-
-        if isIRQActive(irq) {
-            unsafe {
-                current_syscall_error._type = seL4_RevokeFirst;
-                debug!("Rejecting request for IRQ {}. Already active.", irq);
-                return exception_t::EXCEPTION_SYSCALL_ERROR;
-            }
-        }
-
-        let lu_ret = rust_lookupTargetSlot(&cnodeCap, index, depth);
-        if lu_ret.status != exception_t::EXCEPTION_NONE {
-            debug!(
-                "Target slot for new IRQ Handler cap invalid: cap {:#x}, IRQ {}.",
-                getExtraCPtr(buffer, 0),
-                irq
-            );
-            return lu_ret.status;
-        }
-        let destSlot = lu_ret.slot;
-
-        let status = ensureEmptySlot(destSlot);
-        if status != exception_t::EXCEPTION_NONE {
-            debug!(
-                "Target slot for new IRQ Handler cap not empty: cap {}, IRQ {}.",
-                getExtraCPtr(buffer, 0),
-                irq
-            );
-        }
-
-        unsafe {
-            setThreadState(ksCurThread, ThreadStateRestart);
-        }
-        return invokeIRQControl(irq, destSlot, srcSlot);
-    } else {
-        return Arch_decodeIRQControlInvocation(invLabel, length, srcSlot, buffer);
-    }
-}
 
 #[no_mangle]
 pub fn handleInterrupt(irq: usize) {
@@ -284,7 +43,7 @@ pub fn handleInterrupt(irq: usize) {
             "Received IRQ {}, which is above the platforms maxIRQ of {}\n",
             irq, maxIRQ
         );
-        maskInterrupt(true, irq);
+        mask_interrupt(true, irq);
         ackInterrupt(irq);
         return;
     }
@@ -297,10 +56,7 @@ pub fn handleInterrupt(irq: usize) {
                 if cap_get_capType(cap) == cap_notification_cap
                     && cap_notification_cap_get_capNtfnCanSend(cap) != 0
                 {
-                    sendSignal(
-                        cap_notification_cap_get_capNtfnPtr(cap) as *mut notification_t,
-                        cap_notification_cap_get_capNtfnBadge(cap),
-                    );
+                    convert_to_mut_type_ref::<notification_t>(cap.get_nf_ptr()).send_signal(cap.get_nf_badge());
                 }
             }
             IRQTimer => {
@@ -311,7 +67,7 @@ pub fn handleInterrupt(irq: usize) {
                 debug!("Received unhandled reserved IRQ: {}\n", irq);
             }
             IRQInactive => {
-                maskInterrupt(true, irq);
+                mask_interrupt(true, irq);
                 debug!("Received disabled IRQ: {}\n", irq);
             }
             _ => {

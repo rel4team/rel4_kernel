@@ -17,7 +17,7 @@ use crate::structures::lookupSlot_raw_ret_t;
 
 use super::{
     registers::n_contextRegisters, ready_queues_index, ksReadyQueues, addToBitmap, removeFromBitmap, NextIP, FaultIP,
-    ksIdleThread, ksCurThread, rescheduleRequired, possibleSwitchTo
+    ksIdleThread, ksCurThread, rescheduleRequired
 };
 
 use super::thread_state::*;
@@ -129,7 +129,7 @@ impl tcb_t {
             if self.get_ptr() == unsafe { ksCurThread as usize } {
                 rescheduleRequired();
             } else {
-                possibleSwitchTo(self as *mut tcb_t);
+                possible_switch_to(self)
             }
         }
     }
@@ -423,6 +423,27 @@ impl tcb_t {
     }
 
     #[inline]
+    pub fn copy_mrs(&self, receiver: &mut tcb_t, length: usize) -> usize {
+        let mut i = 0;
+        while i < length && i < n_msgRegisters {
+            receiver.set_register(msgRegister[i], self.get_register(msgRegister[i]));
+            i += 1;
+        }
+        if let (Some(send_buffer), Some(recv_buffer)) = (self.lookup_ipc_buffer(false), receiver.lookup_mut_ipc_buffer(true)) {
+            unsafe {
+                let recv_ptr = recv_buffer as *mut seL4_IPCBuffer as *mut usize;
+                let send_ptr = send_buffer as *const seL4_IPCBuffer as *const usize;
+                while i < length {
+                    *(recv_ptr.add(i + 1)) = *(send_ptr.add(i + 1));
+                    i += 1;
+                }
+            }
+
+        }
+        i
+    }
+
+    #[inline]
     pub fn copy_fault_mrs(&self, receiver: &mut Self, id: usize, length: usize) {
         let len = if length < n_msgRegisters {
             length
@@ -437,6 +458,26 @@ impl tcb_t {
         if let Some(buffer) = receiver.lookup_mut_ipc_buffer(true) {
             while i < length {
                 buffer.msg[i] = self.get_register(fault_messages[id][i]);
+                i += 1;
+            }
+        }
+    }
+
+    #[inline]
+    pub fn copy_fault_mrs_for_reply(&self, receiver: &mut Self, id: usize, length: usize) {
+        let len = if length < n_msgRegisters {
+            length
+        } else {
+            n_msgRegisters
+        };
+        let mut i = 0;
+        while i < len {
+            receiver.set_register(fault_messages[id][i], self.get_register(msgRegister[i]));
+            i += 1;
+        }
+        if let Some(buffer) = self.lookup_ipc_buffer(false) {
+            while i < length {
+                receiver.set_register(fault_messages[id][i], buffer.msg[i]);
                 i += 1;
             }
         }
@@ -511,20 +552,6 @@ pub fn getCSpaceMutRef(ptr: usize, i: usize) -> &'static mut cte_t {
     }
 }
 
-
-#[inline]
-pub fn tcbSchedDequeue(_tcb: *mut tcb_t) {
-    unsafe {
-        (*_tcb).sched_dequeue();
-    }
-}
-
-pub fn tcbSchedAppend(tcb: *mut tcb_t) {
-    unsafe {
-        (*tcb).sched_append();
-    }
-}
-
 #[inline]
 pub fn setRegister(thread: *mut tcb_t, reg: usize, w: usize) {
     unsafe {
@@ -551,12 +578,6 @@ pub fn setThreadState(tptr: *mut tcb_t, ts: usize) {
         set_thread_state(&mut (*tptr), core::mem::transmute::<u8, ThreadState>(ts as u8))
     }
 }
-
-
-pub fn getReStartPC(thread: *const tcb_t) -> usize {
-    getRegister(thread, FaultIP)
-}
-
 
 #[inline]
 pub fn setNextPC(thread: *mut tcb_t, v: usize) {

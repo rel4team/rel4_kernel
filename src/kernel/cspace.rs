@@ -1,8 +1,8 @@
 
 
-use crate::{structures::{
+use crate::structures::{
     lookupCapAndSlot_ret_t, lookupCap_ret_t
-}, syscall::lookupSlotForCNodeOp};
+};
 
 use task_manager::*;
 use common::structures::exception_t;
@@ -47,31 +47,4 @@ pub extern "C" fn lookupCap(thread: *const tcb_t, cPtr: usize) -> lookupCap_ret_
             cap: (*lu_ret.slot).cap.clone(),
         }
     }
-}
-
-#[no_mangle]
-pub extern "C" fn rust_lookupTargetSlot(
-    root: &cap_t,
-    capptr: usize,
-    depth: usize,
-) -> lookupSlot_ret_t {
-    lookupSlotForCNodeOp(false, root, capptr, depth)
-}
-
-#[no_mangle]
-pub extern "C" fn rust_lookupSourceSlot(
-    root: &cap_t,
-    capptr: usize,
-    depth: usize,
-) -> lookupSlot_ret_t {
-    lookupSlotForCNodeOp(true, root, capptr, depth)
-}
-
-#[no_mangle]
-pub extern "C" fn rust_lookupPivotSlot(
-    root: &cap_t,
-    capptr: usize,
-    depth: usize,
-) -> lookupSlot_ret_t {
-    lookupSlotForCNodeOp(true, root, capptr, depth)
 }

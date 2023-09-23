@@ -170,7 +170,7 @@ fn decode_asid_pool(label: MessageLabel, cte: &mut cte_t) -> exception_t {
         unsafe {
             current_syscall_error._type = seL4_FailedLookup;
             current_syscall_error.failedLookupWasSource = 0;
-            current_lookup_fault = lookup_fault_invalid_root_new();
+            current_lookup_fault = lookup_fault_t::new_root_invalid();
         }
         return exception_t::EXCEPTION_SYSCALL_ERROR;
     }

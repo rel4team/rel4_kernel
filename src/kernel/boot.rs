@@ -7,9 +7,6 @@ use crate::structures::{
     extra_caps_t, syscall_error_t, 
 };
 
-#[no_mangle]
-#[link_section = ".boot.bss"]
-pub static mut active_irq: [usize; 1] = [0; 1];
 
 #[no_mangle]
 #[link_section = ".boot.bss"]

@@ -191,7 +191,9 @@ pub fn fastpath_call(cptr: usize, msgInfo: usize) {
     }
     let ep_ptr = cap_endpoint_cap_get_capEPPtr(&ep_cap) as *mut endpoint_t;
 
-    let dest = endpoint_ptr_get_epQueue_head(ep_ptr) as *mut tcb_t;
+    let dest = unsafe {
+        (*ep_ptr).get_queue_head() as *mut tcb_t
+    };
 
     if unlikely(endpoint_ptr_get_state(ep_ptr) != EPState_Recv) {
         slowpath(SysCall as usize);
@@ -232,7 +234,7 @@ pub fn fastpath_call(cptr: usize, msgInfo: usize) {
         }
     }
 
-    let badge = cap_endpoint_cap_get_capEPBadge(&ep_cap);
+    let badge = ep_cap.get_ep_badge();
     unsafe {
         thread_state_ptr_set_tsType_np(&mut (*ksCurThread).tcbState, ThreadStateBlockedOnReply);
     }
@@ -345,7 +347,9 @@ pub fn fastpath_reply_recv(cptr: usize, msgInfo: usize) {
         );
     }
 
-    let endpointTail = endpoint_ptr_get_epQueue_tail(ep_ptr) as *mut tcb_t;
+    let endpointTail = unsafe {
+        (*ep_ptr).get_queue_tail() as *mut tcb_t
+    };
 
     if endpointTail as usize == 0 {
         unsafe {

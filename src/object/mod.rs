@@ -1,4 +1,3 @@
-pub mod cap;
 pub mod endpoint;
 pub mod interrupt;
 pub mod notification;

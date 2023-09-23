@@ -1,6 +1,6 @@
 use common::plus_define_bitfield;
 
-#[derive(PartialEq, PartialOrd)]
+#[derive(PartialEq, PartialOrd, Debug)]
 pub enum ThreadState {
     ThreadStateInactive = 0,
     ThreadStateRunning = 1,
@@ -27,15 +27,19 @@ plus_define_bitfield! {
     }
 }
 
+impl thread_state_t {
+    pub fn get_state(&self) -> ThreadState {
+        unsafe {
+            core::mem::transmute::<u8, ThreadState>(self.get_ts_type() as u8)
+        }
+    }
+}
+
 #[inline]
 pub fn thread_state_set_blockingObject(thread_state_ptr: &mut thread_state_t, v64: usize) {
     thread_state_ptr.set_blocking_object(v64)
 }
 
-#[inline]
-pub fn thread_state_get_tsType(thread_state_ptr: &thread_state_t) -> usize {
-    thread_state_ptr.get_ts_type()
-}
 
 #[inline]
 #[no_mangle]
@@ -49,18 +53,8 @@ pub fn thread_state_get_blockingIPCIsCall(thread_state_ptr: &thread_state_t) -> 
 }
 
 #[inline]
-pub fn thread_state_set_blockingIPCIsCall(thread_state_ptr: &mut thread_state_t, v64: usize) {
-    thread_state_ptr.set_blocking_ipc_is_call(v64)
-}
-
-#[inline]
 pub fn thread_state_get_blockingIPCBadge(thread_state_ptr: &thread_state_t) -> usize {
     thread_state_ptr.get_blocking_ipc_badge()
-}
-
-#[inline]
-pub fn thread_state_set_blockingIPCBadge(thread_state_ptr: &mut thread_state_t, v64: usize) {
-    thread_state_ptr.set_blocking_ipc_badge(v64)
 }
 
 #[inline]
@@ -76,14 +70,6 @@ pub fn thread_state_set_blockingIPCCanGrant(thread_state_ptr: &mut thread_state_
 #[inline]
 pub fn thread_state_get_blockingIPCCanGrantReply(thread_state_ptr: &thread_state_t) -> usize {
     thread_state_ptr.get_blocking_ipc_can_grant_reply()
-}
-
-#[inline]
-pub fn thread_state_set_blockingIPCCanGrantReply(
-    thread_state_ptr: &mut thread_state_t,
-    v64: usize,
-) {
-    thread_state_ptr.set_blocking_ipc_can_grant_reply(v64)
 }
 
 //thread state

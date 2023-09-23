@@ -1,6 +1,8 @@
 use common::{utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref}, plus_define_bitfield};
-use task_manager::{tcb_queue_t, tcb_t, ThreadState, set_thread_state, rescheduleRequired, schedule_tcb};
+use task_manager::{tcb_queue_t, tcb_t, ThreadState, set_thread_state, rescheduleRequired, schedule_tcb, possible_switch_to};
 use vspace::pptr_t;
+
+use crate::transfer::do_ipc_transfer;
 
 
 pub const EPState_Idle: usize = EPState::Idle as usize;
@@ -106,7 +108,7 @@ impl endpoint_t {
     }
 
     pub fn send_ipc(&mut self, blocking: bool, src_thread: &mut tcb_t,
-        do_call: bool, can_grant: bool, badge: usize, can_grant_reply: usize) {
+        do_call: bool, can_grant: bool, badge: usize, can_grant_reply: bool) {
         match self.get_state() {
             EPState::Idle | EPState::Send => {
                 if blocking {
@@ -136,100 +138,22 @@ impl endpoint_t {
                     self.set_state(EPState::Idle as usize);
                 }
                 // TOOD
-
+                do_ipc_transfer(src_thread, Some(&self), badge, can_grant, dest_thread);
+                let reply_can_grant = dest_thread.tcbState.get_blocking_ipc_can_grant() != 0;
+                set_thread_state(dest_thread, ThreadState::ThreadStateRunning);
+                possible_switch_to(dest_thread);
+                if do_call {
+                    if can_grant || can_grant_reply {
+                        dest_thread.setup_caller_cap(src_thread, reply_can_grant);
+                    } else {
+                        set_thread_state(src_thread, ThreadState::ThreadStateInactive);
+                    }
+                }
             }
         }
-        // match endpoint_ptr_get_state(epptr) {
-        //     EPState_Idle | EPState_Send => {
-        //         if blocking {
-        //             thread_state_set_tsType(&mut (*thread).tcbState, ThreadStateBlockedOnSend);
-        //             thread_state_set_blockingObject(&mut (*thread).tcbState, epptr as usize);
-        //             thread_state_set_blockingIPCCanGrant(
-        //                 &mut (*thread).tcbState,
-        //                 canGrant as usize,
-        //             );
-        //             thread_state_set_blockingIPCBadge(&mut (*thread).tcbState, badge);
-        //             thread_state_set_blockingIPCCanGrantReply(
-        //                 &mut (*thread).tcbState,
-        //                 canGrantReply as usize,
-        //             );
-        //             thread_state_set_blockingIPCIsCall(&mut (*thread).tcbState, do_call as usize);
-
-        //             scheduleTCB(thread);
-
-        //             let mut queue = ep_ptr_get_queue(epptr);
-        //             queue = tcbEPAppend(thread, queue);
-        //             endpoint_ptr_set_state(epptr, EPState_Send);
-        //             ep_ptr_set_queue(epptr, queue);
-        //         }
-        //     }
-        //     EPState_Recv => {
-        //         let mut queue = ep_ptr_get_queue(epptr);
-        //         let dest = queue.head as *mut tcb_t;
-        //         assert!(dest as usize != 0);
-
-        //         queue = tcbEPDequeue(dest, queue);
-        //         let temp = queue.head as usize;
-        //         ep_ptr_set_queue(epptr, queue);
-
-        //         if temp == 0 {
-        //             endpoint_ptr_set_state(epptr, EPState_Idle);
-        //         }
-        //         doIPCTransfer(thread, epptr, badge, canGrant, dest);
-        //         let replyCanGrant = if thread_state_get_blockingIPCCanGrant(&(*dest).tcbState) != 0
-        //         {
-        //             true
-        //         } else {
-        //             false
-        //         };
-        //         setThreadState(dest, ThreadStateRunning);
-        //         possibleSwitchTo(dest);
-        //         if do_call {
-        //             if canGrant || canGrantReply {
-        //                 setupCallerCap(thread, dest, replyCanGrant);
-        //             } else {
-        //                 setThreadState(thread, ThreadStateInactive);
-        //             }
-        //         }
-        //     }
-        //     _ => {
-        //         panic!(
-        //             "unknown epptr state in sendIPC(): {}",
-        //             endpoint_ptr_get_state(epptr)
-        //         );
-        //     }
-        // }
     }
 }
 
-
-#[inline]
-pub fn endpoint_ptr_set_epQueue_head(ptr: *mut endpoint_t, v64: usize) {
-    unsafe {
-        (*ptr).set_queue_head(v64)
-    }
-}
-
-#[inline]
-pub fn endpoint_ptr_get_epQueue_head(ptr: *const endpoint_t) -> usize {
-    unsafe {
-        (*ptr).get_queue_head()
-    }
-}
-
-#[inline]
-pub fn endpoint_ptr_set_epQueue_tail(ptr: *mut endpoint_t, v64: usize) {
-    unsafe {
-        (*ptr).set_queue_tail(v64)
-    }
-}
-
-#[inline]
-pub fn endpoint_ptr_get_epQueue_tail(ptr: *const endpoint_t) -> usize {
-    unsafe {
-        (*ptr).get_queue_tail()
-    }
-}
 
 #[inline]
 pub fn endpoint_ptr_set_state(ptr: *mut endpoint_t, v64: usize) {
@@ -258,78 +182,3 @@ pub fn ep_ptr_get_queue(epptr: *const endpoint_t) -> tcb_queue_t {
     (*epptr).get_queue()
    }
 }
-
-
-// #[no_mangle]
-// pub fn sendIPC(
-//     blocking: bool,
-//     do_call: bool,
-//     badge: usize,
-//     canGrant: bool,
-//     canGrantReply: bool,
-//     thread: *mut tcb_t,
-//     epptr: *mut endpoint_t,
-// ) {
-//     // unsafe {
-//     //     match endpoint_ptr_get_state(epptr) {
-//     //         EPState_Idle | EPState_Send => {
-//     //             if blocking {
-//     //                 thread_state_set_tsType(&mut (*thread).tcbState, ThreadStateBlockedOnSend);
-//     //                 thread_state_set_blockingObject(&mut (*thread).tcbState, epptr as usize);
-//     //                 thread_state_set_blockingIPCCanGrant(
-//     //                     &mut (*thread).tcbState,
-//     //                     canGrant as usize,
-//     //                 );
-//     //                 thread_state_set_blockingIPCBadge(&mut (*thread).tcbState, badge);
-//     //                 thread_state_set_blockingIPCCanGrantReply(
-//     //                     &mut (*thread).tcbState,
-//     //                     canGrantReply as usize,
-//     //                 );
-//     //                 thread_state_set_blockingIPCIsCall(&mut (*thread).tcbState, do_call as usize);
-
-//     //                 scheduleTCB(thread);
-
-//     //                 let mut queue = ep_ptr_get_queue(epptr);
-//     //                 queue = tcbEPAppend(thread, queue);
-//     //                 endpoint_ptr_set_state(epptr, EPState_Send);
-//     //                 ep_ptr_set_queue(epptr, queue);
-//     //             }
-//     //         }
-//     //         EPState_Recv => {
-//     //             let mut queue = ep_ptr_get_queue(epptr);
-//     //             let dest = queue.head as *mut tcb_t;
-//     //             assert!(dest as usize != 0);
-
-//     //             queue = tcbEPDequeue(dest, queue);
-//     //             let temp = queue.head as usize;
-//     //             ep_ptr_set_queue(epptr, queue);
-
-//     //             if temp == 0 {
-//     //                 endpoint_ptr_set_state(epptr, EPState_Idle);
-//     //             }
-//     //             doIPCTransfer(thread, epptr, badge, canGrant, dest);
-//     //             let replyCanGrant = if thread_state_get_blockingIPCCanGrant(&(*dest).tcbState) != 0
-//     //             {
-//     //                 true
-//     //             } else {
-//     //                 false
-//     //             };
-//     //             setThreadState(dest, ThreadStateRunning);
-//     //             possibleSwitchTo(dest);
-//     //             if do_call {
-//     //                 if canGrant || canGrantReply {
-//     //                     setupCallerCap(thread, dest, replyCanGrant);
-//     //                 } else {
-//     //                     setThreadState(thread, ThreadStateInactive);
-//     //                 }
-//     //             }
-//     //         }
-//     //         _ => {
-//     //             panic!(
-//     //                 "unknown epptr state in sendIPC(): {}",
-//     //                 endpoint_ptr_get_state(epptr)
-//     //             );
-//     //         }
-//     //     }
-//     // }
-// }

@@ -6,7 +6,6 @@
 #![allow(non_upper_case_globals)]
 
 mod tcb;
-mod msg_transfer;
 mod tcb_queue;
 mod scheduler;
 mod thread_state;
@@ -19,4 +18,3 @@ pub use thread_state::*;
 pub use registers::*;
 pub use tcb_queue::*;
 pub use structures::*;
-pub use msg_transfer::*;

@@ -3,7 +3,7 @@
 use crate::{cap::{CapTag, cap_t}, interface::{cte_t, cte_insert}, cte::deriveCap_ret};
 pub use super::cap::endpoint::{
   cap_endpoint_cap_get_capCanGrant, cap_endpoint_cap_get_capCanGrantReply, cap_endpoint_cap_get_capCanReceive,
-  cap_endpoint_cap_get_capCanSend, cap_endpoint_cap_get_capEPBadge, cap_endpoint_cap_get_capEPPtr,
+  cap_endpoint_cap_get_capCanSend, cap_endpoint_cap_get_capEPPtr,
 };
 
 pub use super::cap::zombie::{
@@ -17,9 +17,8 @@ pub use super::cap::reply::{
 };
 
 pub use super::cap::notification::{
-  cap_notification_cap_get_capNtfnBadge, cap_notification_cap_get_capNtfnCanReceive, cap_notification_cap_get_capNtfnCanSend,
-  cap_notification_cap_get_capNtfnPtr, cap_notification_cap_new, cap_notification_cap_set_capNtfnBadge,
-  cap_notification_cap_set_capNtfnCanReceive, cap_notification_cap_set_capNtfnCanSend, cap_notification_cap_set_capNtfnPtr,
+  cap_notification_cap_get_capNtfnCanSend,
+  cap_notification_cap_get_capNtfnPtr,
 };
 
 

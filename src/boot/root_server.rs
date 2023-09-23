@@ -8,8 +8,8 @@ use common::structures::{exception_t, seL4_IPCBuffer};
 use cspace::compatibility::*;
 use cspace::interface::*;
 use log::debug;
+use crate::interrupt::{setIRQState, IRQInactive, IRQTimer};
 use crate::kernel::thread::Arch_initContext;
-use crate::object::interrupt::setIRQState;
 use crate::structures::{region_t, rootserver_mem_t, v_region_t, seL4_SlotRegion, create_frames_of_region_ret_t,
     seL4_BootInfo};
 
@@ -151,6 +151,7 @@ unsafe fn create_initial_thread(
 
     setRegister(tcb, capRegister, bi_frame_vptr);
     setNextPC(tcb, ui_v_entry);
+    
 
     (*tcb).tcbMCP = seL4_MaxPrio;
     (*tcb).tcbPriority = seL4_MaxPrio;

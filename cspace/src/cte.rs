@@ -418,7 +418,7 @@ pub fn cte_swap(cap1: &cap_t, slot1: &mut cte_t, cap2: &cap_t, slot2: &mut cte_t
 
 
 #[inline]
-pub fn cap_removable(cap: &cap_t, slot: *mut cte_t) -> bool {
+fn cap_removable(cap: &cap_t, slot: *mut cte_t) -> bool {
     match cap.get_cap_type() {
         CapTag::CapNullCap => {
             return true;
@@ -462,7 +462,6 @@ pub fn resolve_address_bits(node_cap: &cap_t, cap_ptr: usize, _n_bits: usize) ->
     let mut nodeCap = node_cap.clone();
 
     if unlikely(nodeCap.get_cap_type() != CapTag::CapCNodeCap) {
-        // return Err(lookup_fault_invalid_root_new());
         ret.status = exception_t::EXCEPTION_LOOKUP_FAULT;
         return ret;
     }
@@ -475,12 +474,10 @@ pub fn resolve_address_bits(node_cap: &cap_t, cap_ptr: usize, _n_bits: usize) ->
         let capGuard = nodeCap.get_cnode_guard();
         let guard = (cap_ptr >> ((n_bits - guardBits) & MASK!(wordRadix))) & MASK!(guardBits);
         if unlikely(guardBits > n_bits || guard != capGuard) {
-            // return Err(lookup_fault_guard_mismatch_new(capGuard, n_bits, guardBits));
             ret.status = exception_t::EXCEPTION_LOOKUP_FAULT;
             return ret;
         }
         if unlikely(levelBits > n_bits) {
-            // return Err(lookup_fault_depth_mismatch_new(levelBits, n_bits));
             ret.status = exception_t::EXCEPTION_LOOKUP_FAULT;
             return ret;
         }

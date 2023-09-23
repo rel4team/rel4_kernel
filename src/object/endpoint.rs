@@ -3,7 +3,7 @@ use crate::{
     kernel::{
         boot::current_syscall_error,
         thread::{
-            doIPCTransfer, doNBRecvFailedTransfer,
+            doNBRecvFailedTransfer,
             setMRs_syscall_error,
         },
     },
@@ -11,84 +11,10 @@ use crate::{
 };
 use cspace::compatibility::*;
 use task_manager::*;
-use ipc::*;
+use ipc::{*, transfer::doIPCTransfer};
 
 use common::message_info::*;
 use cspace::interface::*;
-
-#[no_mangle]
-pub fn sendIPC(
-    blocking: bool,
-    do_call: bool,
-    badge: usize,
-    canGrant: bool,
-    canGrantReply: bool,
-    thread: *mut tcb_t,
-    epptr: *mut endpoint_t,
-) {
-    unsafe {
-        match endpoint_ptr_get_state(epptr) {
-            EPState_Idle | EPState_Send => {
-                if blocking {
-                    thread_state_set_tsType(&mut (*thread).tcbState, ThreadStateBlockedOnSend);
-                    thread_state_set_blockingObject(&mut (*thread).tcbState, epptr as usize);
-                    thread_state_set_blockingIPCCanGrant(
-                        &mut (*thread).tcbState,
-                        canGrant as usize,
-                    );
-                    thread_state_set_blockingIPCBadge(&mut (*thread).tcbState, badge);
-                    thread_state_set_blockingIPCCanGrantReply(
-                        &mut (*thread).tcbState,
-                        canGrantReply as usize,
-                    );
-                    thread_state_set_blockingIPCIsCall(&mut (*thread).tcbState, do_call as usize);
-
-                    scheduleTCB(thread);
-
-                    let mut queue = ep_ptr_get_queue(epptr);
-                    queue = tcbEPAppend(thread, queue);
-                    endpoint_ptr_set_state(epptr, EPState_Send);
-                    ep_ptr_set_queue(epptr, queue);
-                }
-            }
-            EPState_Recv => {
-                let mut queue = ep_ptr_get_queue(epptr);
-                let dest = queue.head as *mut tcb_t;
-                assert!(dest as usize != 0);
-
-                queue = tcbEPDequeue(dest, queue);
-                let temp = queue.head as usize;
-                ep_ptr_set_queue(epptr, queue);
-
-                if temp == 0 {
-                    endpoint_ptr_set_state(epptr, EPState_Idle);
-                }
-                doIPCTransfer(thread, epptr, badge, canGrant, dest);
-                let replyCanGrant = if thread_state_get_blockingIPCCanGrant(&(*dest).tcbState) != 0
-                {
-                    true
-                } else {
-                    false
-                };
-                setThreadState(dest, ThreadStateRunning);
-                possibleSwitchTo(dest);
-                if do_call {
-                    if canGrant || canGrantReply {
-                        setupCallerCap(thread, dest, replyCanGrant);
-                    } else {
-                        setThreadState(thread, ThreadStateInactive);
-                    }
-                }
-            }
-            _ => {
-                panic!(
-                    "unknown epptr state in sendIPC(): {}",
-                    endpoint_ptr_get_state(epptr)
-                );
-            }
-        }
-    }
-}
 
 #[no_mangle]
 pub fn receiveIPC(thread: *mut tcb_t, cap: &cap_t, isBlocking: bool) {
@@ -164,7 +90,7 @@ pub fn receiveIPC(thread: *mut tcb_t, cap: &cap_t, isBlocking: bool) {
                     }
                 } else {
                     setThreadState(sender, ThreadStateRunning);
-                    possibleSwitchTo(sender);
+                    possible_switch_to(&mut *sender);
                 }
             }
             _ => {

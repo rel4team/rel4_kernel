@@ -15,7 +15,7 @@ use common::structures::exception_t;
 use task_manager::{schedule, activateThread};
 pub use utils::*;
 
-use crate::{kernel::{syscall::{getActiveIRQ, handleRecv, handleReply, handleYield}, c_traps::restore_user_context}, config::irqInvalid, object::interrupt::handleInterrupt};
+use crate::{kernel::{syscall::{handleRecv, handleReply, handleYield}, c_traps::restore_user_context}, config::irqInvalid, object::interrupt::handleInterrupt, interrupt::getActiveIRQ};
 
 use self::invocation::handleInvocation;
 

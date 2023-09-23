@@ -69,7 +69,7 @@ pub fn find_vspace_for_asid(asid: asid_t) -> findVSpaceForASID_ret {
         riscvKSASIDTable[asid >> asidLowBits]
     };
     if poolPtr as usize == 0 {
-        ret.lookup_fault = Some(lookup_fault_invalid_root_new());
+        ret.lookup_fault = Some(lookup_fault_t::new_root_invalid());
         ret.vspace_root = None;
         ret.status = exception_t::EXCEPTION_LOOKUP_FAULT;
         return ret;
@@ -78,7 +78,7 @@ pub fn find_vspace_for_asid(asid: asid_t) -> findVSpaceForASID_ret {
         (*poolPtr).array[asid & MASK!(asidLowBits)]
     };
     if vspace_root as usize == 0 {
-        ret.lookup_fault = Some(lookup_fault_invalid_root_new());
+        ret.lookup_fault = Some(lookup_fault_t::new_root_invalid());
         ret.vspace_root = None;
         ret.status = exception_t::EXCEPTION_LOOKUP_FAULT;
         return ret;

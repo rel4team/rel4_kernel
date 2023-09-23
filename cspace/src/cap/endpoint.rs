@@ -3,11 +3,6 @@ use super::cap_t;
 
 
 #[inline]
-pub fn cap_endpoint_cap_get_capEPBadge(cap: &cap_t) -> usize {
-    cap.get_ep_badge()
-}
-
-#[inline]
 pub fn cap_endpoint_cap_get_capCanGrantReply(cap: & cap_t) -> usize {
     cap.get_ep_can_grant_reply()
 }

@@ -3,7 +3,7 @@ mod invoke_tcb;
 mod invoke_cnode;
 mod invoke_untyped;
 mod invoke_mmu_op;
-mod invoke_ipc;
+pub mod invoke_irq;
 
 use core::intrinsics::unlikely;
 

@@ -97,33 +97,6 @@ pub fn seL4_MessageInfo_ptr_get_length(ptr: *const seL4_MessageInfo_t) -> usize 
     }
 }
 
-#[inline]
-pub fn seL4_MessageInfo_ptr_set_length(ptr: *mut seL4_MessageInfo_t, v64: usize) {
-    unsafe {
-        (*ptr).set_length(v64)
-    }
-}
-
-#[inline]
-pub fn seL4_MessageInfo_ptr_get_extraCaps(ptr: *const seL4_MessageInfo_t) -> usize {
-    unsafe {
-        (*ptr).get_extra_caps()
-    }
-}
-
-#[inline]
-pub fn seL4_MessageInfo_ptr_set_extraCaps(ptr: *mut seL4_MessageInfo_t, v64: usize) {
-    unsafe {
-        (*ptr).set_extra_caps(v64)
-    }
-}
-
-#[inline]
-pub fn seL4_MessageInfo_ptr_get_capsUnwrapped(ptr: *const seL4_MessageInfo_t) -> usize {
-    unsafe {
-        (*ptr).get_caps_unwrapped()
-    }
-}
 
 #[inline]
 pub fn seL4_MessageInfo_ptr_set_capsUnwrapped(ptr: *mut seL4_MessageInfo_t, v64: usize) {
@@ -132,12 +105,6 @@ pub fn seL4_MessageInfo_ptr_set_capsUnwrapped(ptr: *mut seL4_MessageInfo_t, v64:
     }
 }
 
-#[inline]
-pub fn seL4_MessageInfo_ptr_get_label(ptr: *const seL4_MessageInfo_t) -> usize {
-    unsafe {
-        (*ptr).get_label() as usize
-    }
-}
 
 #[inline]
 pub fn seL4_MessageInfo_new(
@@ -151,8 +118,4 @@ pub fn seL4_MessageInfo_new(
 
 pub fn messageInfoFromWord_raw(w: usize) -> seL4_MessageInfo_t {
     seL4_MessageInfo_t::from_word(w)
-}
-
-pub fn messageInfoFromWord(w: usize) -> seL4_MessageInfo_t {
-    seL4_MessageInfo_t::from_word_security(w)
 }

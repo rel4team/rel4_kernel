@@ -2,7 +2,7 @@ use common::{BIT, sel4_config::{wordRadix, wordBits, NUM_READY_QUEUES, L2_BITMAP
     CONFIG_MAX_NUM_NODES, CONFIG_NUM_PRIORITIES, CONFIG_TIME_SLICE}, MASK, utils::convert_to_mut_type_ref};
 
 
-use crate::{getReStartPC, setNextPC, setThreadState, ThreadStateRunning};
+use crate::{setNextPC, setThreadState, ThreadStateRunning, FaultIP};
 
 use super::{tcb::tcb_t, tcb_queue_t, get_idle_thread, get_currenct_thread, ThreadState};
 
@@ -252,13 +252,6 @@ pub fn possible_switch_to(target: &mut tcb_t) {
 }
 
 #[no_mangle]
-pub fn possibleSwitchTo(target: *mut tcb_t) {
-    unsafe {
-        possible_switch_to(&mut( *target));
-    }
-}
-
-#[no_mangle]
 pub fn timerTick() {
     let current = get_currenct_thread();
     
@@ -285,7 +278,7 @@ pub fn activateThread() {
             return;
         }
         ThreadState::ThreadStateRestart => {
-            let pc = getReStartPC(thread);
+            let pc = thread.get_register(FaultIP);
             setNextPC(thread, pc);
             setThreadState(thread, ThreadStateRunning);
         }

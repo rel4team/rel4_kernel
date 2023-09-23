@@ -1,4 +1,3 @@
-use crate::object::endpoint::sendIPC;
 
 use task_manager::*;
 use ipc::*;
@@ -7,7 +6,7 @@ use super::{
     cspace::lookupCap,
 };
 use cspace::compatibility::*;
-use common::{structures::exception_t, fault::*};
+use common::{structures::exception_t, fault::*, utils::convert_to_mut_type_ref};
 
 #[no_mangle]
 pub fn handleFault(tptr: *mut tcb_t) {
@@ -40,15 +39,8 @@ pub fn sendFaultIPC(tptr: *mut tcb_t) -> exception_t {
             if seL4_Fault_get_seL4_FaultType(&current_fault) == seL4_Fault_CapFault {
                 (*tptr).tcbLookupFailure = original_lookup_fault;
             }
-            sendIPC(
-                true,
-                true,
-                cap_endpoint_cap_get_capEPBadge(handlerCap),
-                cap_endpoint_cap_get_capCanGrant(handlerCap) != 0,
-                true,
-                tptr,
-                cap_endpoint_cap_get_capEPPtr(handlerCap) as *mut endpoint_t,
-            );
+            convert_to_mut_type_ref::<endpoint_t>(handlerCap.get_ep_ptr()).send_ipc(true, &mut *tptr,
+                true, handlerCap.get_ep_can_grant() != 0, handlerCap.get_ep_badge(), true);
             return exception_t::EXCEPTION_NONE;
         }
     } else {

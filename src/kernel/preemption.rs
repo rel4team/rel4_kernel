@@ -1,8 +1,6 @@
 use common::structures::exception_t;
 
-use crate::{
-    config::CONFIG_MAX_NUM_WORK_UNITS_PER_PREEMPTION, object::interrupt::isIRQPending,
-};
+use crate::{config::CONFIG_MAX_NUM_WORK_UNITS_PER_PREEMPTION, interrupt::isIRQPending};
 
 use task_manager::*;
 
