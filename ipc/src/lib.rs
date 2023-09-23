@@ -38,7 +38,6 @@ pub fn cancel_ipc(tcb: &mut tcb_t) {
         }
         _ => {}
     }
-    
 }
 
 #[no_mangle]
