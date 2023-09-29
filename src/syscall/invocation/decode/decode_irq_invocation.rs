@@ -8,6 +8,7 @@ use crate::{
     syscall::{get_syscall_arg, lookupSlotForCNodeOp, invocation::invoke_irq::invoke_irq_control},
     interrupt::is_irq_active, config::{maxIRQ, irqInvalid}
 };
+use crate::syscall::invocation::invoke_irq::{invoke_clear_irq_handler, invoke_set_irq_handler};
 
 
 pub fn decode_irq_control_invocation(label: MessageLabel, length: usize, src_slot: &mut cte_t, buffer: Option<&seL4_IPCBuffer>) -> exception_t {
@@ -48,6 +49,46 @@ pub fn decode_irq_control_invocation(label: MessageLabel, length: usize, src_slo
     }
 }
 
+
+pub fn decode_irq_handler_invocation(label: MessageLabel, irq: usize) -> exception_t {
+    return match label {
+        MessageLabel::IRQAckIRQ => {
+            set_thread_state(get_currenct_thread(), ThreadState::ThreadStateRestart);
+            exception_t::EXCEPTION_NONE
+        }
+
+        MessageLabel::IRQSetIRQHandler => {
+            if get_extra_cap_by_index(0).is_none() {
+                unsafe { current_syscall_error._type = seL4_TruncatedMessage; }
+                return exception_t::EXCEPTION_SYSCALL_ERROR;
+            }
+            let slot = get_extra_cap_by_index(0).unwrap();
+            let ntfn_cap = slot.cap;
+            if ntfn_cap.get_cap_type() != CapTag::CapNotificationCap
+                || ntfn_cap.get_nf_can_send() == 0 {
+                unsafe {
+                    current_syscall_error._type = seL4_InvalidCapability;
+                    current_syscall_error.invalidCapNumber = 0;
+                }
+                return exception_t::EXCEPTION_SYSCALL_ERROR
+            }
+            set_thread_state(get_currenct_thread(), ThreadState::ThreadStateRestart);
+            invoke_set_irq_handler(irq, &ntfn_cap, slot);
+            exception_t::EXCEPTION_NONE
+        }
+        MessageLabel::IRQClearIRQHandler => {
+            set_thread_state(get_currenct_thread(), ThreadState::ThreadStateRestart);
+            invoke_clear_irq_handler(irq);
+            exception_t::EXCEPTION_NONE
+        }
+        _ => {
+            debug!("IRQHandler: Illegal operation.");
+            unsafe { current_syscall_error._type = seL4_IllegalOperation; }
+            exception_t::EXCEPTION_SYSCALL_ERROR
+        }
+    }
+
+}
 
 fn arch_decode_irq_control_invocation(label: MessageLabel, length: usize, src_slot: &mut cte_t, buffer: Option<&seL4_IPCBuffer>) -> exception_t {
     if label == MessageLabel::RISCVIRQIssueIRQHandlerTrigger {

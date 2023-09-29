@@ -63,19 +63,6 @@ pub fn deleteASID(asid: asid_t, vspace: *mut pte_t) {
 }
 
 #[no_mangle]
-pub fn performPageInvocationMapPTE(
-    cap: &cap_t,
-    ctSlot: *mut cte_t,
-    pte: pte_t,
-    base: *mut pte_t,
-) -> exception_t {
-    unsafe {
-        (*ctSlot).cap = cap.clone();
-    }
-    updatePTE(pte, base)
-}
-
-#[no_mangle]
 pub fn decodeRISCVMMUInvocation(_label: MessageLabel, _length: usize, _cptr: usize, _cte: *mut cte_t,
     _cap: &mut cap_t, _call: bool, _buffer: *mut usize,
 ) -> exception_t {

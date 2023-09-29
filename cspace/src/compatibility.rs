@@ -2,7 +2,7 @@
 
 use crate::{cap::{CapTag, cap_t}, interface::{cte_t, cte_insert}, cte::deriveCap_ret};
 pub use super::cap::endpoint::{
-  cap_endpoint_cap_get_capCanGrant, cap_endpoint_cap_get_capCanGrantReply, cap_endpoint_cap_get_capCanReceive,
+  cap_endpoint_cap_get_capCanGrant, cap_endpoint_cap_get_capCanGrantReply,
   cap_endpoint_cap_get_capCanSend, cap_endpoint_cap_get_capEPPtr,
 };
 
@@ -11,18 +11,10 @@ pub use super::cap::zombie::{
   ZombieType_ZombieTCB
 };
 
-pub use super::cap::reply::{
-  cap_reply_cap_get_capReplyCanGrant, cap_reply_cap_get_capReplyMaster, cap_reply_cap_get_capTCBPtr, cap_reply_cap_new,
-  cap_reply_cap_set_capReplyCanGrant,
-};
+pub use super::cap::reply::cap_reply_cap_get_capTCBPtr;
 
-pub use super::cap::notification::{
-  cap_notification_cap_get_capNtfnCanSend,
-  cap_notification_cap_get_capNtfnPtr,
-};
+pub use super::cap::notification::cap_notification_cap_get_capNtfnCanSend;
 
-
-pub use super::cte::cteDeleteOne;
 
 
 //cap_tag_t
@@ -61,12 +53,9 @@ pub fn cteInsert(newCap: &cap_t, srcSlot: *mut cte_t, destSlot: *mut cte_t) {
     }
 }
 
-#[inline]
 #[no_mangle]
-pub fn deriveCap(slot: *mut cte_t, cap: &cap_t) -> deriveCap_ret {
-    unsafe {
-        (&mut *slot).derive_cap(cap)
-    }
+pub fn deriveCap(_slot: *mut cte_t, _cap: &cap_t) -> deriveCap_ret {
+    panic!("should not be invoked!")
 }
 
 

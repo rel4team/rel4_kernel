@@ -1,8 +1,7 @@
 use crate::{config::seL4_MsgLengthBits, syscall::{slowpath, SysCall, SysReplyRecv}};
-use ipc::*;
 use cspace::compatibility::*;
 use task_manager::*;
-
+use task_manager::ipc::*;
 use log::error;
 use vspace::*;
 use core::intrinsics::{likely, unlikely};

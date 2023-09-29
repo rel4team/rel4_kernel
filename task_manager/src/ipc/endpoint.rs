@@ -1,8 +1,6 @@
 use common::{utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref}, plus_define_bitfield};
-use task_manager::{tcb_queue_t, tcb_t, ThreadState, set_thread_state, rescheduleRequired, schedule_tcb, possible_switch_to};
 use vspace::pptr_t;
-
-use crate::transfer::do_ipc_transfer;
+use crate::{tcb_queue_t, set_thread_state, tcb_t, rescheduleRequired, ThreadState, schedule_tcb, possible_switch_to, badgeRegister};
 
 
 pub const EPState_Idle: usize = EPState::Idle as usize;
@@ -107,8 +105,8 @@ impl endpoint_t {
         }
     }
 
-    pub fn send_ipc(&mut self, blocking: bool, src_thread: &mut tcb_t,
-        do_call: bool, can_grant: bool, badge: usize, can_grant_reply: bool) {
+    pub fn send_ipc(&mut self, src_thread: &mut tcb_t, blocking: bool,
+                    do_call: bool, can_grant: bool, badge: usize, can_grant_reply: bool) {
         match self.get_state() {
             EPState::Idle | EPState::Send => {
                 if blocking {
@@ -137,8 +135,7 @@ impl endpoint_t {
                 if queue.empty() {
                     self.set_state(EPState::Idle as usize);
                 }
-                // TOOD
-                do_ipc_transfer(src_thread, Some(&self), badge, can_grant, dest_thread);
+                src_thread.do_ipc_transfer(dest_thread, Some(self), badge, can_grant);
                 let reply_can_grant = dest_thread.tcbState.get_blocking_ipc_can_grant() != 0;
                 set_thread_state(dest_thread, ThreadState::ThreadStateRunning);
                 possible_switch_to(dest_thread);
@@ -152,33 +149,60 @@ impl endpoint_t {
             }
         }
     }
-}
 
+    pub fn receive_ipc(&mut self, thread: &mut tcb_t, is_blocking: bool, grant: bool) {
+        if thread.complete_signal() {
+            return;
+        }
+        match self.get_state() {
+            EPState::Idle | EPState::Recv => {
+                if is_blocking {
+                    thread.tcbState.set_blocking_object(self.get_ptr());
+                    thread.tcbState.set_blocking_ipc_can_grant(grant as usize);
+                    set_thread_state(thread, ThreadState::ThreadStateBlockedOnReceive);
+                    let mut queue = self.get_queue();
+                    queue.ep_append(thread);
+                    self.set_state(EPState::Recv as usize);
+                    self.set_queue(&queue);
+                } else {
+                    // NBReceive failed
+                    thread.set_register(badgeRegister, 0);
+                }
+            }
+            EPState::Send => {
+                let mut queue = self.get_queue();
+                assert!(!queue.empty());
+                let sender = convert_to_mut_type_ref::<tcb_t>(queue.head);
+                queue.ep_dequeue(sender);
+                self.set_queue(&queue);
+                if queue.empty() {
+                    self.set_state(EPState::Idle as usize);
+                }
+                let badge = sender.tcbState.get_blocking_ipc_badge();
+                let can_grant = sender.tcbState.get_blocking_ipc_can_grant() != 0;
+                let can_grant_reply = sender.tcbState.get_blocking_ipc_can_grant_reply() != 0;
+                sender.do_ipc_transfer(thread, Some(self), badge, can_grant);
+                let do_call = sender.tcbState.get_blocking_ipc_is_call() != 0;
+                if do_call {
+                    if can_grant || can_grant_reply {
+                        thread.setup_caller_cap(sender, grant);
+                    } else {
+                        set_thread_state(sender, ThreadState::ThreadStateInactive);
+                    }
+                } else {
+                    set_thread_state(sender, ThreadState::ThreadStateRunning);
+                    possible_switch_to(sender);
+                }
+            }
+        }
 
-#[inline]
-pub fn endpoint_ptr_set_state(ptr: *mut endpoint_t, v64: usize) {
-    unsafe {
-        (*ptr).set_state(v64)
     }
 }
+
 
 #[inline]
 pub fn endpoint_ptr_get_state(ptr: *const endpoint_t) -> usize {
     unsafe {
         (*ptr).get_state() as usize
     }
-}
-
-#[inline]
-pub fn ep_ptr_set_queue(epptr: *const endpoint_t, queue: tcb_queue_t) {
-    unsafe {
-        (*(epptr as *mut endpoint_t)).set_queue(&queue);
-    }
-}
-
-#[inline]
-pub fn ep_ptr_get_queue(epptr: *const endpoint_t) -> tcb_queue_t {
-   unsafe {
-    (*epptr).get_queue()
-   }
 }

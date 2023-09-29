@@ -1,8 +1,11 @@
 use super::{ndks_boot, utils::*};
-use crate::{config::*, utils::MAX_FREE_INDEX,
-    structures::{region_t, p_region_t, seL4_SlotRegion, seL4_SlotPos, seL4_UntypedDesc}};
+use crate::{
+    config::*,
+    structures::{region_t, p_region_t, seL4_SlotRegion, seL4_SlotPos, seL4_UntypedDesc}
+};
 
 use common::{sel4_config::{seL4_MaxUntypedBits, seL4_MinUntypedBits}, MASK, BIT, IS_ALIGNED};
+use common::utils::MAX_FREE_INDEX;
 use cspace::interface::*;
 use log::debug;
 use vspace::*;

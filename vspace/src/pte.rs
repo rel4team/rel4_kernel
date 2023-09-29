@@ -179,11 +179,3 @@ pub fn isPTEPageTable(_pte: *mut pte_t) -> bool {
 pub extern "C" fn lookupPTSlot(_lvl1pt: *mut pte_t, _vptr: vptr_t) -> lookupPTSlot_ret_t {
     panic!("should not be invoked!")
 }
-
-#[no_mangle]
-pub fn updatePTE(pte: pte_t, base: *mut pte_t) -> exception_t {
-    unsafe {
-       (*base).update(pte);
-        exception_t::EXCEPTION_NONE
-    }
-}

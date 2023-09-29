@@ -35,27 +35,6 @@ impl thread_state_t {
     }
 }
 
-#[inline]
-pub fn thread_state_set_blockingObject(thread_state_ptr: &mut thread_state_t, v64: usize) {
-    thread_state_ptr.set_blocking_object(v64)
-}
-
-
-#[inline]
-#[no_mangle]
-pub fn thread_state_set_tsType(thread_state_ptr: &mut thread_state_t, v64: usize) {
-    thread_state_ptr.set_ts_type(v64)
-}
-
-#[inline]
-pub fn thread_state_get_blockingIPCIsCall(thread_state_ptr: &thread_state_t) -> usize {
-    thread_state_ptr.get_blocking_ipc_is_call()
-}
-
-#[inline]
-pub fn thread_state_get_blockingIPCBadge(thread_state_ptr: &thread_state_t) -> usize {
-    thread_state_ptr.get_blocking_ipc_badge()
-}
 
 #[inline]
 pub fn thread_state_get_blockingIPCCanGrant(thread_state_ptr: &thread_state_t) -> usize {
@@ -65,11 +44,6 @@ pub fn thread_state_get_blockingIPCCanGrant(thread_state_ptr: &thread_state_t) -
 #[inline]
 pub fn thread_state_set_blockingIPCCanGrant(thread_state_ptr: &mut thread_state_t, v64: usize) {
     thread_state_ptr.set_blocking_ipc_can_grant(v64)
-}
-
-#[inline]
-pub fn thread_state_get_blockingIPCCanGrantReply(thread_state_ptr: &thread_state_t) -> usize {
-    thread_state_ptr.get_blocking_ipc_can_grant_reply()
 }
 
 //thread state

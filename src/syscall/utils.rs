@@ -1,14 +1,39 @@
 use core::intrinsics::unlikely;
 
 use crate::{config::seL4_MinPrio, kernel::boot::{current_syscall_error, current_lookup_fault}};
-use common::{MASK, sel4_config::{seL4_IPCBufferSizeBits, seL4_AlignmentError, seL4_FailedLookup, wordBits, seL4_DeleteFirst}, utils::convert_to_mut_type_ref};
+use common::{BIT, MASK, sel4_config::{seL4_IPCBufferSizeBits, seL4_AlignmentError, seL4_FailedLookup, wordBits, seL4_DeleteFirst}, utils::convert_to_mut_type_ref};
 use common::{structures::{seL4_IPCBuffer, exception_t}, sel4_config::{seL4_RangeError, seL4_IllegalOperation}, IS_ALIGNED};
 use common::fault::*;
+use common::sel4_config::seL4_MinUntypedBits;
 use cspace::interface::{cap_t, CapTag, resolve_address_bits, cte_t, seL4_CapRights_t};
-use ipc::notification_t;
+use task_manager::ipc::notification_t;
 use log::debug;
 use task_manager::*;
 use vspace::maskVMRights;
+use crate::kernel::boot::{current_extra_caps, current_fault};
+
+
+pub fn alignUp(baseValue: usize, alignment: usize) -> usize {
+    (baseValue + BIT!(alignment) - 1) & !MASK!(alignment)
+}
+
+pub fn FREE_INDEX_TO_OFFSET(freeIndex: usize) -> usize {
+    freeIndex << seL4_MinUntypedBits
+}
+pub fn GET_FREE_REF(base: usize, freeIndex: usize) -> usize {
+    base + FREE_INDEX_TO_OFFSET(freeIndex)
+}
+pub fn GET_FREE_INDEX(base: usize, free: usize) -> usize {
+    free - base >> seL4_MinUntypedBits
+}
+pub fn GET_OFFSET_FREE_PTR(base: usize, offset: usize) -> *mut usize {
+    (base + offset) as *mut usize
+}
+pub fn OFFSET_TO_FREE_IDNEX(offset: usize) -> usize {
+    offset >> seL4_MinUntypedBits
+}
+
+
 
 #[inline]
 #[no_mangle]
@@ -22,6 +47,19 @@ pub fn getSyscallArg(i: usize, ipc_buffer: *const usize) -> usize {
             return *ptr;
         }
     }
+}
+
+pub fn lookup_extra_caps(thread: &tcb_t) -> exception_t {
+    unsafe {
+        match thread.lookup_extra_caps(&mut current_extra_caps.excaprefs) {
+            Ok(()) =>{},
+            Err(fault) => {
+                current_fault = fault;
+                return exception_t::EXCEPTION_LOOKUP_FAULT;
+            },
+        }
+    }
+    return exception_t::EXCEPTION_NONE;
 }
 
 #[inline]

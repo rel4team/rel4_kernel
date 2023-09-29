@@ -2,7 +2,7 @@ use common::{BIT, sel4_config::{wordRadix, wordBits, NUM_READY_QUEUES, L2_BITMAP
     CONFIG_MAX_NUM_NODES, CONFIG_NUM_PRIORITIES, CONFIG_TIME_SLICE}, MASK, utils::convert_to_mut_type_ref};
 
 
-use crate::{setNextPC, setThreadState, ThreadStateRunning, FaultIP};
+use crate::{setThreadState, ThreadStateRunning, FaultIP, NextIP};
 
 use super::{tcb::tcb_t, tcb_queue_t, get_idle_thread, get_currenct_thread, ThreadState};
 
@@ -232,12 +232,6 @@ pub fn schedule_tcb(tcb_ref: &tcb_t) {
         }
     }
 }
-#[no_mangle]
-pub fn scheduleTCB(tptr: *const tcb_t) {
-    unsafe {
-        schedule_tcb(&(*tptr));
-    }
-}
 
 
 pub fn possible_switch_to(target: &mut tcb_t) {
@@ -279,7 +273,8 @@ pub fn activateThread() {
         }
         ThreadState::ThreadStateRestart => {
             let pc = thread.get_register(FaultIP);
-            setNextPC(thread, pc);
+            // setNextPC(thread, pc);
+            thread.set_register(NextIP, pc);
             setThreadState(thread, ThreadStateRunning);
         }
         ThreadState::ThreadStateIdleThreadState => return,

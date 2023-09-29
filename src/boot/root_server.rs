@@ -9,7 +9,6 @@ use cspace::compatibility::*;
 use cspace::interface::*;
 use log::debug;
 use crate::interrupt::{setIRQState, IRQInactive, IRQTimer};
-use crate::kernel::thread::Arch_initContext;
 use crate::structures::{region_t, rootserver_mem_t, v_region_t, seL4_SlotRegion, create_frames_of_region_ret_t,
     seL4_BootInfo};
 
@@ -121,7 +120,8 @@ unsafe fn create_initial_thread(
     let tcb = unsafe { (rootserver.tcb + TCB_OFFSET) as *mut tcb_t };
     (*tcb).tcbTimeSlice = CONFIG_TIME_SLICE;
 
-    (*tcb).tcbArch = Arch_initContext();
+    // (*tcb).tcbArch = Arch_initContext();
+    (*tcb).tcbArch = arch_tcb_t::default();
 
     let ptr = root_cnode_cap.get_cap_ptr() as *mut cte_t;
     let cte = unsafe {
@@ -150,8 +150,10 @@ unsafe fn create_initial_thread(
     (*tcb).tcbIPCBuffer = ipcbuf_vptr;
 
     setRegister(tcb, capRegister, bi_frame_vptr);
-    setNextPC(tcb, ui_v_entry);
-    
+    // setNextPC(tcb, ui_v_entry);
+    unsafe {
+        (*tcb).set_register(NextIP, ui_v_entry);
+    }
 
     (*tcb).tcbMCP = seL4_MaxPrio;
     (*tcb).tcbPriority = seL4_MaxPrio;

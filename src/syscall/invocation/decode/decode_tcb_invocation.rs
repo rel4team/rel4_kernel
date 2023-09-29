@@ -3,7 +3,7 @@ use common::{message_info::MessageLabel, structures::{exception_t, seL4_IPCBuffe
     utils::convert_to_mut_type_ref,
 };
 use cspace::interface::{cap_t, cte_t, CapTag};
-use ipc::notification_t;
+use task_manager::ipc::notification_t;
 use log::debug;
 use task_manager::{tcb_t, set_thread_state, get_currenct_thread, ThreadState};
 

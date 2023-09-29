@@ -3,8 +3,9 @@ use common::{object::ObjectType, utils::convert_to_mut_type_ref, sel4_config::*,
 use task_manager::{tcb_t, get_current_domain};
 use vspace::{pptr_t, VMReadWrite};
 use cspace::interface::{cap_t, cte_t, insert_new_cap};
+use crate::syscall::{FREE_INDEX_TO_OFFSET, GET_FREE_INDEX, GET_OFFSET_FREE_PTR, OFFSET_TO_FREE_IDNEX};
 
-use crate::{object::untyped::{FREE_INDEX_TO_OFFSET, GET_OFFSET_FREE_PTR, OFFSET_TO_FREE_IDNEX, GET_FREE_INDEX}, utils::clear_memory};
+use crate::utils::*;
 
 #[link(name = "kernel_all.c")]
 extern "C" {

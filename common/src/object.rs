@@ -13,20 +13,6 @@ pub enum ObjectType {
     PageTableObject = 8,
 }
 
-impl ObjectType {
-    
-}
-
-pub const seL4_UntypedObject: usize = ObjectType::UnytpedObject as usize;
-pub const seL4_TCBObject: usize = ObjectType::TCBObject as usize;
-pub const seL4_EndpointObject: usize = ObjectType::EndpointObject as usize;
-pub const seL4_NotificationObject: usize = ObjectType::NotificationObject as usize;
-pub const seL4_CapTableObject: usize = ObjectType::CapTableObject as usize;
-pub const seL4_NonArchObjectTypeCount: usize = ObjectType::CapTableObject as usize + 1;
-pub const seL4_RISCV_Giga_Page: usize = ObjectType::GigaPageObject as usize;
-pub const seL4_RISCV_4K_Page: usize = ObjectType::NormalPageObject as usize;
-pub const seL4_RISCV_Mega_Page: usize = ObjectType::MegaPageObject as usize;
-pub const seL4_RISCV_PageTableObject: usize = ObjectType::PageTableObject as usize;
 pub const seL4_ObjectTypeCount: usize = ObjectType::PageTableObject as usize + 1;
 
 
@@ -72,10 +58,4 @@ impl ObjectType {
         }
     }
 
-}
-
-pub fn getObjectSize(t: usize, userObjSize: usize) -> usize {
-    unsafe {
-        core::mem::transmute::<u8, ObjectType>(t as u8).get_object_size(userObjSize)
-    }
 }

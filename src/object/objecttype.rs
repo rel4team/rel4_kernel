@@ -10,7 +10,7 @@ use crate::{
 };
 
 use task_manager::*;
-use ipc::{*, transfer::do_reply_transfer};
+use task_manager::ipc::*;
 use vspace::*;
 use cspace::compatibility::*;
 
@@ -133,7 +133,8 @@ pub fn finaliseCap(cap: &cap_t, _final: bool, _exposed: bool) -> finaliseCap_ret
                 let tcb = convert_to_mut_type_ref::<tcb_t>(cap.get_tcb_ptr());
                 let cte_ptr = tcb.get_cspace_mut_ref(tcbCTable);
                 safe_unbind_notification(tcb);
-                cancel_ipc(tcb);
+                // cancel_ipc(tcb);
+                tcb.cancel_ipc();
                 tcb.suspend();
                 unsafe {
                     tcbDebugRemove(tcb as *mut tcb_t);
@@ -178,26 +179,13 @@ pub fn post_cap_deletion(cap: &cap_t) {
 }
 
 pub fn hasCancelSendRight(cap: &cap_t) -> bool {
-    match cap_get_capType(cap) {
-        cap_endpoint_cap => {
-            cap_endpoint_cap_get_capCanSend(cap) != 0
-                && cap_endpoint_cap_get_capCanReceive(cap) != 0
-                && cap_endpoint_cap_get_capCanGrantReply(cap) != 0
-                && cap_endpoint_cap_get_capCanGrant(cap) != 0
+    match cap.get_cap_type() {
+        CapTag::CapEndpointCap => {
+            cap.get_ep_can_send() != 0
+                && cap.get_ep_can_receive() != 0
+                && cap.get_ep_can_grant() != 0
+                && cap.get_ep_can_grant_reply() != 0
         }
         _ => false,
     }
-}
-
-#[no_mangle]
-pub fn performInvocation_Reply(
-    thread: *mut tcb_t,
-    slot: *mut cte_t,
-    canGrant: bool,
-) -> exception_t {
-    unsafe {
-        // doReplyTransfer(ksCurThread, thread, slot, canGrant);
-        do_reply_transfer(get_currenct_thread(), &mut *thread, &mut *slot, canGrant);
-    }
-    exception_t::EXCEPTION_NONE
 }

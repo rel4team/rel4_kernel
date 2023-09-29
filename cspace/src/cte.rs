@@ -1,9 +1,8 @@
 use core::intrinsics::{unlikely, likely};
-
 use common::{structures::exception_t, utils::{convert_to_type_ref, convert_to_mut_type_ref}, MASK, sel4_config::wordRadix};
-
+use common::utils::MAX_FREE_INDEX;
 use crate::{cap::{cap_t, CapTag, same_region_as, same_object_as, is_cap_revocable, zombie::capCyclicZombie}, mdb::mdb_node_t,
-    utils::{MAX_FREE_INDEX, resolveAddressBits_ret_t}, structures::finaliseSlot_ret,
+    utils::{resolveAddressBits_ret_t}, structures::finaliseSlot_ret,
     deps::{finaliseCap, preemptionPoint, post_cap_deletion}};
 
 #[repr(C)]
@@ -498,13 +497,4 @@ pub fn resolve_address_bits(node_cap: &cap_t, cap_ptr: usize, _n_bits: usize) ->
         }
     }
     panic!("UNREACHABLE");
-}
-
-
-
-#[no_mangle]
-pub fn cteDeleteOne(slot: *mut cte_t) {
-    unsafe {
-        (*slot).delete_one()
-    }
 }

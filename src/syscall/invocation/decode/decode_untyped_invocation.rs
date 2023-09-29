@@ -5,8 +5,9 @@ use task_manager::{set_thread_state, get_currenct_thread, ThreadState};
 
 use crate::{kernel::boot::{current_syscall_error, current_lookup_fault, get_extra_cap_by_index},
     syscall::{invocation::invoke_untyped::invoke_untyped_retype, get_syscall_arg, lookup_slot_for_cnode_op},
-    config::CONFIG_RETYPE_FAN_OUT_LIMIT, object::untyped::*,
+    config::CONFIG_RETYPE_FAN_OUT_LIMIT
 };
+use crate::syscall::{alignUp, FREE_INDEX_TO_OFFSET, GET_FREE_REF};
 
 
 pub fn decode_untyed_invocation(inv_label: MessageLabel, length: usize, slot: &mut cte_t, cap: &cap_t, buffer: Option<&seL4_IPCBuffer>) -> exception_t {

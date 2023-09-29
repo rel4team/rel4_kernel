@@ -1,6 +1,6 @@
 use common::{structures::{exception_t, seL4_IPCBuffer}, message_info::seL4_MessageInfo_t, sel4_config::{tcbCTable, tcbVTable, tcbBuffer}};
 use cspace::interface::{cap_t, cte_t, same_object_as, cte_insert};
-use ipc::{cancel_ipc, notification_t};
+use task_manager::ipc::notification_t;
 use task_manager::{
     tcb_t, badgeRegister, msgInfoRegister, get_currenct_thread, set_thread_state, ThreadState,
     FaultIP, NextIP, rescheduleRequired, TLS_BASE, msgRegister, n_msgRegisters
@@ -14,7 +14,8 @@ use crate::{
 pub fn invoke_tcb_read_registers(src: &mut tcb_t, suspend_source: usize, n: usize, _arch: usize, call: bool) -> exception_t {
     let thread = get_currenct_thread();
     if suspend_source != 0 {
-        cancel_ipc(src);
+        // cancel_ipc(src);
+        src.cancel_ipc();
         src.suspend();
     }
     if call {
@@ -72,7 +73,8 @@ pub fn invoke_tcb_write_registers(dest: &mut tcb_t, resumeTarget: usize, mut n: 
     dest.set_register(NextIP, dest.get_register(FaultIP));
 
     if resumeTarget != 0 {
-        cancel_ipc(dest);
+        // cancel_ipc(dest);
+        dest.cancel_ipc();
         dest.restart();
     }
     if dest.is_current() {
@@ -84,11 +86,13 @@ pub fn invoke_tcb_write_registers(dest: &mut tcb_t, resumeTarget: usize, mut n: 
 pub fn invoke_tcb_copy_registers(dest: &mut tcb_t, src: &mut tcb_t, suspendSource: usize, resumeTarget: usize, transferFrame: usize, 
     _transferInteger: usize, _transferArch: usize) -> exception_t {
     if suspendSource != 0 {
-        cancel_ipc(src);
+        // cancel_ipc(src);
+        src.cancel_ipc();
         src.suspend();
     }
     if resumeTarget != 0 {
-        cancel_ipc(dest);
+        // cancel_ipc(dest);
+        dest.cancel_ipc();
         dest.restart();
     }
     if transferFrame != 0 {
@@ -104,14 +108,16 @@ pub fn invoke_tcb_copy_registers(dest: &mut tcb_t, src: &mut tcb_t, suspendSourc
 
 #[inline]
 pub fn invoke_tcb_suspend(thread: &mut tcb_t) -> exception_t {
-    cancel_ipc(thread);
+    // cancel_ipc(thread);
+    thread.cancel_ipc();
     thread.suspend();
     exception_t::EXCEPTION_NONE
 }
 
 #[inline]
 pub fn invoke_tcb_resume(thread: &mut tcb_t) -> exception_t {
-    cancel_ipc(thread);
+    // cancel_ipc(thread);
+    thread.cancel_ipc();
     thread.restart();
     exception_t::EXCEPTION_NONE
 }

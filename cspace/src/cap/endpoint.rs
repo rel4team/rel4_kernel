@@ -14,11 +14,6 @@ pub fn cap_endpoint_cap_get_capCanGrant(cap: &cap_t) -> usize {
 }
 
 #[inline]
-pub fn cap_endpoint_cap_get_capCanReceive(cap: &cap_t) -> usize {
-    cap.get_ep_can_receive()
-}
-
-#[inline]
 pub fn cap_endpoint_cap_get_capCanSend(cap: &cap_t) -> usize {
     cap.get_ep_can_send()
 }

@@ -115,7 +115,7 @@ plus_define_bitfield! {
             bits_found, depth_mismatch_get_bits_found, depth_mismatch_set_bits_found, 0, 9, 7, 0, false,
             bits_left, depth_mismatch_get_bits_left,  depth_mismatch_set_bits_left, 0, 2, 7, 0, false
         },
-        new_guard_mismatch, lookup_fault_depth_mismatch => {
+        new_guard_mismatch, lookup_fault_guard_mismatch => {
             guard_found, guard_mismatch_get_guard_found, guard_mismatch_set_guard_found, 1, 0, 64, 0, false,
             bits_found, guard_mismatch_get_bits_found, guard_mismatch_set_bits_found, 0, 9, 7, 0, false,
             bits_left, guard_mismatch_get_bits_left,  guard_mismatch_set_bits_left, 0, 2, 7, 0, false
@@ -130,7 +130,6 @@ impl lookup_fault_t {
         }
     }
 }
-
 
 #[inline]
 pub fn lookup_fault_missing_capability_new(bitsLeft: usize) -> lookup_fault_t {

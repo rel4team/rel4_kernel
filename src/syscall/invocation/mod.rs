@@ -11,11 +11,10 @@ use common::{structures::exception_t, message_info::seL4_MessageInfo_t, fault::s
 use log::debug;
 use task_manager::{get_currenct_thread, msgInfoRegister, capRegister, ThreadState, set_thread_state, n_msgRegisters};
 
-use crate::{kernel::{boot::current_fault, faulthandler::handleFault}, object::{tcb::lookup_extra_caps, endpoint::{replyFromKernel_error, replyFromKernel_success_empty}},
-    utils::ipc_buf_ref_to_usize_ptr};
-
-use self::decode::decodeInvocation;
-
+use crate::kernel::{boot::current_fault, faulthandler::handleFault};
+use crate::syscall::invocation::decode::decode_invocation;
+use crate::syscall::lookup_extra_caps;
+use crate::syscall::syscall_reply::{reply_error_from_kernel, reply_success_from_kernel};
 
 #[no_mangle]
 pub fn handleInvocation(isCall: bool, isBlocking: bool) -> exception_t {
@@ -48,33 +47,31 @@ pub fn handleInvocation(isCall: bool, isBlocking: bool) -> exception_t {
         length = n_msgRegisters;
     }
 
-    let mut cap = unsafe {(*(lu_ret.slot)).cap};
-    let status = decodeInvocation(
+    let cap = unsafe {(*(lu_ret.slot)).cap};
+    let status = decode_invocation(
         info.get_label(),
         length,
+        unsafe {&mut *lu_ret.slot },
+        &cap,
         cptr,
-        lu_ret.slot,
-        &mut cap,
         isBlocking,
         isCall,
-        ipc_buf_ref_to_usize_ptr(buffer),
+        buffer
     );
-    // let _ = buffer.unwrap();
-
     if status == exception_t::EXCEPTION_PREEMTED {
         return status;
     }
 
     if status == exception_t::EXCEPTION_SYSCALL_ERROR {
         if isCall {
-            replyFromKernel_error(thread);
+            reply_error_from_kernel(thread);
         }
         return exception_t::EXCEPTION_NONE;
     }
 
     if unlikely(thread.get_state() == ThreadState::ThreadStateRestart) {
         if isCall {
-            replyFromKernel_success_empty(thread);
+            reply_success_from_kernel(thread);
         }
         set_thread_state(thread, ThreadState::ThreadStateRunning);
     }

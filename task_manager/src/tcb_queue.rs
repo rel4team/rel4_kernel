@@ -42,19 +42,3 @@ impl tcb_queue_t {
         return self.head == 0
     }
 }
-
-#[no_mangle]
-pub fn tcbEPAppend(tcb: *mut tcb_t, mut queue: tcb_queue_t) -> tcb_queue_t {
-    unsafe {
-        queue.ep_append(&mut *tcb);
-        queue
-    }
-}
-
-#[no_mangle]
-pub fn tcbEPDequeue(tcb: *mut tcb_t, mut queue: tcb_queue_t) -> tcb_queue_t {
-    unsafe {
-        queue.ep_dequeue(&mut *tcb);
-        queue
-    }
-}

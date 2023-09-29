@@ -1,4 +1,4 @@
-use crate::sel4_config::{RISCVPageBits, RISCVMegaPageBits, RISCVGigaPageBits, RISCV_4K_Page, RISCV_Mega_Page, RISCV_Giga_Page};
+use crate::sel4_config::{RISCVPageBits, RISCVMegaPageBits, RISCVGigaPageBits, RISCV_4K_Page, RISCV_Mega_Page, RISCV_Giga_Page, seL4_MinUntypedBits};
 
 #[macro_export]
 macro_rules! plus_define_bitfield {
@@ -92,6 +92,10 @@ macro_rules! BIT {
             1usize<<$e
         }
     }
+}
+
+pub fn MAX_FREE_INDEX(bits: usize) -> usize {
+    BIT!(bits - seL4_MinUntypedBits)
 }
 
 

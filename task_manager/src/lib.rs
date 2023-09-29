@@ -11,6 +11,7 @@ mod scheduler;
 mod thread_state;
 mod registers;
 mod structures;
+pub mod ipc;
 
 pub use tcb::*;
 pub use scheduler::*;

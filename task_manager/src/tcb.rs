@@ -579,36 +579,9 @@ pub fn setThreadState(tptr: *mut tcb_t, ts: usize) {
     }
 }
 
-#[inline]
-pub fn setNextPC(thread: *mut tcb_t, v: usize) {
-    setRegister(thread, NextIP, v);
-}
-
-
-pub fn lookupSlot(thread: *const tcb_t, capptr: usize) -> lookupSlot_raw_ret_t {
-    unsafe {
-        (*thread).lookup_slot(capptr)
-    }
-}
-
 #[no_mangle]
 pub fn setupReplyMaster(_thread: *mut tcb_t) {
     panic!("should not be invoked")
-}
-
-
-#[no_mangle]
-pub fn setupCallerCap(sender: *mut tcb_t, receiver: *mut tcb_t, canGrant: bool) {
-    unsafe {
-        (*receiver).setup_caller_cap(&mut (*sender), canGrant)
-    }
-}
-
-#[no_mangle]
-pub fn deleteCallerCap(receiver: *mut tcb_t) {
-    unsafe {
-        (*receiver).delete_caller_cap()
-    }
 }
 
 

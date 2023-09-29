@@ -1,7 +1,6 @@
 use common::{utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref}, plus_define_bitfield};
-use task_manager::{tcb_queue_t, tcb_t, set_thread_state, ThreadState, rescheduleRequired, badgeRegister, possible_switch_to};
-
-use crate::cancel_ipc;
+use crate::{tcb_t, tcb_queue_t, set_thread_state, possible_switch_to, ThreadState, rescheduleRequired};
+use crate::registers::*;
 
 #[derive(PartialEq, Eq)]
 pub enum NtfnState {
@@ -108,7 +107,7 @@ impl notification_t {
             NtfnState::Idle => {
                 if let Some(tcb) = convert_to_option_mut_type_ref::<tcb_t>(self.get_bound_tcb()) {
                     if tcb.get_state() == ThreadState::ThreadStateBlockedOnReceive{
-                        cancel_ipc(tcb);
+                        tcb.cancel_ipc();
                         set_thread_state(tcb, ThreadState::ThreadStateRunning);
                         tcb.set_register(badgeRegister, badge);
                         possible_switch_to(tcb);
@@ -142,6 +141,27 @@ impl notification_t {
         }
     }
 
+    pub fn receive_signal(&mut self, recv_thread: &mut tcb_t, is_blocking: bool) {
+        match self.get_state() {
+            NtfnState::Idle | NtfnState::Waiting => {
+                if is_blocking {
+                    recv_thread.tcbState.set_blocking_object(self.get_ptr());
+                    set_thread_state(recv_thread, ThreadState::ThreadStateBlockedOnNotification);
+                    let mut queue = self.get_queue();
+                    queue.ep_append(recv_thread);
+                    self.set_state(NtfnState::Waiting as usize);
+                    self.set_queue(&queue);
+                } else {
+                    recv_thread.set_register(badgeRegister, 0);
+                }
+            }
+
+            NtfnState::Active => {
+                recv_thread.set_register(badgeRegister, self.get_msg_identifier());
+                self.set_state(NtfnState::Idle as usize);
+            }
+        }
+    }
 }
 
 #[inline]
@@ -152,37 +172,8 @@ pub fn notification_ptr_get_ntfnBoundTCB(notification_ptr: *const notification_t
 }
 
 #[inline]
-pub fn notification_ptr_get_ntfnMsgIdentifier(notification_ptr: *const notification_t) -> usize {
-    unsafe {
-        (*notification_ptr).get_msg_identifier()
-    }
-}
-
-#[inline]
 pub fn notification_ptr_get_state(notification_ptr: *const notification_t) -> usize {
     unsafe {
         (*notification_ptr).get_state() as usize
-    }
-}
-
-#[inline]
-pub fn notification_ptr_set_state(ptr: *mut notification_t, v64: usize) {
-    unsafe {
-        (*ptr).set_state(v64)
-    }
-}
-
-#[inline]
-#[no_mangle]
-pub fn ntfn_ptr_get_queue(ptr: *const notification_t) -> tcb_queue_t {
-    unsafe {
-        (*ptr).get_queue()
-    }
-}
-
-#[inline]
-pub fn ntfn_ptr_set_queue(ptr: *mut notification_t, ntfn_queue: tcb_queue_t) {
-    unsafe {
-        (*ptr).set_queue(&ntfn_queue)
     }
 }
