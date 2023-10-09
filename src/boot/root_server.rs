@@ -5,10 +5,10 @@ use common::{BIT, ROUND_DOWN};
 use common::sel4_config::{wordBits, seL4_SlotBits, IT_ASID, asidLowBits, seL4_PageBits, seL4_PageTableBits, CONFIG_PT_LEVELS,
     PAGE_BITS, CONFIG_MAX_NUM_NODES, TCB_OFFSET, CONFIG_TIME_SLICE, tcbCTable, tcbVTable, tcbBuffer, CONFIG_NUM_DOMAINS, seL4_TCBBits};
 use common::structures::{exception_t, seL4_IPCBuffer};
-use cspace::compatibility::*;
+use common::utils::convert_to_mut_type_ref;
 use cspace::interface::*;
 use log::debug;
-use crate::interrupt::{setIRQState, IRQInactive, IRQTimer};
+use crate::interrupt::{setIRQState, IRQState};
 use crate::structures::{region_t, rootserver_mem_t, v_region_t, seL4_SlotRegion, create_frames_of_region_ret_t,
     seL4_BootInfo};
 
@@ -104,7 +104,6 @@ pub fn root_server_init(it_v_reg: v_region_t, extra_bi_size_bits: usize, ipcbuf_
         return None;
     }
     Some((initial, root_cnode_cap))
-    
 }
 
 
@@ -117,59 +116,40 @@ unsafe fn create_initial_thread(
     ipcbuf_vptr: usize,
     ipcbuf_cap: cap_t,
 ) -> *mut tcb_t {
-    let tcb = unsafe { (rootserver.tcb + TCB_OFFSET) as *mut tcb_t };
-    (*tcb).tcbTimeSlice = CONFIG_TIME_SLICE;
+    let tcb = convert_to_mut_type_ref::<tcb_t>(rootserver.tcb + TCB_OFFSET);
+    tcb.tcbTimeSlice = CONFIG_TIME_SLICE;
+    tcb.tcbArch = arch_tcb_t::default();
 
-    // (*tcb).tcbArch = Arch_initContext();
-    (*tcb).tcbArch = arch_tcb_t::default();
-
-    let ptr = root_cnode_cap.get_cap_ptr() as *mut cte_t;
-    let cte = unsafe {
-        &mut *(ptr.add(seL4_CapInitThreadIPCBuffer))
-    };
-    let dc_ret = cte.derive_cap(&ipcbuf_cap.clone());
+    let cnode = convert_to_mut_type_ref::<cte_t>(root_cnode_cap.get_cap_ptr());
+    let ipc_buf_slot  =cnode.get_offset_slot(seL4_CapInitThreadIPCBuffer);
+    let dc_ret = ipc_buf_slot.derive_cap(&ipcbuf_cap.clone());
     if dc_ret.status != exception_t::EXCEPTION_NONE {
         debug!("Failed to derive copy of IPC Buffer\n");
         return 0 as *mut tcb_t;
     }
-    cteInsert(
-        &root_cnode_cap.clone(),
-        unsafe { &mut *(ptr.add(seL4_CapInitThreadCNode)) },
-        getCSpaceMutRef(rootserver.tcb, tcbCTable),
-    );
-    cteInsert(
-        &it_pd_cap.clone(),
-        unsafe { &mut *(ptr.add(seL4_CapInitThreadVspace)) },
-        getCSpaceMutRef(rootserver.tcb, tcbVTable),
-    );
-    cteInsert(
-        &dc_ret.cap.clone(),
-        unsafe { &mut *(ptr.add(seL4_CapInitThreadIPCBuffer)) },
-        getCSpaceMutRef(rootserver.tcb, tcbBuffer),
-    );
-    (*tcb).tcbIPCBuffer = ipcbuf_vptr;
 
-    setRegister(tcb, capRegister, bi_frame_vptr);
-    // setNextPC(tcb, ui_v_entry);
+    cte_insert(root_cnode_cap, cnode.get_offset_slot(seL4_CapInitThreadCNode), tcb.get_cspace_mut_ref(tcbCTable));
+
+    cte_insert(it_pd_cap, cnode.get_offset_slot(seL4_CapInitThreadVspace), tcb.get_cspace_mut_ref(tcbVTable));
+
+    cte_insert(&dc_ret.cap, cnode.get_offset_slot(seL4_CapInitThreadIPCBuffer), tcb.get_cspace_mut_ref(tcbBuffer));
+
+    tcb.tcbIPCBuffer = ipcbuf_vptr;
+    tcb.set_register(capRegister, bi_frame_vptr);
+    tcb.set_register(NextIP, ui_v_entry);
+    tcb.tcbMCP = seL4_MaxPrio;
+    tcb.tcbPriority = seL4_MaxPrio;
+    set_thread_state(tcb, ThreadState::ThreadStateRunning);
+    tcb.setup_reply_master();
     unsafe {
-        (*tcb).set_register(NextIP, ui_v_entry);
+        ksCurDomain = ksDomSchedule[ksDomScheduleIdx].domain;
+        ksDomainTime = ksDomSchedule[ksDomScheduleIdx].length;
     }
 
-    (*tcb).tcbMCP = seL4_MaxPrio;
-    (*tcb).tcbPriority = seL4_MaxPrio;
-    setThreadState(tcb, ThreadStateRunning);
-    (*tcb).setup_reply_master();
-    ksCurDomain = ksDomSchedule[ksDomScheduleIdx].domain;
-    ksDomainTime = ksDomSchedule[ksDomScheduleIdx].length;
-
-    let cap = cap_t::new_thread_cap(tcb as usize);
-    let tmp = unsafe {
-        &*(&cap as *const cap_t as usize as *const [usize; 2])
-    };
-    debug!("root server tcb cap: {:#x}, {:#x}, {:?}", tmp[0], tmp[1], cap);
-    write_slot(ptr.add(seL4_CapInitThreadTCB), cap);
+    let cap = cap_t::new_thread_cap(tcb.get_ptr());
+    write_slot(cnode.get_offset_slot(seL4_CapInitThreadTCB) as *mut cte_t, cap);
     // forget(*tcb);
-    tcb
+    tcb as *mut tcb_t
 }
 
 fn asid_init(root_cnode_cap: cap_t, it_pd_cap: cap_t) -> bool {
@@ -365,10 +345,10 @@ fn create_domain_cap(root_cnode_cap: &cap_t) {
 fn init_irqs(root_cnode_cap: &cap_t) {
     for i in 0..maxIRQ + 1 {
         if i != irqInvalid {
-            setIRQState(IRQInactive, i);
+            setIRQState(IRQState::IRQInactive, i);
         }
     }
-    setIRQState(IRQTimer, KERNEL_TIMER_IRQ);
+    setIRQState(IRQState::IRQTimer, KERNEL_TIMER_IRQ);
     unsafe {
         let ptr = root_cnode_cap.get_cap_ptr() as *mut cte_t;
         write_slot(ptr.add(seL4_CapIRQControl), cap_t::new_irq_control_cap());

@@ -1,10 +1,11 @@
+pub mod handler;
 use core::arch::asm;
 
 use common::{BIT, utils::convert_to_mut_type_ref};
 use cspace::interface::cte_t;
 use vspace::pptr_t;
 
-use crate::{config::{KERNEL_TIMER_IRQ, SIE_STIE, SIP_STIP, SIP_SEIP, irqInvalid, maxIRQ}, riscv::read_sip};
+use crate::{config::*, riscv::read_sip};
 
 #[no_mangle]
 pub static mut intStateIRQTable: [usize; 2] = [0; 2];
@@ -22,12 +23,6 @@ pub enum IRQState {
     IRQTimer = 2,
     IRQReserved = 3,
 }
-
-// irq_state
-pub const IRQInactive: usize = 0;
-pub const IRQSignal: usize = 1;
-pub const IRQTimer: usize = 2;
-pub const IRQReserved: usize = 3;
 
 #[inline]
 pub fn get_irq_state(irq: usize) -> IRQState {
@@ -56,10 +51,10 @@ pub fn set_irq_state(state: IRQState, irq: usize) {
 }
 
 #[no_mangle]
-pub fn setIRQState(state: usize, irq: usize) {
+pub fn setIRQState(state: IRQState, irq: usize) {
     unsafe {
-        intStateIRQTable[irq] = state;
-        mask_interrupt(state == 0, irq);
+        intStateIRQTable[irq] = state as usize;
+        mask_interrupt(state == IRQState::IRQInactive, irq);
     }
 }
 
@@ -70,6 +65,10 @@ pub extern "C" fn intStateIRQNodeToR(ptr: *mut usize) {
     }
 }
 
+#[no_mangle]
+pub fn deletedIRQHandler(irq: usize) {
+    setIRQState(IRQState::IRQInactive, irq);
+}
 #[inline]
 pub fn set_sie_mask(mask_high: usize) {
     unsafe {
@@ -118,9 +117,8 @@ pub fn is_irq_active(irq: usize) -> bool {
 }
 
 #[no_mangle]
-pub fn isIRQActive(irq: usize) -> bool {
-    // unsafe { intStateIRQTable[irq] != IRQInactive }
-    is_irq_active(irq)
+pub fn isIRQActive(_irq: usize) -> bool {
+    panic!("should not be invoked!")
 }
 
 #[inline]
@@ -143,6 +141,16 @@ pub fn getActiveIRQ() -> usize {
         active_irq[0] = irq;
     }
     return irq;
+}
+
+#[no_mangle]
+pub fn initIRQController(arr: *mut i32, size: usize) {
+    unsafe {
+        let data = core::slice::from_raw_parts_mut(arr, size);
+        for i in 0..size {
+            data[i] = 0;
+        }
+    }
 }
 
 pub fn IS_IRQ_VALID(x: usize) -> bool {

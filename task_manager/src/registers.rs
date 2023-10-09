@@ -41,6 +41,8 @@ pub const n_contextRegisters: usize = 35;
 pub const n_msgRegisters: usize = 4;
 pub const msgRegister: [usize; n_msgRegisters] = [11, 12, 13, 14];
 
+pub const SSTATUS_SPIE: usize = 0x00000020;
+pub const SSTATUS_SPP: usize = 0x00000100;
 
 pub const n_syscallMessage: usize = 10;
 pub const n_exceptionMessage: usize = 2;

@@ -31,6 +31,7 @@ mod syscall;
 mod boot;
 mod sbi;
 mod interrupt;
+mod exception;
 
 #[no_mangle]
 pub extern "C" fn idle_thread() {

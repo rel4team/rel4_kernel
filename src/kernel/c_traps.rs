@@ -9,10 +9,8 @@ use crate::{
 };
 
 use task_manager::*;
-
-use super::syscall::{
-    handleInterruptEntry, handleUserLevelFault, handleVMFaultEvent,
-};
+use crate::exception::{handleUserLevelFault, handleVMFaultEvent};
+use crate::interrupt::handler::handleInterruptEntry;
 
 #[no_mangle]
 pub fn restore_user_context() {

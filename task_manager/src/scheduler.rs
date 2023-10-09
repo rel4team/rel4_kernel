@@ -1,8 +1,9 @@
 use common::{BIT, sel4_config::{wordRadix, wordBits, NUM_READY_QUEUES, L2_BITMAP_SIZE, CONFIG_NUM_DOMAINS, seL4_TCBBits,
     CONFIG_MAX_NUM_NODES, CONFIG_NUM_PRIORITIES, CONFIG_TIME_SLICE}, MASK, utils::convert_to_mut_type_ref};
+use core::arch::asm;
+use common::sel4_config::TCB_OFFSET;
 
-
-use crate::{setThreadState, ThreadStateRunning, FaultIP, NextIP};
+use crate::{ThreadStateRunning, FaultIP, NextIP, SSTATUS, SSTATUS_SPP, SSTATUS_SPIE, sp, set_thread_state};
 
 use super::{tcb::tcb_t, tcb_queue_t, get_idle_thread, get_currenct_thread, ThreadState};
 
@@ -17,6 +18,7 @@ pub struct dschedule_t {
 pub const SchedulerAction_ResumeCurrentThread: usize = 0;
 pub const SchedulerAction_ChooseNewThread: usize = 1;
 pub const ksDomScheduleLength: usize = 1;
+pub const CONFIG_KERNEL_STACK_BITS: usize = 12;
 
 #[no_mangle]
 pub static mut ksDomainTime: usize = 0;
@@ -275,12 +277,48 @@ pub fn activateThread() {
             let pc = thread.get_register(FaultIP);
             // setNextPC(thread, pc);
             thread.set_register(NextIP, pc);
-            setThreadState(thread, ThreadStateRunning);
+            // setThreadState(thread, ThreadStateRunning);
+            set_thread_state(thread, ThreadState::ThreadStateRunning);
         }
         ThreadState::ThreadStateIdleThreadState => return,
         _ => panic!(
             "current thread is blocked , state id :{}",
             thread.get_state() as usize
         ),
+    }
+}
+
+
+#[no_mangle]
+pub static mut kernel_stack_alloc: [[u8; BIT!(CONFIG_KERNEL_STACK_BITS)]; CONFIG_MAX_NUM_NODES] =
+    [[0; BIT!(CONFIG_KERNEL_STACK_BITS)]; CONFIG_MAX_NUM_NODES];
+
+
+pub fn create_idle_thread() {
+    unsafe {
+        let pptr = ksIdleThreadTCB.as_ptr() as *mut usize;
+        ksIdleThread = pptr.add(TCB_OFFSET) as *mut tcb_t;
+        // configureIdleThread(ksIdleThread as *const tcb_t);
+        let tcb = convert_to_mut_type_ref::<tcb_t>(ksIdleThread as usize);
+        // setRegister(tcb, NextIP, idle_thread as usize);
+        // setRegister(tcb, SSTATUS, SSTATUS_SPP | SSTATUS_SPIE);
+        // setRegister(
+        //     tcb,
+        //     sp,
+        //     kernel_stack_alloc.as_ptr() as usize + BIT!(CONFIG_KERNEL_STACK_BITS),
+        // );
+        // setThreadState(tcb, ThreadStateIdleThreadState);
+        tcb.set_register(NextIP, idle_thread as usize);
+        tcb.set_register(SSTATUS, SSTATUS_SPP | SSTATUS_SPIE);
+        tcb.set_register(sp, kernel_stack_alloc.as_ptr() as usize + BIT!(CONFIG_KERNEL_STACK_BITS));
+        set_thread_state(tcb, ThreadState::ThreadStateIdleThreadState);
+    }
+}
+
+pub fn idle_thread() {
+    unsafe {
+        loop {
+            asm!("wfi");
+        }
     }
 }

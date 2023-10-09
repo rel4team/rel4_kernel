@@ -1,4 +1,4 @@
-use common::{sel4_config::seL4_MinUntypedBits, BIT, structures::seL4_IPCBuffer};
+use common::BIT;
 
 
 #[inline]

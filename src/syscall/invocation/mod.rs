@@ -11,9 +11,9 @@ use common::{structures::exception_t, message_info::seL4_MessageInfo_t, fault::s
 use log::debug;
 use task_manager::{get_currenct_thread, msgInfoRegister, capRegister, ThreadState, set_thread_state, n_msgRegisters};
 
-use crate::kernel::{boot::current_fault, faulthandler::handleFault};
+use crate::kernel::boot::current_fault;
 use crate::syscall::invocation::decode::decode_invocation;
-use crate::syscall::lookup_extra_caps;
+use crate::syscall::{handle_fault, lookup_extra_caps};
 use crate::syscall::syscall_reply::{reply_error_from_kernel, reply_success_from_kernel};
 
 #[no_mangle]
@@ -28,7 +28,8 @@ pub fn handleInvocation(isCall: bool, isBlocking: bool) -> exception_t {
             current_fault = seL4_Fault_t::new_cap_fault(cptr, 0);
         }
         if isBlocking {
-            handleFault(thread);
+            // handleFault(thread);
+            handle_fault(thread);
         }
         return exception_t::EXCEPTION_NONE;
     }
@@ -37,7 +38,8 @@ pub fn handleInvocation(isCall: bool, isBlocking: bool) -> exception_t {
     if unlikely(status != exception_t::EXCEPTION_NONE) {
         debug!("Lookup of extra caps failed.");
         if isBlocking {
-            handleFault(thread);
+            // handleFault(thread);
+            handle_fault(thread);
         }
         return exception_t::EXCEPTION_NONE;
     }

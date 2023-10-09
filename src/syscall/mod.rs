@@ -17,11 +17,12 @@ pub const SysNBRecv: isize = -8;
 use common::structures::exception_t;
 use common::utils::convert_to_mut_type_ref;
 use cspace::interface::CapTag;
-use task_manager::{schedule, activateThread, tcb_t, set_thread_state, ThreadState, get_currenct_thread, capRegister};
+use task_manager::{schedule, activateThread, tcb_t, set_thread_state, ThreadState, get_currenct_thread, capRegister, rescheduleRequired};
 use task_manager::ipc::{endpoint_t, notification_t};
 pub use utils::*;
 
-use crate::{kernel::{syscall::{handleYield}, c_traps::restore_user_context}, config::irqInvalid, object::interrupt::handleInterrupt, interrupt::getActiveIRQ};
+use crate::{kernel::c_traps::restore_user_context, config::irqInvalid, interrupt::getActiveIRQ};
+use crate::interrupt::handler::handleInterrupt;
 use crate::kernel::boot::{current_fault, current_lookup_fault};
 
 use self::invocation::handleInvocation;
@@ -86,7 +87,7 @@ pub fn handleSyscall(_syscall: usize) -> exception_t {
             handle_recv(true);
         }
         SysNBRecv => handle_recv(false),
-        SysYield => handleYield(),
+        SysYield => handle_yield(),
         _ => panic!("Invalid syscall"),
     }
     schedule();
@@ -192,4 +193,10 @@ fn handle_recv(block: bool) {
             return handle_fault(current_thread);
         }
     }
+}
+
+fn handle_yield() {
+    get_currenct_thread().sched_dequeue();
+    get_currenct_thread().sched_append();
+    rescheduleRequired();
 }

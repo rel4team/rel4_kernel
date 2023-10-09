@@ -18,7 +18,6 @@ use crate::boot::root_server::root_server_init;
 use crate::boot::untyped::create_untypeds;
 use crate::boot::utils::paddr_to_pptr_reg;
 use crate::interrupt::set_sie_mask;
-use crate::kernel::thread::create_idle_thread;
 use common::sbi::{set_timer, get_time};
 use crate::structures::{ndks_boot_t, region_t, p_region_t, seL4_BootInfo, seL4_BootInfoHeader, seL4_SlotRegion, v_region_t};
 use crate::config::*;
@@ -90,7 +89,7 @@ fn init_dtb(dtb_size: usize, dtb_phys_addr: usize, extra_bi_size:&mut usize) -> 
             return None;
         }
 
-        (*extra_bi_size) += core::mem::size_of::<seL4_BootInfoHeader>() + dtb_size;
+        (*extra_bi_size) += size_of::<seL4_BootInfoHeader>() + dtb_size;
         dtb_p_reg = p_region_t {
             start: dtb_phys_addr,
             end: dtb_phys_end,
@@ -146,7 +145,7 @@ fn init_core_state(scheduler_action: *mut tcb_t) {
             tcbDebugAppend(scheduler_action);
         }
         tcbDebugAppend(ksIdleThread);
-        ksSchedulerAction = scheduler_action as *mut tcb_t;
+        ksSchedulerAction = scheduler_action;
         ksCurThread = ksIdleThread;
     }
 }

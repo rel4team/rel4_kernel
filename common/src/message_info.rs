@@ -106,16 +106,6 @@ pub fn seL4_MessageInfo_ptr_set_capsUnwrapped(ptr: *mut seL4_MessageInfo_t, v64:
 }
 
 
-#[inline]
-pub fn seL4_MessageInfo_new(
-    label: usize,
-    capsUnwrapped: usize,
-    extraCaps: usize,
-    length: usize,
-) -> seL4_MessageInfo_t {
-    seL4_MessageInfo_t::new(label, capsUnwrapped, extraCaps, length)
-}
-
 pub fn messageInfoFromWord_raw(w: usize) -> seL4_MessageInfo_t {
     seL4_MessageInfo_t::from_word(w)
 }

@@ -12,31 +12,6 @@ pub fn reply_error_from_kernel(thread: &mut tcb_t) {
     }
 }
 
-// #[no_mangle]
-// pub fn replyFromKernel_error(thread: *mut tcb_t) {
-//     // let ipcBuffer = lookupIPCBuffer(true, thread) as *mut usize;
-//     setRegister(thread, badgeRegister, 0);
-//     // let len = set_mrs_for_syscall_error(thread, ipcBuffer);
-//     unsafe {
-//         let len = set_mrs_for_syscall_error(&mut *thread);
-//         setRegister(
-//             thread,
-//             msgInfoRegister,
-//             wordFromMessageInfo(seL4_MessageInfo_new(current_syscall_error._type, 0, 0, len)),
-//         );
-//     }
-// }
-//
-// #[no_mangle]
-// pub fn replyFromKernel_success_empty(thread: *mut tcb_t) {
-//     setRegister(thread, badgeRegister, 0);
-//     setRegister(
-//         thread,
-//         msgInfoRegister,
-//         wordFromMessageInfo(seL4_MessageInfo_new(0, 0, 0, 0)),
-//     );
-// }
-
 
 pub fn reply_success_from_kernel(thread: &mut tcb_t) {
     thread.set_register(badgeRegister, 0);

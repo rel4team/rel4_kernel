@@ -3,9 +3,6 @@ use crate::{
     config::tcbCNodeEntries,
     kernel::{
         boot::current_lookup_fault,
-        vspace::{
-            deleteASID, deleteASIDPool,
-        },
     }, syscall::safe_unbind_notification, interrupt::*,
 };
 
@@ -114,18 +111,18 @@ pub fn finaliseCap(cap: &cap_t, _final: bool, _exposed: bool) -> finaliseCap_ret
 
     match cap.get_cap_type() {
         CapTag::CapCNodeCap => {
-            if _final {
+            return if _final {
                 fc_ret.remainder = Zombie_new(
                     1usize << cap.get_cnode_radix(),
                     cap.get_cnode_radix(),
                     cap.get_cnode_ptr(),
                 );
                 fc_ret.cleanupInfo = cap_t::new_null_cap();
-                return fc_ret;
+                fc_ret
             } else {
                 fc_ret.remainder = cap_t::new_null_cap();
                 fc_ret.cleanupInfo = cap_t::new_null_cap();
-                return fc_ret;
+                fc_ret
             }
         }
         CapTag::CapThreadCap => {
@@ -133,7 +130,6 @@ pub fn finaliseCap(cap: &cap_t, _final: bool, _exposed: bool) -> finaliseCap_ret
                 let tcb = convert_to_mut_type_ref::<tcb_t>(cap.get_tcb_ptr());
                 let cte_ptr = tcb.get_cspace_mut_ref(tcbCTable);
                 safe_unbind_notification(tcb);
-                // cancel_ipc(tcb);
                 tcb.cancel_ipc();
                 tcb.suspend();
                 unsafe {
@@ -172,20 +168,26 @@ pub fn finaliseCap(cap: &cap_t, _final: bool, _exposed: bool) -> finaliseCap_ret
 
 #[no_mangle]
 pub fn post_cap_deletion(cap: &cap_t) {
-    if cap_get_capType(cap) == cap_irq_handler_cap {
+    if cap.get_cap_type() == CapTag::CapIrqHandlerCap {
         let irq = cap.get_irq_handler();
-        setIRQState(IRQInactive, irq);
+        setIRQState(IRQState::IRQInactive, irq);
     }
 }
 
-pub fn hasCancelSendRight(cap: &cap_t) -> bool {
-    match cap.get_cap_type() {
-        CapTag::CapEndpointCap => {
-            cap.get_ep_can_send() != 0
-                && cap.get_ep_can_receive() != 0
-                && cap.get_ep_can_grant() != 0
-                && cap.get_ep_can_grant_reply() != 0
+#[no_mangle]
+fn deleteASID(asid: asid_t, vspace: *mut pte_t) {
+    unsafe {
+        if let Err(lookup_fault) = delete_asid(asid, vspace, &(*getCSpace(ksCurThread as usize, tcbVTable)).cap) {
+            current_lookup_fault = lookup_fault;
         }
-        _ => false,
+    }
+}
+
+#[no_mangle]
+fn deleteASIDPool(asid_base: asid_t, pool: *mut asid_pool_t) {
+    unsafe {
+        if let Err(lookup_fault) = delete_asid_pool(asid_base, pool, &(*getCSpace(ksCurThread as usize, tcbVTable)).cap) {
+            current_lookup_fault = lookup_fault;
+        }
     }
 }

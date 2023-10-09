@@ -69,26 +69,6 @@ pub fn seL4_Fault_get_seL4_FaultType(seL4_Fault: &seL4_Fault_t) -> usize {
 }
 
 
-#[inline]
-pub fn seL4_Fault_CapFault_new(address: usize, inReceivePhase: usize) -> seL4_Fault_t {
-    seL4_Fault_t::new_cap_fault(address, inReceivePhase)
-}
-
-#[inline]
-pub fn seL4_Fault_UnknownSyscall_get_syscallNumber(seL4_Fault: &seL4_Fault_t) -> usize {
-    seL4_Fault.unknown_syscall_get_syscall_number()
-}
-
-#[inline]
-pub fn seL4_Fault_UserException_new(number: usize, code: usize) -> seL4_Fault_t {
-    seL4_Fault_t::new_user_exeception(number, code)
-}
-
-#[inline]
-pub fn seL4_Fault_VMFault_new(address: usize, FSR: usize, instructionFault: bool) -> seL4_Fault_t {
-    seL4_Fault_t::new_vm_fault(address, FSR, instructionFault as usize)
-}
-
 
 // lookup_fault
 #[derive(PartialEq, Eq)]

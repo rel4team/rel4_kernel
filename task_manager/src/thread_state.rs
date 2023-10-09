@@ -47,12 +47,6 @@ pub fn thread_state_set_blockingIPCCanGrant(thread_state_ptr: &mut thread_state_
 }
 
 //thread state
-pub const ThreadStateInactive: usize = ThreadState::ThreadStateInactive as usize;
 pub const ThreadStateRunning: usize = ThreadState::ThreadStateRunning as usize;
-pub const ThreadStateRestart: usize = ThreadState::ThreadStateRestart as usize;
 pub const ThreadStateBlockedOnReceive: usize = ThreadState::ThreadStateBlockedOnReceive as usize;
-pub const ThreadStateBlockedOnSend: usize = ThreadState::ThreadStateBlockedOnSend as usize;
 pub const ThreadStateBlockedOnReply: usize = ThreadState::ThreadStateBlockedOnReply as usize;
-pub const ThreadStateBlockedOnNotification: usize = ThreadState::ThreadStateBlockedOnNotification as usize;
-pub const ThreadStateIdleThreadState: usize = ThreadState::ThreadStateIdleThreadState as usize;
-pub const ThreadStateExited: usize = ThreadState::ThreadStateExited as usize;

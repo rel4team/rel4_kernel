@@ -4,7 +4,7 @@ use task_manager::ipc::endpoint_t;
 use log::debug;
 use task_manager::{get_currenct_thread, set_thread_state, ThreadState};
 
-use crate::{syscall::mask_cap_rights, kernel::boot::current_syscall_error, object::objecttype::hasCancelSendRight};
+use crate::{syscall::mask_cap_rights, kernel::boot::current_syscall_error};
 
 #[inline]
 pub fn invoke_cnode_copy(src_slot: &mut cte_t, dest_slot: &mut cte_t, cap_right: seL4_CapRights_t) -> exception_t {
@@ -152,4 +152,17 @@ pub fn invoke_cnode_revoke(dest_slot: &mut cte_t) -> exception_t {
 pub fn invoke_cnode_delete(dest_slot: &mut cte_t) -> exception_t {
     set_thread_state(get_currenct_thread(), ThreadState::ThreadStateRestart);
     dest_slot.delete_all(true)
+}
+
+
+fn hasCancelSendRight(cap: &cap_t) -> bool {
+    match cap.get_cap_type() {
+        CapTag::CapEndpointCap => {
+            cap.get_ep_can_send() != 0
+                && cap.get_ep_can_receive() != 0
+                && cap.get_ep_can_grant() != 0
+                && cap.get_ep_can_grant_reply() != 0
+        }
+        _ => false,
+    }
 }

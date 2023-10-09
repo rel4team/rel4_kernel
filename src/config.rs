@@ -23,13 +23,9 @@ pub const RISCVMegaPageBits: usize = 21;
 pub const RISCVGigaPageBits: usize = 30;
 pub const KERNEL_STACK_ALIGNMENT: usize = 4096;
 pub const tcbCNodeEntries: usize = 5;
-pub const SSTATUS_SPIE: usize = 0x00000020;
-pub const SSTATUS_SPP: usize = 0x00000100;
-pub const CONFIG_KERNEL_STACK_BITS: usize = 12;
 
 //FIXME:this constant is generated , maybe need to transfer from C code
 pub const CONFIG_PADDR_USER_DEVICE_TOP: usize = 549755813888;
-
 
 pub const MAX_NUM_FREEMEM_REG: usize = 16;
 pub const NUM_RESERVED_REGIONS: usize = 3;

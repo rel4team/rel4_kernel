@@ -43,14 +43,3 @@ pub fn get_extra_cap_by_index(index: usize) -> Option<&'static mut cte_t> {
         convert_to_option_mut_type_ref::<cte_t>(current_extra_caps.excaprefs[index] as usize)
     }
 }
-
-#[no_mangle]
-pub extern "C" fn initIRQController(arr: *mut i32, size: usize) {
-    unsafe {
-        let data = core::slice::from_raw_parts_mut(arr, size);
-        for i in 0..size {
-            data[i] = 0;
-        }
-    }
-}
-

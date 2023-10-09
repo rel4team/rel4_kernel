@@ -268,7 +268,8 @@ impl tcb_t {
         if self.get_state() == ThreadState::ThreadStateRunning {
             self.set_register(FaultIP, self.get_register(NextIP));
         }
-        setThreadState(self as *mut Self, ThreadStateInactive);
+        // setThreadState(self as *mut Self, ThreadStateInactive);
+        set_thread_state(self, ThreadState::ThreadStateInactive);
         self.sched_dequeue();
     }
 
@@ -276,7 +277,8 @@ impl tcb_t {
     pub fn restart(&mut self) {
         if self.is_stopped() {
             self.setup_reply_master();
-            setThreadState(self as *mut Self, ThreadStateRestart);
+            // setThreadState(self as *mut Self, ThreadStateRestart);
+            set_thread_state(self, ThreadState::ThreadStateRestart);
             self.sched_dequeue();
             possible_switch_to(self);
         }
@@ -574,9 +576,7 @@ pub fn set_thread_state(tcb: &mut tcb_t, state: ThreadState) {
 
 #[no_mangle]
 pub fn setThreadState(tptr: *mut tcb_t, ts: usize) {
-    unsafe {
-        set_thread_state(&mut (*tptr), core::mem::transmute::<u8, ThreadState>(ts as u8))
-    }
+    panic!("should not be invoked!")
 }
 
 #[no_mangle]

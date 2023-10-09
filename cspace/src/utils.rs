@@ -1,4 +1,4 @@
-use common::{sel4_config::seL4_MinUntypedBits, BIT, structures::exception_t};
+use common::structures::exception_t;
 
 use crate::cte::cte_t;
 
