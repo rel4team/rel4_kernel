@@ -55,7 +55,7 @@ pub fn rust_map_kernel_window() {
     }
 }
 
-
+#[inline]
 pub fn activate_kernel_vspace() {
     unsafe {
         setVSpaceRoot(kpptr_to_paddr(kernel_root_pageTable.as_ptr() as usize), 0);

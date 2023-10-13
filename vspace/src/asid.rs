@@ -1,4 +1,5 @@
 use core::arch::asm;
+use core::intrinsics::unlikely;
 
 use common::{BIT, structures::exception_t, MASK, sel4_config::asidHighBits, sel4_config::asidLowBits, utils::convert_to_option_mut_type_ref, fault::*};
 use cspace::interface::cap_t;
@@ -14,19 +15,19 @@ pub struct asid_pool_t {
 }
 
 impl asid_pool_t {
+    #[inline]
     pub fn get_ptr(&self) -> pptr_t {
         self as *const Self as pptr_t
     }
 
+    #[inline]
     pub fn get_vspace_by_index(&mut self, index: usize) -> Option<&'static mut pte_t> {
-        if index >= BIT!(asidLowBits) {
-            return None;
-        }
         convert_to_option_mut_type_ref::<pte_t>(self.array[index] as usize)
     }
 
+    #[inline]
     pub fn set_vspace_by_index(&mut self, index: usize, vspace_ptr: pptr_t) {
-        assert!(index < BIT!(asidLowBits));
+        // assert!(index < BIT!(asidLowBits));
         self.array[index] = vspace_ptr as *mut pte_t;
     }
 }
@@ -41,9 +42,10 @@ pub struct findVSpaceForASID_ret {
     pub lookup_fault: Option<lookup_fault_t>,
 }
 
+#[inline]
 pub fn get_asid_pool_by_index(index: usize) -> Option<&'static mut asid_pool_t> {
     unsafe {
-        if index >= BIT!(asidHighBits) {
+        if unlikely(index >= BIT!(asidHighBits)) {
             return None;
         }
         return convert_to_option_mut_type_ref::<asid_pool_t>(riscvKSASIDTable[index] as usize)
@@ -51,7 +53,7 @@ pub fn get_asid_pool_by_index(index: usize) -> Option<&'static mut asid_pool_t> 
 }
 
 pub fn set_asid_pool_by_index(index: usize, pool_ptr: pptr_t) {
-    assert!(index < BIT!(asidHighBits));
+    // assert!(index < BIT!(asidHighBits));
     unsafe {
         riscvKSASIDTable[index] = pool_ptr as *mut asid_pool_t;
     }
@@ -94,6 +96,7 @@ pub fn findVSpaceForASID(_asid: asid_t) -> findVSpaceForASID_ret {
     panic!("should not be invoked!")
 }
 
+#[inline]
 fn hwASIDFlush(asid: asid_t) {
     unsafe {
         asm!("sfence.vma x0, {0}",in(reg) asid);
@@ -104,7 +107,6 @@ pub fn delete_asid_pool(asid_base: asid_t, pool: *mut asid_pool_t, default_vspac
     unsafe {
         if riscvKSASIDTable[asid_base >> asidLowBits] == pool {
             riscvKSASIDTable[asid_base >> asidLowBits] = 0 as *mut asid_pool_t;
-            // setVMRoot(ksCurThread);
             set_vm_root(default_vspace_cap)
         } else {
             Ok(())

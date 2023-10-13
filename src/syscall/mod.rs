@@ -128,6 +128,7 @@ fn send_fault_ipc(thread: &mut tcb_t) -> exception_t {
     exception_t::EXCEPTION_NONE
 }
 
+#[inline]
 pub fn handle_fault(thread: &mut tcb_t) {
     if send_fault_ipc(thread) != exception_t::EXCEPTION_NONE {
         set_thread_state(thread, ThreadState::ThreadStateInactive);

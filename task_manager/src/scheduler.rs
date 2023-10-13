@@ -1,6 +1,7 @@
 use common::{BIT, sel4_config::{wordRadix, wordBits, NUM_READY_QUEUES, L2_BITMAP_SIZE, CONFIG_NUM_DOMAINS, seL4_TCBBits,
     CONFIG_MAX_NUM_NODES, CONFIG_NUM_PRIORITIES, CONFIG_TIME_SLICE}, MASK, utils::convert_to_mut_type_ref};
 use core::arch::asm;
+use core::intrinsics::{likely, unlikely};
 use common::sel4_config::TCB_OFFSET;
 
 use crate::{ThreadStateRunning, FaultIP, NextIP, SSTATUS, SSTATUS_SPP, SSTATUS_SPIE, sp, set_thread_state};
@@ -127,7 +128,7 @@ pub fn removeFromBitmap(dom: usize, prio: usize) {
         let l1index = prio_to_l1index(prio);
         let l1index_inverted = invert_l1index(l1index);
         ksReadyQueuesL2Bitmap[dom][l1index_inverted] &= !BIT!(prio & MASK!(wordRadix));
-        if ksReadyQueuesL2Bitmap[dom][l1index_inverted] == 0 {
+        if unlikely(ksReadyQueuesL2Bitmap[dom][l1index_inverted] == 0) {
             ksReadyQueuesL1Bitmap[dom] &= !(BIT!((l1index)));
         }
     }
@@ -160,7 +161,7 @@ fn scheduleChooseNewThread() {
 fn chooseThread() {
     unsafe {
         let dom = 0;
-        if ksReadyQueuesL1Bitmap[dom] != 0 {
+        if likely(ksReadyQueuesL1Bitmap[dom] != 0) {
             let prio = getHighestPrio(dom);
             let thread = ksReadyQueues[ready_queues_index(dom, prio)].head;
             assert!(thread != 0);
@@ -223,7 +224,7 @@ pub fn schedule() {
     }
 }
 
-
+#[inline]
 pub fn schedule_tcb(tcb_ref: &tcb_t) {
     unsafe {
         if tcb_ref.get_ptr() == ksCurThread as usize
@@ -235,7 +236,7 @@ pub fn schedule_tcb(tcb_ref: &tcb_t) {
     }
 }
 
-
+#[inline]
 pub fn possible_switch_to(target: &mut tcb_t) {
     if unsafe { ksCurDomain != target.domain } {
         target.sched_enqueue();
@@ -251,7 +252,7 @@ pub fn possible_switch_to(target: &mut tcb_t) {
 pub fn timerTick() {
     let current = get_currenct_thread();
     
-    if current.get_state() == ThreadState::ThreadStateRunning {
+    if likely(current.get_state() == ThreadState::ThreadStateRunning) {
         if current.tcbTimeSlice > 1 {
             current.tcbTimeSlice -= 1;
         } else {
@@ -298,16 +299,7 @@ pub fn create_idle_thread() {
     unsafe {
         let pptr = ksIdleThreadTCB.as_ptr() as *mut usize;
         ksIdleThread = pptr.add(TCB_OFFSET) as *mut tcb_t;
-        // configureIdleThread(ksIdleThread as *const tcb_t);
         let tcb = convert_to_mut_type_ref::<tcb_t>(ksIdleThread as usize);
-        // setRegister(tcb, NextIP, idle_thread as usize);
-        // setRegister(tcb, SSTATUS, SSTATUS_SPP | SSTATUS_SPIE);
-        // setRegister(
-        //     tcb,
-        //     sp,
-        //     kernel_stack_alloc.as_ptr() as usize + BIT!(CONFIG_KERNEL_STACK_BITS),
-        // );
-        // setThreadState(tcb, ThreadStateIdleThreadState);
         tcb.set_register(NextIP, idle_thread as usize);
         tcb.set_register(SSTATUS, SSTATUS_SPP | SSTATUS_SPIE);
         tcb.set_register(sp, kernel_stack_alloc.as_ptr() as usize + BIT!(CONFIG_KERNEL_STACK_BITS));

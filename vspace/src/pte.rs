@@ -21,10 +21,12 @@ pub struct lookupPTSlot_ret_t {
 }
 
 impl pte_t {
+    #[inline]
     pub fn get_ptr(&self) -> usize {
         self as *const Self as usize
     }
 
+    #[inline]
     pub fn new(ppn: usize, sw: usize, dirty: usize, accessed: usize, global: usize, user: usize, execute: usize, write: usize,
         read: usize, valid: usize) -> Self {
         
@@ -43,6 +45,7 @@ impl pte_t {
         }
     }
 
+    #[inline]
     pub fn make_user_pte(paddr: usize, executable: bool, vm_rights: usize) -> Self {
         let write = RISCVGetWriteFromVMRights(vm_rights);
         let read = RISCVGetReadFromVMRights(vm_rights);
@@ -63,6 +66,7 @@ impl pte_t {
         )
     }
 
+    #[inline]
     pub fn pte_next(phys_addr: usize, is_leaf: bool) -> Self {
         let ppn = (phys_addr >> 12) as usize;
 
@@ -75,6 +79,7 @@ impl pte_t {
         )
     }
 
+    #[inline]
     pub fn update(&mut self, pte: Self) {
         *self = pte;
         sfence();
@@ -106,18 +111,22 @@ impl pte_t {
         sfence();
     }
 
+    #[inline]
     pub fn pte_invalid() -> Self {
         pte_t { words: [0] }
     }
 
+    #[inline]
     pub fn is_pte_table(&self) -> bool {
         self.get_vaild() != 0 && !(self.get_read() != 0 ||self.get_write() != 0 || self.get_execute() != 0)
     }
 
+    #[inline]
     pub fn get_pte_from_ppn_mut(&self) -> &'static mut Self {
         convert_to_mut_type_ref::<pte_t>(paddr_to_pptr(self.get_ppn() << seL4_PageTableBits))
     }
 
+    #[inline]
     pub fn get_pte_from_ppn(&self) -> &'static Self {
         convert_to_type_ref::<pte_t>(paddr_to_pptr(self.get_ppn() << seL4_PageTableBits))
     }
@@ -141,22 +150,27 @@ impl pte_t {
         ret
     }
 
+    #[inline]
     pub fn get_vaild(&self) -> usize {
         (self.words[0] & 0x1) >> 0
     }
 
+    #[inline]
     pub fn get_ppn(&self) -> usize {
         (self.words[0] & 0x3f_ffff_ffff_fc00usize) >> 10
     }
 
+    #[inline]
     pub fn get_execute(&self) -> usize {
         (self.words[0] & 0x8usize) >> 3
     }
 
+    #[inline]
     pub fn get_write(&self) -> usize {
         (self.words[0] & 0x4usize) >> 2
     }
 
+    #[inline]
     pub fn get_read(&self) -> usize {
         (self.words[0] & 0x2usize) >> 1
     }

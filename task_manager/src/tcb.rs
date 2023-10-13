@@ -1,4 +1,4 @@
-use core::intrinsics::unlikely;
+use core::intrinsics::{likely, unlikely};
 
 use common::fault::*;
 use common::message_info::seL4_MessageInfo_t;
@@ -60,7 +60,7 @@ impl tcb_t {
     #[inline]
     pub fn get_cspace(&self, i: usize) -> &'static cte_t {
         unsafe {
-            let p = ((self as *const tcb_t as usize) & !MASK!(seL4_TCBBits)) as *mut cte_t;
+            let p = ((self.get_ptr()) & !MASK!(seL4_TCBBits)) as *mut cte_t;
             &*(p.add(i))
         }
     }
@@ -70,6 +70,7 @@ impl tcb_t {
         self.tcbArch = arch_tcb_t::default();
     }
 
+    #[inline]
     pub fn get_cspace_mut_ref(&mut self, i: usize) -> &'static mut cte_t {
         unsafe {
             let p = ((self as *mut tcb_t as usize) & !MASK!(seL4_TCBBits)) as *mut cte_t;
@@ -85,7 +86,6 @@ impl tcb_t {
     #[inline]
     pub fn is_stopped(&self) -> bool {
         match self.get_state() {
-
             ThreadState::ThreadStateInactive | ThreadState::ThreadStateBlockedOnNotification | ThreadState::ThreadStateBlockedOnReceive
             | ThreadState::ThreadStateBlockedOnReply | ThreadState::ThreadStateBlockedOnSend => true,
 
@@ -188,7 +188,7 @@ impl tcb_t {
                 convert_to_mut_type_ref::<tcb_t>(self.tcbSchedPrev).tcbSchedNext = self.tcbSchedNext;
             } else {
                 queue.head = self.tcbSchedNext as *mut tcb_t as usize;
-                if self.tcbSchedNext == 0 {
+                if likely(self.tcbSchedNext == 0) {
                     removeFromBitmap(dom, prio);
                 }
             }
@@ -307,16 +307,19 @@ impl tcb_t {
         caller_slot.delete_one();
     }
 
-    #[inline]
     pub fn lookup_ipc_buffer(&self, is_receiver: bool) -> Option<&'static seL4_IPCBuffer> {
         let w_buffer_ptr = self.tcbIPCBuffer;
         let buffer_cap = self.get_cspace(tcbBuffer).cap;
-        if buffer_cap.get_cap_type() != CapTag::CapFrameCap {
+        if unlikely(buffer_cap.get_cap_type() != CapTag::CapFrameCap) {
+            return None;
+        }
+
+        if unlikely(buffer_cap.get_frame_is_device() != 0) {
             return None;
         }
 
         let vm_rights = buffer_cap.get_frame_vm_rights();
-        if vm_rights == VMReadWrite || (!is_receiver && vm_rights == VMReadOnly) {
+        if likely(vm_rights == VMReadWrite || (!is_receiver && vm_rights == VMReadOnly)) {
             let base_ptr = buffer_cap.get_frame_base_ptr();
             let page_bits = pageBitsForSize(buffer_cap.get_frame_size());
             return Some(convert_to_mut_type_ref::<seL4_IPCBuffer>(base_ptr + (w_buffer_ptr & MASK!(page_bits))));
@@ -324,10 +327,30 @@ impl tcb_t {
         return None;
     }
 
-    #[inline]
     pub fn lookup_extra_caps(&self, res: &mut [pptr_t; seL4_MsgMaxExtraCaps]) -> Result<(), seL4_Fault_t>{
         let info = seL4_MessageInfo_t::from_word_security(self.get_register(msgInfoRegister));
         if let Some(buffer) = self.lookup_ipc_buffer(false) {
+            let length = info.get_extra_caps();
+            let mut i = 0;
+            while i < length {
+                let cptr = buffer.get_extra_cptr(i);
+                let lu_ret = self.lookup_slot(cptr);
+                if unlikely(lu_ret.status != exception_t::EXCEPTION_NONE)  {
+                    return Err(seL4_Fault_t::new_cap_fault(cptr, false as usize));
+                }
+                res[i] = lu_ret.slot as usize;
+                i += 1;
+            }
+            if i < seL4_MsgMaxExtraCaps {
+                res[i] = 0;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn lookup_extra_caps_with_buf(&self, res: &mut [pptr_t; seL4_MsgMaxExtraCaps], buf: Option<&seL4_IPCBuffer>) -> Result<(), seL4_Fault_t>{
+        let info = seL4_MessageInfo_t::from_word_security(self.get_register(msgInfoRegister));
+        if let Some(buffer) = buf {
             let length = info.get_extra_caps();
             let mut i = 0;
             while i < length {
@@ -377,7 +400,7 @@ impl tcb_t {
         }
     }
 
-    #[inline]
+
     pub fn set_lookup_fault_mrs(&mut self, offset: usize, fault: &lookup_fault_t) -> usize {
         let luf_type = fault.get_type();
         let i = self.set_mr(offset, luf_type + 1);
@@ -406,7 +429,6 @@ impl tcb_t {
         }
     }
 
-    #[inline]
     pub fn get_receive_slot(&mut self) -> Option<&'static mut cte_t> {
         if let Some(buffer) = self.lookup_ipc_buffer(true) {
             let cptr= buffer.receiveCNode;
@@ -425,13 +447,13 @@ impl tcb_t {
     }
 
     #[inline]
-    pub fn copy_mrs(&self, receiver: &mut tcb_t, length: usize) -> usize {
+    pub fn copy_mrs_with_buf(&self, receiver: &mut tcb_t, length: usize, send_buf: Option<&seL4_IPCBuffer>) -> usize {
         let mut i = 0;
         while i < length && i < n_msgRegisters {
             receiver.set_register(msgRegister[i], self.get_register(msgRegister[i]));
             i += 1;
         }
-        if let (Some(send_buffer), Some(recv_buffer)) = (self.lookup_ipc_buffer(false), receiver.lookup_mut_ipc_buffer(true)) {
+        if let (Some(send_buffer), Some(recv_buffer)) = (send_buf, receiver.lookup_mut_ipc_buffer(true)) {
             unsafe {
                 let recv_ptr = recv_buffer as *mut seL4_IPCBuffer as *mut usize;
                 let send_ptr = send_buffer as *const seL4_IPCBuffer as *const usize;
@@ -440,7 +462,6 @@ impl tcb_t {
                     i += 1;
                 }
             }
-
         }
         i
     }
@@ -541,12 +562,12 @@ pub fn get_currenct_thread() -> &'static mut tcb_t {
     }
 }
 
-
+#[inline]
 pub fn getCSpace(ptr: usize, i: usize) -> *mut cte_t {
     getCSpaceMutRef(ptr, i) as *mut cte_t
 }
 
-
+#[inline]
 pub fn getCSpaceMutRef(ptr: usize, i: usize) -> &'static mut cte_t {
     unsafe {
         let thread =&mut *( ptr as *mut tcb_t);

@@ -72,6 +72,39 @@ impl tcb_t {
         info.set_extra_caps(i);
     }
 
+    fn set_transfer_caps_with_buf(&mut self, endpoint: Option<&endpoint_t>, info: &mut seL4_MessageInfo_t, current_extra_caps: &[pptr_t; seL4_MsgMaxExtraCaps], ipc_buffer: Option<&mut seL4_IPCBuffer>) {
+        info.set_extra_caps(0);
+        info.set_caps_unwrapped(0);
+        // let ipc_buffer = self.lookup_mut_ipc_buffer(true);
+        if likely(current_extra_caps[0] as usize == 0 || ipc_buffer.is_none()) {
+            return;
+        }
+        let buffer = ipc_buffer.unwrap();
+        let mut dest_slot = self.get_receive_slot();
+        let mut i = 0;
+        while i < seL4_MsgMaxExtraCaps && current_extra_caps[i] as usize != 0 {
+            let slot = convert_to_mut_type_ref::<cte_t>(current_extra_caps[i]);
+            let cap = &slot.cap.clone();
+            if cap.get_cap_type() == CapTag::CapEndpointCap && endpoint.is_some() && cap.get_ep_ptr() == endpoint.unwrap().get_ptr() {
+                buffer.caps_or_badges[i] = cap.get_ep_badge();
+                info.set_caps_unwrapped(info.get_caps_unwrapped() | (1 << i));
+            } else {
+                if dest_slot.is_none() {
+                    break;
+                } else {
+                    let dest = dest_slot.take();
+                    let dc_ret = slot.derive_cap(cap);
+                    if dc_ret.status != exception_t::EXCEPTION_NONE || dc_ret.cap.get_cap_type() == CapTag::CapNullCap {
+                        break;
+                    }
+                    cte_insert(&dc_ret.cap, slot, dest.unwrap());
+                }
+            }
+            i += 1;
+        }
+        info.set_extra_caps(i);
+    }
+
     fn do_fault_transfer(&self, receiver: &mut tcb_t, badge: usize) {
         let sent = match self.tcbFault.get_fault_type() {
             common::fault::FaultType::CapFault => {
@@ -107,12 +140,18 @@ impl tcb_t {
     fn do_normal_transfer(&self, receiver: &mut tcb_t, endpoint: Option<&endpoint_t>, badge: usize, can_grant: bool) {
         let mut tag = seL4_MessageInfo_t::from_word_security(self.get_register(msgInfoRegister));
         let mut current_extra_caps = [0; seL4_MsgMaxExtraCaps];
+        let send_buffer = self.lookup_ipc_buffer(false);
+        // let mut recv_buffer = receiver.lookup_mut_ipc_buffer(true);
         if can_grant {
-            let _ = self.lookup_extra_caps(&mut current_extra_caps);
+            // let _ = self.lookup_extra_caps(&mut current_extra_caps);
+            let _ = self.lookup_extra_caps_with_buf(&mut current_extra_caps, send_buffer);
         }
-        let msg_transferred = self.copy_mrs(receiver, tag.get_length());
+        // let msg_transferred = self.copy_mrs(receiver, tag.get_length());
+        let msg_transferred = self.copy_mrs_with_buf(receiver, tag.get_length(), send_buffer);
+
         // do_caps_transfer(&mut tag, endpoint, receiver, &current_extra_caps);
         receiver.set_transfer_caps(endpoint, &mut tag, &current_extra_caps);
+        // receiver.set_transfer_caps_with_buf(endpoint, &mut tag, &current_extra_caps, recv_buffer.as_deref_mut());
         tag.set_length(msg_transferred);
         receiver.set_register(msgInfoRegister, tag.to_word());
         receiver.set_register(badgeRegister, badge);
@@ -137,7 +176,7 @@ impl tcb_t {
 
     pub fn complete_signal(&mut self) -> bool {
         if let Some(ntfn) = convert_to_option_mut_type_ref::<notification_t>(self.tcbBoundNotification) {
-            if ntfn.get_state() == NtfnState::Active {
+            if likely(ntfn.get_state() == NtfnState::Active) {
                 self.set_register(badgeRegister, ntfn.get_msg_identifier());
                 ntfn.set_state(NtfnState::Idle as usize);
                 return true;

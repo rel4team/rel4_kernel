@@ -1,0 +1,1729 @@
+OpenSBI v0.8
+   ____                    _____ ____ _____
+  / __ \                  / ____|  _ \_   _|
+ | |  | |_ __   ___ _ __ | (___ | |_) || |
+ | |  | | '_ \ / _ \ '_ \ \___ \|  _ < | |
+ | |__| | |_) |  __/ | | |____) | |_) || |_
+  \____/| .__/ \___|_| |_|_____/|____/_____|
+        | |
+        |_|
+
+Platform Name       : ucbbar,spike-bare,qemu
+Platform Features   : timer,mfdeleg
+Platform HART Count : 1
+Boot HART ID        : 0
+Boot HART ISA       : rv64imafdcsu
+BOOT HART Features  : pmp,scounteren,mcounteren
+BOOT HART PMP Count : 16
+Firmware Base       : 0x80000000
+Firmware Size       : 96 KB
+Runtime SBI Version : 0.2
+
+MIDELEG : 0x0000000000000222
+MEDELEG : 0x000000000000b109
+PMP0    : 0x0000000080000000-0x000000008001ffff (A)
+PMP1    : 0x0000000000000000-0xffffffffffffffff (A,R,W,X)
+ELF-loader started on (HART 0) (NODES 1)
+  paddr=[80200000..8068a037]
+Looking for DTB in CPIO archive...found at 802d7fd8.
+Loaded DTB from 802d7fd8.
+   paddr=[84020000..84020fff]
+ELF-loading image 'kernel' to 84000000
+  paddr=[84000000..8401ffff]
+  vaddr=[ffffffff84000000..ffffffff8401ffff]
+  virt_entry=ffffffff84000000
+ELF-loading image 'sel4test-driver' to 84021000
+  paddr=[84021000..84416fff]
+  vaddr=[10000..405fff]
+  virt_entry=1ba78
+Enabling MMU and paging
+Jumping to kernel-image entry point...
+
+Init local IRQ
+no PLIC present, skip hart specific initialisation
+Bootstrapping kernel
+Initializing PLIC...
+no PLIC present, skip platform specific initialisation
+available phys memory regions: 1
+  [80200000..17ff00000]
+reserved virt address space regions: 3
+  [ffffffc084000000..ffffffc084020000]
+  [ffffffc084020000..ffffffc0840203a1]
+  [ffffffc084021000..ffffffc084417000]
+Booting all finished, dropped to user space
+Node 0 of 1
+IOPT levels:     0
+IPC buffer:      0x406000
+Empty slots:     [1085 --> 8192)
+sharedFrames:    [0 --> 0)
+userImageFrames: [19 --> 1033)
+userImagePaging: [14 --> 18)
+untypeds:        [1033 --> 1085)
+Initial thread domain: 0
+Initial thread cnode size: 13
+List of untypeds
+------------------
+Paddr    | Size   | Device
+0 | 31 | 1
+0x80000000 | 21 | 1
+0x17ff00000 | 20 | 1
+0x180000000 | 31 | 1
+0x200000000 | 33 | 1
+0x400000000 | 34 | 1
+0x800000000 | 35 | 1
+0x1000000000 | 36 | 1
+0x2000000000 | 37 | 1
+0x4000000000 | 38 | 1
+0x84000000 | 13 | 0
+0x84002000 | 12 | 0
+0x80200000 | 21 | 0
+0x80400000 | 22 | 0
+0x80800000 | 23 | 0
+0x81000000 | 24 | 0
+0x82000000 | 25 | 0
+0x840203b0 | 4 | 0
+0x840203c0 | 6 | 0
+0x84020400 | 10 | 0
+0x84020800 | 11 | 0
+0x84417000 | 12 | 0
+0x84418000 | 15 | 0
+0x84420000 | 17 | 0
+0x84440000 | 18 | 0
+0x84480000 | 19 | 0
+0x84500000 | 20 | 0
+0x84600000 | 21 | 0
+0x84800000 | 23 | 0
+0x85000000 | 24 | 0
+0x86000000 | 25 | 0
+0x88000000 | 27 | 0
+0x90000000 | 28 | 0
+0xa0000000 | 29 | 0
+0xc0000000 | 30 | 0
+0x100000000 | 30 | 0
+0x140000000 | 29 | 0
+0x160000000 | 28 | 0
+0x170000000 | 27 | 0
+0x178000000 | 26 | 0
+0x17c000000 | 25 | 0
+0x17e000000 | 24 | 0
+0x17f000000 | 23 | 0
+0x17f800000 | 22 | 0
+0x17fc00000 | 21 | 0
+0x17fe00000 | 19 | 0
+0x17fec9400 | 10 | 0
+0x17fec9800 | 11 | 0
+0x17feca000 | 13 | 0
+0x17fecc000 | 14 | 0
+0x17fed0000 | 16 | 0
+0x17fee0000 | 17 | 0
+Untyped summary
+1 untypeds of size 4
+1 untypeds of size 6
+2 untypeds of size 10
+2 untypeds of size 11
+2 untypeds of size 12
+2 untypeds of size 13
+1 untypeds of size 14
+1 untypeds of size 15
+1 untypeds of size 16
+2 untypeds of size 17
+1 untypeds of size 18
+2 untypeds of size 19
+2 untypeds of size 20
+4 untypeds of size 21
+2 untypeds of size 22
+3 untypeds of size 23
+3 untypeds of size 24
+3 untypeds of size 25
+1 untypeds of size 26
+2 untypeds of size 27
+2 untypeds of size 28
+2 untypeds of size 29
+2 untypeds of size 30
+2 untypeds of size 31
+1 untypeds of size 33
+1 untypeds of size 34
+1 untypeds of size 35
+1 untypeds of size 36
+1 untypeds of size 37
+1 untypeds of size 38
+Switching to a safer, bigger stack...
+seL4 Test
+=========
+
+vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 2147483648, error 1
+vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 1073741824, error 1
+vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 536870912, error 1
+vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 268435456, error 1
+vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 134217728, error 1
+vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 67108864, error 1
+vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 33554432, error 1
+vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 16777216, error 1
+vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 8388608, error 1
+vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 4194304, error 1
+vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 2097152, error 1
+vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 1048576, error 1
+vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 524288, error 1
+vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 262144, error 1
+vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 131072, error 1
+vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 65536, error 1
+vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 32768, error 1
+vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 16384, error 1
+vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 8192, error 1
+vspace_reserve_range_at@vspace.h:738 vspace is NULL
+create_reservations@elf.c:245 Failed to make reservation: 0x10000, 696320
+elf_reserve_regions_in_vspace@elf.c:438 Failed to create reservations
+sel4utils_elf_reserve@elf.c:465 Failed to reserve regions
+Starting test suite sel4test
+Starting test 0: Test that there are tests
+Starting test 1: SYSCALL0000
+Starting test 2: SYSCALL0001
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+Starting test 3: SYSCALL0002
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+Starting test 4: SYSCALL0003
+Starting test 5: SYSCALL0004
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13b42]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13b42]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13b42]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13b42]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13b42]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13b42]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13b42]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13b42]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13b42]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13b42]: CNodeCap: Illegal Operation attempted.>>
+Starting test 6: SYSCALL0005
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13c08]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13c08]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13c08]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13c08]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13c08]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13c08]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13c08]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13c08]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13c08]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13c08]: CNodeCap: Illegal Operation attempted.>>
+Starting test 7: SYSCALL0006
+          Starting test 8: SYSCALL0010
+Starting test 9: SYSCALL0011
+Starting test 10: SYSCALL0012
+Starting test 11: SYSCALL0013
+Starting test 12: SYSCALL0014
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+Starting test 13: SYSCALL0015
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13ad6]: CNodeCap: Illegal Operation attempted.>>
+Starting test 14: SYSCALL0016
+Starting test 15: SYSCALL0017
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13c08]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13c08]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13c08]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13c08]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13c08]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13c08]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13c08]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13c08]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13c08]: CNodeCap: Illegal Operation attempted.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/54 T0xffffffc17fec9200 "sel4test-driver" @13c08]: CNodeCap: Illegal Operation attempted.>>
+Starting test 16: BIND0001
+Running test BIND0001 (Test that a bound tcb waiting on a sync endpoint receives normal sync ipc and notification notifications.)
+test_name: BIND0001, Test cost: 99935
+Test BIND0001 passed
+Starting test 17: BIND0002
+Running test BIND0002 (Test that a bound tcb waiting on its bound notification recieves notifications)
+test_name: BIND0002, Test cost: 84787
+Test BIND0002 passed
+Starting test 18: BIND0003
+Running test BIND0003 (Test IPC ordering 1) bound tcb waits on bound notification 2, true) another tcb sends a message)
+test_name: BIND0003, Test cost: 94823
+Test BIND0003 passed
+Starting test 19: BIND0004
+Running test BIND0004 (Test IPC ordering 2) bound tcb waits on bound notification 1, true) another tcb sends a message)
+test_name: BIND0004, Test cost: 92735
+Test BIND0004 passed
+Starting test 20: CANCEL_BADGED_SENDS_0001
+Running test CANCEL_BADGED_SENDS_0001 (Basic endpoint cancelBadgedSends testing.)
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefe600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #119.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #181.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #244.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #317.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #374.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #440.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #495.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #564.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #627.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #689.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #756.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844ef200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #827.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844ef600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #880.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844efa00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #954.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844efe00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1016.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe39200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1085.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe39600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1142.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe39a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1214.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe39e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1271.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084503200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1336.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084503600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1399.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084503a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1463.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084503e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1532.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454d200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1599.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454d600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1663.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454da00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1725.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454de00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1786.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084597200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1859.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084597600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1919.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084597a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1992.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084597e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #2051.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0845e1200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #2116.>>
+test_name: CANCEL_BADGED_SENDS_0001, Test cost: 629259
+Test CANCEL_BADGED_SENDS_0001 passed
+Starting test 21: CANCEL_BADGED_SENDS_0002
+Running test CANCEL_BADGED_SENDS_0002 (cancelBadgedSends deletes caps)
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #675.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #675.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #733.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #675.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #733.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #794.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #675.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #733.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #794.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #860.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #675.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #733.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #794.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #860.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #926.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #675.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #733.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #794.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #860.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #926.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #977.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #675.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #733.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #794.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #860.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #926.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #977.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1042.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #675.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #733.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #794.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #860.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #926.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #977.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1042.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1106.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #675.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #733.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #794.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #860.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #926.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #977.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1042.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1106.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1170.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #675.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #733.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #794.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #860.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #926.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #977.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1042.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1106.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1170.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1229.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #675.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #733.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #794.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #860.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #926.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #977.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1042.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1106.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1170.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1229.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3aa00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1289.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #675.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #733.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #794.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #860.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #926.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #977.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1042.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1106.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1170.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1229.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3aa00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1289.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3ae00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1349.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #675.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #733.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #794.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #860.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #926.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #977.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1042.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1106.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1170.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1229.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3aa00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1289.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3ae00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1349.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1409.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #675.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #733.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #794.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #860.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #926.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #977.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1042.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1106.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1170.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1229.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3aa00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1289.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3ae00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1349.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1409.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1470.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #675.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #733.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #794.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #860.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #926.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #977.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1042.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1106.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1170.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1229.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3aa00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1289.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3ae00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1349.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1409.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1470.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1530.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #675.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #733.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #794.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #860.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #926.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #977.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1042.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1106.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1170.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1229.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3aa00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1289.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3ae00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1349.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1409.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1470.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1530.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1598.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #675.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #733.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #794.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #860.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #926.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #977.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1042.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1106.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1170.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1229.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3aa00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1289.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3ae00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1349.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1409.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1470.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1530.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1598.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454e200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1660.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #675.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #733.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #794.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #860.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #926.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #977.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1042.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1106.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1170.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1229.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3aa00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1289.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3ae00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1349.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1409.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1470.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1530.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1598.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454e200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1660.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454e600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1715.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #675.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #733.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #794.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #860.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #926.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #977.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1042.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1106.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1170.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1229.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3aa00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1289.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3ae00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1349.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1409.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1470.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1530.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1598.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454e200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1660.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454e600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1715.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454ea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1779.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #675.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #733.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #794.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #860.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #926.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #977.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1042.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1106.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1170.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1229.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3aa00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1289.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3ae00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1349.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1409.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1470.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1530.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1598.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454e200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1660.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454e600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1715.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454ea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1779.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454ee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1836.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #675.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #733.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #794.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #860.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #926.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #977.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1042.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1106.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1170.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1229.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3aa00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1289.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3ae00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1349.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1409.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1470.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1530.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1598.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454e200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1660.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454e600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1715.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454ea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1779.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454ee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1836.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084599200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1900.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #675.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #733.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #794.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #860.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #926.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #977.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1042.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1106.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1170.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1229.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3aa00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1289.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3ae00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1349.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1409.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1470.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1530.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1598.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454e200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1660.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454e600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1715.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454ea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1779.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454ee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1836.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084599200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1900.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084599600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1964.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #675.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #733.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #794.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #860.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #926.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #977.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1042.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1106.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1170.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1229.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3aa00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1289.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3ae00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1349.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1409.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1470.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1530.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1598.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454e200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1660.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454e600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1715.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454ea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1779.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454ee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1836.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084599200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1900.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084599600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1964.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084599a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #2028.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #675.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #733.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #794.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #860.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #926.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #977.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1042.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1106.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1170.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1229.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3aa00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1289.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3ae00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1349.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1409.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1470.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1530.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1598.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454e200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1660.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454e600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1715.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454ea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1779.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454ee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1836.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084599200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1900.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084599600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1964.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084599a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #2028.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084599e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #2211.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #675.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #733.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #794.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #860.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #926.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #977.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1042.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1106.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1170.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1229.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3aa00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1289.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3ae00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1349.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1409.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1470.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1530.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1598.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454e200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1660.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454e600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1715.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454ea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1779.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454ee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1836.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084599200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1900.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084599600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1964.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084599a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #2028.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084599e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #2211.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0845e3200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #2277.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #183.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fefee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #245.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #313.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #371.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #543.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084458e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #611.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #675.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #733.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #794.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844a5e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #860.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #926.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #977.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1042.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0844f0e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1106.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1170.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3a600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1229.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3aa00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1289.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc17fe3ae00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1349.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1409.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1470.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1530.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084504e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1598.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454e200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1660.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454e600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1715.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454ea00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1779.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc08454ee00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1836.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084599200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1900.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084599600 "child of: '42'" @1e14c]: Attempted to invoke a null cap #1964.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084599a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #2028.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084599e00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #2211.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0845e3200 "child of: '42'" @1e14c]: Attempted to invoke a null cap #2277.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc0845e3a00 "child of: '42'" @1e14c]: Attempted to invoke a null cap #2341.>>
+test_name: CANCEL_BADGED_SENDS_0002, Test cost: 4357211
+Test CANCEL_BADGED_SENDS_0002 passed
+Starting test 22: CNODEOP0001
+Running test CNODEOP0001 (Basic seL4_CNode_Copy() testing)
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+test_name: CNODEOP0001, Test cost: 87079
+Test CNODEOP0001 passed
+Starting test 23: CNODEOP0002
+Running test CNODEOP0002 (Basic seL4_CNode_Delete() testing)
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+test_name: CNODEOP0002, Test cost: 40015
+Test CNODEOP0002 passed
+Starting test 24: CNODEOP0003
+Running test CNODEOP0003 (Basic seL4_CNode_Mint() testing)
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+test_name: CNODEOP0003, Test cost: 50211
+Test CNODEOP0003 passed
+Starting test 25: CNODEOP0004
+Running test CNODEOP0004 (Basic seL4_CNode_Move() testing)
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+test_name: CNODEOP0004, Test cost: 90035
+Test CNODEOP0004 passed
+Starting test 26: CNODEOP0005
+Running test CNODEOP0005 (Basic seL4_CNode_Mutate() testing)
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+test_name: CNODEOP0005, Test cost: 100153
+Test CNODEOP0005 passed
+Starting test 27: CNODEOP0006
+Running test CNODEOP0006 (Basic seL4_CNode_CancelBadgedSends() testing)
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/224 T0xffffffc084020600 "42" @10712]: CNode CancelBadgedSends: Target cap invalid.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+test_name: CNODEOP0006, Test cost: 59785
+Test CNODEOP0006 passed
+Starting test 28: CNODEOP0007
+Running test CNODEOP0007 (Basic seL4_CNode_Revoke() testing)
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+test_name: CNODEOP0007, Test cost: 46871
+Test CNODEOP0007 passed
+Starting test 29: CNODEOP0008
+Running test CNODEOP0008 (Basic seL4_CNode_Rotate() testing)
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/266 T0xffffffc084020600 "42" @10712]: CNode Rotate: Pivot slot the same as source or dest slot.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+test_name: CNODEOP0008, Test cost: 127195
+Test CNODEOP0008 passed
+Starting test 30: CNODEOP0009
+Running test CNODEOP0009 (Basic seL4_CNode_SaveCaller() testing)
+<<seL4(CPU 0) [invokeCNodeSaveCaller/374 T0xffffffc084020600 "42" @10712]: CNode SaveCaller: Reply cap not present.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/209 T0xffffffc084020600 "42" @10712]: CNode SaveCaller: Destination slot not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+test_name: CNODEOP0009, Test cost: 44214
+Test CNODEOP0009 passed
+Starting test 31: CSPACE0001
+Running test CSPACE0001 (Test full cspace resolution)
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #0.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #1.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #2.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #3.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #4.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #5.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #7.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #8.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #9.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #10.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #11.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #12.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #13.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #14.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #15.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #16.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #17.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #18.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #19.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #20.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #21.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #22.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #23.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #24.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #25.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #26.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #27.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #28.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #29.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #30.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #31.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #32.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #33.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #34.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #35.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #36.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #37.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #38.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #39.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #40.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #41.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #42.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #43.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #44.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #45.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #46.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #47.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #48.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #49.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #50.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #51.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #52.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #53.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #54.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #55.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #56.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #57.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #58.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #59.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #60.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #61.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #62.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #63.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691236517204.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691236517207.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691236517201.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691236517213.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691236517189.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691236517237.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691236517141.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691236517333.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691236516949.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691236517717.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691236516181.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691236519253.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691236513109.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691236525397.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691236500821.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691236549973.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691236451669.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691236648277.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691236255061.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691237041493.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691235468629.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691238614357.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691232322901.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691244905813.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691219739989.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691270071637.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691169408341.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691370734933.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914690968081749.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914691773388117.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914690162775381.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914693384000853.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914686941549909.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914699826451797.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914674056648021.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914725596255573.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914622517040469.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914828675470677.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148914416358610261.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148915240992331093.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148913591724889429.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148916890259772757.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148910293190006101.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148923487329539413.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148897099050472789.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148949875608606037.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148844322492339541.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6149055428724872533.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6148633216259806549.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6149477641189938517.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6147788791329674581.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6151166491050202453.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6144411091609146709.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6157921890491258197.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6130900292727035221.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6184943488255481173.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6076857097198589269.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6293029879312373077.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #5860684315084805461.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #6725375443539940693.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #4995993186629670229.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #8454757700450211157.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #1537228672809129301.>>
+<<seL4(CPU 0) [decodeInvocation/645 T0xffffffc084424600 "child of: '42'" @1c020]: Attempted to invoke a null cap #15372286728091293013.>>
+test_name: CSPACE0001, Test cost: 1234758
+Test CSPACE0001 passed
+Starting test 32: DOMAINS0001
+Running test DOMAINS0001 (Change domain successfully())
+test_name: DOMAINS0001, Test cost: 14062
+Test DOMAINS0001 passed
+Starting test 33: DOMAINS0002
+Running test DOMAINS0002 (Try non-existant domain())
+<<seL4(CPU 0) [decodeDomainInvocation/1583 T0xffffffc084020600 "42" @1d604]: Domain Configure: invalid domain (11 >= 1).>>
+test_name: DOMAINS0002, Test cost: 23687
+Test DOMAINS0002 passed
+Starting test 34: DOMAINS0003
+Running test DOMAINS0003 (Invoke non-domain cap())
+<<seL4(CPU 0) [decodeTCBInvocation/887 T0xffffffc084020600 "42" @1d604]: TCB: Illegal operation.>>
+test_name: DOMAINS0003, Test cost: 26155
+Test DOMAINS0003 passed
+Starting test 35: FPU0000
+Running test FPU0000 (Ensure that simple FPU operations work)
+Invalid instruction from [FPU0000] at PC: 0x5983c
+Register of root thread in test (may not be the thread that faulted)
+Register dump:
+pc:	0x5983c
+ra:	0x25256
+sp:	0x10011960
+gp:	0xbecc0
+s0:	0x10011a10
+s1:	0x0
+s2:	0x0
+s3:	0x0
+s4:	0x0
+s5:	0x0
+s6:	0x0
+s7:	0x0
+s8:	0x0
+s9:	0x0
+s10:	0x0
+s11:	0x0
+a0:	0x400921fb54442d18
+a1:	0x4008000000000000
+a2:	0x0
+a3:	0x0
+a4:	0x0
+a5:	0xa2000
+a6:	0xf
+a7:	0x0
+t0:	0x59d44
+t1:	0x9dac5
+t2:	0x0
+t3:	0x11
+t4:	0x20730000
+t5:	0x39
+t6:	0x9dac3
+tp:	0xe8820
+	Failure: result == SUCCESS at line 291 of file /home/sel4/code/rel4test/projects/sel4test/apps/sel4test-driver/src/testtypes.c
+	Error: result == SUCCESS at line 217 of file /home/sel4/code/rel4test/projects/sel4test/apps/sel4test-driver/src/main.c
+Starting test 36: FPU0001
+Running test FPU0001 (Ensure multiple threads can use FPU simultaneously)
+Invalid instruction from [FPU0001] at PC: 0x5983c
+Register of root thread in test (may not be the thread that faulted)
+Register dump:
+pc:	0x10686
+ra:	0x10784
+sp:	0x10010510
+gp:	0xbecc0
+s0:	0x10010560
+s1:	0x10011980
+s2:	0x9a00
+s3:	0x0
+s4:	0x9a00
+s5:	0x0
+s6:	0x0
+s7:	0x0
+s8:	0x0
+s9:	0x0
+s10:	0x0
+s11:	0x0
+a0:	0x8c
+a1:	0x8c
+a2:	0x100105a0
+a3:	0x100105a8
+a4:	0x10010598
+a5:	0x10010590
+a6:	0x10010588
+a7:	0xfffffffffffffffb
+t0:	0x9a00
+t1:	0x2
+t2:	0x0
+t3:	0x0
+t4:	0x3a
+t5:	0x39
+t6:	0xaddcb
+tp:	0xe8820
+	Failure: result == SUCCESS at line 291 of file /home/sel4/code/rel4test/projects/sel4test/apps/sel4test-driver/src/testtypes.c
+	Error: result == SUCCESS at line 217 of file /home/sel4/code/rel4test/projects/sel4test/apps/sel4test-driver/src/main.c
+Starting test 37: FRAMEDIPC0003
+Running test FRAMEDIPC0003 (Test that deleting a frame cap unmaps the frame)
+test_name: FRAMEDIPC0003, Test cost: 93210
+Test FRAMEDIPC0003 passed
+Starting test 38: FRAMEEXPORTS0001
+Running test FRAMEEXPORTS0001 (Test that we can access all exported frames)
+vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 1073741824, error 1
+vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 2097152, error 1
+vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 4096, error 1
+test_name: FRAMEEXPORTS0001, Test cost: 21070844
+Test FRAMEEXPORTS0001 passed
+Starting test 39: IPC0001
+Running test IPC0001 (Test SMP seL4_Send + seL4_Recv)
+test_name: IPC0001, Test cost: 453393
+Test IPC0001 passed
+Starting test 40: IPC0002
+Running test IPC0002 (Test SMP seL4_Call + seL4_ReplyRecv)
+test_name: IPC0002, Test cost: 504896
+Test IPC0002 passed
+Starting test 41: IPC0003
+Running test IPC0003 (Test SMP seL4_Send + seL4_Reply + seL4_Recv)
+test_name: IPC0003, Test cost: 553776
+Test IPC0003 passed
+Starting test 42: IPC0004
+Running test IPC0004 (Test seL4_NBSend + seL4_Recv)
+test_name: IPC0004, Test cost: 328307
+Test IPC0004 passed
+Starting test 43: IPC0010
+Running test IPC0010 (Test suspending an IPC mid-Call())
+test_name: IPC0010, Test cost: 71479
+Test IPC0010 passed
+Starting test 44: IPC1001
+Running test IPC1001 (Test SMP inter-AS seL4_Send + seL4_Recv)
+test_name: IPC1001, Test cost: 12355403
+Test IPC1001 passed
+Starting test 45: IPC1002
+Running test IPC1002 (Test SMP inter-AS seL4_Call + seL4_ReplyRecv)
+test_name: IPC1002, Test cost: 12384441
+Test IPC1002 passed
+Starting test 46: IPC1003
+Running test IPC1003 (Test SMP inter-AS seL4_Send + seL4_Reply + seL4_Recv)
+test_name: IPC1003, Test cost: 12470694
+Test IPC1003 passed
+Starting test 47: IPC1004
+Running test IPC1004 (Test inter-AS seL4_NBSend + seL4_Recv)
+test_name: IPC1004, Test cost: 12234526
+Test IPC1004 passed
+Starting test 48: IPCRIGHTS0001
+Running test IPCRIGHTS0001 (seL4_Send needs write)
+<<seL4(CPU 0) [decodeInvocation/658 T0xffffffc084020600 "42" @30aaa]: Attempted to invoke a read-only endpoint cap #120.>>
+<<seL4(CPU 0) [decodeInvocation/658 T0xffffffc084020600 "42" @30aaa]: Attempted to invoke a read-only endpoint cap #120.>>
+test_name: IPCRIGHTS0001, Test cost: 124893
+Test IPCRIGHTS0001 passed
+Starting test 49: IPCRIGHTS0002
+Running test IPCRIGHTS0002 (seL4_Recv needs read)
+test_name: IPCRIGHTS0002, Test cost: 107020
+Test IPCRIGHTS0002 passed
+Starting test 50: IPCRIGHTS0003
+Running test IPCRIGHTS0003 (seL4_Send with caps needs grant)
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc17fefe600 "child of: '42'" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc17fefe600 "child of: '42'" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+test_name: IPCRIGHTS0003, Test cost: 110142
+Test IPCRIGHTS0003 passed
+Starting test 51: IPCRIGHTS0004
+Running test IPCRIGHTS0004 (seL4_Call needs grant or grant-reply)
+<<seL4(CPU 0) [invokeCNodeSaveCaller/374 T0xffffffc084020600 "42" @10712]: CNode SaveCaller: Reply cap not present.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [invokeCNodeSaveCaller/374 T0xffffffc084020600 "42" @10712]: CNode SaveCaller: Reply cap not present.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [invokeCNodeSaveCaller/374 T0xffffffc084020600 "42" @10712]: CNode SaveCaller: Reply cap not present.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [invokeCNodeSaveCaller/374 T0xffffffc084020600 "42" @10712]: CNode SaveCaller: Reply cap not present.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [invokeCNodeSaveCaller/374 T0xffffffc084020600 "42" @10712]: CNode SaveCaller: Reply cap not present.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [invokeCNodeSaveCaller/374 T0xffffffc084020600 "42" @10712]: CNode SaveCaller: Reply cap not present.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+test_name: IPCRIGHTS0004, Test cost: 349002
+Test IPCRIGHTS0004 passed
+Starting test 52: IPCRIGHTS0005
+Running test IPCRIGHTS0005 (seL4_Reply grant depends of the grant of previous seL4_Recv)
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc17fefe600 "child of: '42'" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc17fefe600 "child of: '42'" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc17fefe600 "child of: '42'" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/95 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Destination not empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc17fefe600 "child of: '42'" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc17fefe600 "child of: '42'" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc17fefe600 "child of: '42'" @10712]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+test_name: IPCRIGHTS0005, Test cost: 233623
+Test IPCRIGHTS0005 passed
+Starting test 53: NBWAIT0001
+Running test NBWAIT0001 (Test seL4_NBRecv)
+test_name: NBWAIT0001, Test cost: 73851
+Test NBWAIT0001 passed
+Starting test 54: PAGEFAULT0001
+Running test PAGEFAULT0001 (Test read page fault)
+test_name: PAGEFAULT0001, Test cost: 260863
+Test PAGEFAULT0001 passed
+Starting test 55: PAGEFAULT0002
+Running test PAGEFAULT0002 (Test write page fault)
+test_name: PAGEFAULT0002, Test cost: 266514
+Test PAGEFAULT0002 passed
+Starting test 56: PAGEFAULT0003
+Running test PAGEFAULT0003 (Test execute page fault)
+test_name: PAGEFAULT0003, Test cost: 275656
+Test PAGEFAULT0003 passed
+Starting test 57: PAGEFAULT0004
+Running test PAGEFAULT0004 (Test unknown system call)
+test_name: PAGEFAULT0004, Test cost: 267093
+Test PAGEFAULT0004 passed
+Starting test 58: PAGEFAULT0005
+Running test PAGEFAULT0005 (Test undefined instruction)
+test_name: PAGEFAULT0005, Test cost: 264596
+Test PAGEFAULT0005 passed
+Starting test 59: PAGEFAULT1001
+Running test PAGEFAULT1001 (Test read page fault (inter-AS))
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+test_name: PAGEFAULT1001, Test cost: 14950173
+Test PAGEFAULT1001 passed
+Starting test 60: PAGEFAULT1002
+Running test PAGEFAULT1002 (Test write page fault (inter-AS))
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+test_name: PAGEFAULT1002, Test cost: 15032309
+Test PAGEFAULT1002 passed
+Starting test 61: PAGEFAULT1003
+Running test PAGEFAULT1003 (Test execute page fault (inter-AS))
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+test_name: PAGEFAULT1003, Test cost: 14853621
+Test PAGEFAULT1003 passed
+Starting test 62: PAGEFAULT1004
+Running test PAGEFAULT1004 (Test unknown system call (inter-AS))
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+<<seL4(CPU 0) [decodeCNodeInvocation/107 T0xffffffc084020600 "42" @68422]: CNode Copy/Mint/Move/Mutate: Source slot invalid or empty.>>
+sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
+
+test_name: PAGEFAULT1004, Test cost: 14833848
+Test PAGEFAULT1004 passed
+Starting test 63: REGRESSIONS0001
+Running test REGRESSIONS0001 (Ensure WriteRegisters functions correctly)
+test_name: REGRESSIONS0001, Test cost: 77254
+Test REGRESSIONS0001 passed
+Starting test 64: RETYPE0000
+Running test RETYPE0000 (Retype test)
+<<seL4(CPU 0) [decodeUntypedInvocation/146 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Number of requested objects (0) too small or large.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/154 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Requested destination window overruns size of node.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/138 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Destination node offset #4 too large.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/166 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Slot #0 in destination window non-empty.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/166 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Slot #1 in destination window non-empty.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/166 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Slot #2 in destination window non-empty.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/166 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Slot #3 in destination window non-empty.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/146 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Number of requested objects (18446744071562067968) too small or large.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/154 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Requested destination window overruns size of node.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/166 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Slot #0 in destination window non-empty.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/166 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Slot #1 in destination window non-empty.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/166 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Slot #2 in destination window non-empty.>>
+test_name: RETYPE0000, Test cost: 137916
+Test RETYPE0000 passed
+Starting test 65: RETYPE0001
+Running test RETYPE0001 (Incremental retype test)
+<<seL4(CPU 0) [decodeUntypedInvocation/81 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Invalid object size.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/81 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Invalid object size.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/81 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Invalid object size.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/81 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Invalid object size.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/81 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Invalid object size.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/81 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Invalid object size.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/81 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Invalid object size.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/81 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Invalid object size.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/81 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Invalid object size.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/81 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Invalid object size.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/81 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Invalid object size.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/81 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Invalid object size.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/81 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Invalid object size.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/81 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Invalid object size.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/81 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Invalid object size.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/205 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Insufficient memory (1 * 274877906944 bytes needed, 8192 bytes available).>>
+<<seL4(CPU 0) [decodeUntypedInvocation/205 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Insufficient memory (1 * 137438953472 bytes needed, 8192 bytes available).>>
+<<seL4(CPU 0) [decodeUntypedInvocation/205 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Insufficient memory (1 * 68719476736 bytes needed, 8192 bytes available).>>
+<<seL4(CPU 0) [decodeUntypedInvocation/205 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Insufficient memory (1 * 34359738368 bytes needed, 8192 bytes available).>>
+<<seL4(CPU 0) [decodeUntypedInvocation/205 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Insufficient memory (1 * 17179869184 bytes needed, 8192 bytes available).>>
+<<seL4(CPU 0) [decodeUntypedInvocation/205 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Insufficient memory (1 * 8589934592 bytes needed, 8192 bytes available).>>
+<<seL4(CPU 0) [decodeUntypedInvocation/205 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Insufficient memory (1 * 4294967296 bytes needed, 8192 bytes available).>>
+<<seL4(CPU 0) [decodeUntypedInvocation/205 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Insufficient memory (1 * 2147483648 bytes needed, 8192 bytes available).>>
+<<seL4(CPU 0) [decodeUntypedInvocation/205 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Insufficient memory (1 * 1073741824 bytes needed, 8192 bytes available).>>
+<<seL4(CPU 0) [decodeUntypedInvocation/205 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Insufficient memory (1 * 536870912 bytes needed, 8192 bytes available).>>
+<<seL4(CPU 0) [decodeUntypedInvocation/205 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Insufficient memory (1 * 268435456 bytes needed, 8192 bytes available).>>
+<<seL4(CPU 0) [decodeUntypedInvocation/205 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Insufficient memory (1 * 134217728 bytes needed, 8192 bytes available).>>
+<<seL4(CPU 0) [decodeUntypedInvocation/205 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Insufficient memory (1 * 67108864 bytes needed, 8192 bytes available).>>
+<<seL4(CPU 0) [decodeUntypedInvocation/205 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Insufficient memory (1 * 33554432 bytes needed, 8192 bytes available).>>
+<<seL4(CPU 0) [decodeUntypedInvocation/205 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Insufficient memory (1 * 16777216 bytes needed, 8192 bytes available).>>
+<<seL4(CPU 0) [decodeUntypedInvocation/205 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Insufficient memory (1 * 8388608 bytes needed, 8192 bytes available).>>
+<<seL4(CPU 0) [decodeUntypedInvocation/205 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Insufficient memory (1 * 4194304 bytes needed, 8192 bytes available).>>
+<<seL4(CPU 0) [decodeUntypedInvocation/205 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Insufficient memory (1 * 2097152 bytes needed, 8192 bytes available).>>
+<<seL4(CPU 0) [decodeUntypedInvocation/205 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Insufficient memory (1 * 1048576 bytes needed, 8192 bytes available).>>
+<<seL4(CPU 0) [decodeUntypedInvocation/205 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Insufficient memory (1 * 524288 bytes needed, 8192 bytes available).>>
+<<seL4(CPU 0) [decodeUntypedInvocation/205 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Insufficient memory (1 * 262144 bytes needed, 8192 bytes available).>>
+<<seL4(CPU 0) [decodeUntypedInvocation/205 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Insufficient memory (1 * 131072 bytes needed, 8192 bytes available).>>
+<<seL4(CPU 0) [decodeUntypedInvocation/205 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Insufficient memory (1 * 65536 bytes needed, 8192 bytes available).>>
+<<seL4(CPU 0) [decodeUntypedInvocation/205 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Insufficient memory (1 * 32768 bytes needed, 8192 bytes available).>>
+<<seL4(CPU 0) [decodeUntypedInvocation/205 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Insufficient memory (1 * 16384 bytes needed, 8192 bytes available).>>
+test_name: RETYPE0001, Test cost: 435018
+Test RETYPE0001 passed
+Starting test 66: RETYPE0002
+Running test RETYPE0002 (Incremental retype test #2)
+<<seL4(CPU 0) [decodeUntypedInvocation/146 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Number of requested objects (1048576) too small or large.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/166 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Slot #140 in destination window non-empty.>>
+<<seL4(CPU 0) [decodeUntypedInvocation/205 T0xffffffc084020600 "42" @289b4]: Untyped Retype: Insufficient memory (1 * 4096 bytes needed, 0 bytes available).>>
+test_name: RETYPE0002, Test cost: 63138
+Test RETYPE0002 passed
+Starting test 67: SCHED0002
+Running test SCHED0002 (Test resuming ourselves)
+test_name: SCHED0002, Test cost: 12743
+Test SCHED0002 passed
+Starting test 68: SCHED0003
+Running test SCHED0003 (Test TCB suspend/resume)
+test_name: SCHED0003, Test cost: 215217
+Test SCHED0003 passed
+Starting test 69: SCHED0004
+Running test SCHED0004 (Test threads at all priorities)
+test_name: SCHED0004, Test cost: 2529632
+Test SCHED0004 passed
+Starting test 70: SCHED0005
+Running test SCHED0005 (Test set priority)
+<<seL4(CPU 0) [decodeSetPriority/1186 T0xffffffc17fefea00 "child of: '42'" @43b2a]: TCB SetPriority: Requested priority 253 too high (max 251).>>
+<<seL4(CPU 0) [decodeSetPriority/1186 T0xffffffc17fefe600 "child of: '42'" @43b2a]: TCB SetPriority: Requested priority 250 too high (max 249).>>
+<<seL4(CPU 0) [decodeSetMCPriority/1230 T0xffffffc17fefe600 "child of: '42'" @43b2a]: TCB SetMCPriority: Requested maximum controlled priority 253 too high (max 249).>>
+test_name: SCHED0005, Test cost: 120335
+Test SCHED0005 passed
+Starting test 71: SCHED0006
+Running test SCHED0006 (Test IPC priorities for Send)
+test_name: SCHED0006, Test cost: 122521
+Test SCHED0006 passed
+Starting test 72: SCHED0020
+Running test SCHED0020 (test set prio to a higher prio runs higher prio thread)
+test_name: SCHED0020, Test cost: 61050
+Test SCHED0020 passed
+Starting test 73: SERSERV_CLIENT_001
+Running test SERSERV_CLIENT_001 (Connect from client threads)
+test_name: SERSERV_CLIENT_001, Test cost: 108298
+Test SERSERV_CLIENT_001 passed
+Starting test 74: SERSERV_CLIENT_002
+Running test SERSERV_CLIENT_002 (Printf from client threads)
+Hello, world!
+test_name: SERSERV_CLIENT_002, Test cost: 117982
+Test SERSERV_CLIENT_002 passed
+Starting test 75: SERSERV_CLIENT_003
+Running test SERSERV_CLIENT_003 (Write from client threads)
+Hello, world!
+test_name: SERSERV_CLIENT_003, Test cost: 125278
+Test SERSERV_CLIENT_003 passed
+Starting test 76: SERSERV_CLIENT_004
+Running test SERSERV_CLIENT_004 (Printf, then write, then reset connection, and Printf, then write again, from client threads)
+Hello, world!
+Hello, world!
+Hello, world!
+Hello, world!
+test_name: SERSERV_CLIENT_004, Test cost: 129162
+Test SERSERV_CLIENT_004 passed
+Starting test 77: SERSERV_CLIENT_005
+Running test SERSERV_CLIENT_005 (Connect, then disconnect from server on all threads, then kill server from parent thread)
+test_name: SERSERV_CLIENT_005, Test cost: 120597
+Test SERSERV_CLIENT_005 passed
+Starting test 78: SERSERV_CLI_PROC_001
+Running test SERSERV_CLI_PROC_001 (Connect to server from a client in another VSpace and CSpace)
+test_name: SERSERV_CLI_PROC_001, Test cost: 800968
+Test SERSERV_CLI_PROC_001 passed
+Starting test 79: SERSERV_CLI_PROC_002
+Running test SERSERV_CLI_PROC_002 (Connect to server and printf(, true), from a client in another VSpace and CSpace)
+Hello, world!
+test_name: SERSERV_CLI_PROC_002, Test cost: 883505
+Test SERSERV_CLI_PROC_002 passed
+Starting test 80: SERSERV_CLI_PROC_003
+Running test SERSERV_CLI_PROC_003 (Connect to server and write(, true), from a client in another VSpace and CSpace)
+Hello, world!
+test_name: SERSERV_CLI_PROC_003, Test cost: 846045
+Test SERSERV_CLI_PROC_003 passed
+Starting test 81: SERSERV_CLI_PROC_004
+Running test SERSERV_CLI_PROC_004 (Connect to server, printf(), write(, true), then disconnect, then reconnect and printf() and write() again, from clients in other VSpaces and CSpaces)
+Hello, world!
+Hello, world!
+Hello, world!
+Hello, world!
+test_name: SERSERV_CLI_PROC_004, Test cost: 874807
+Test SERSERV_CLI_PROC_004 passed
+Starting test 82: SERSERV_CLI_PROC_005
+Running test SERSERV_CLI_PROC_005 (Connect to server then disconnect on all clients (in different VSpace/CSpace containers), and finally kill the server from the parent)
+test_name: SERSERV_CLI_PROC_005, Test cost: 855442
+Test SERSERV_CLI_PROC_005 passed
+Starting test 83: SERSERV_PARENT_001
+Running test SERSERV_PARENT_001 (Serial server spawn test)
+test_name: SERSERV_PARENT_001, Test cost: 59143
+Test SERSERV_PARENT_001 passed
+Starting test 84: SERSERV_PARENT_002
+Running test SERSERV_PARENT_002 (Test connecting to the server from a parent thread)
+test_name: SERSERV_PARENT_002, Test cost: 85115
+Test SERSERV_PARENT_002 passed
+Starting test 85: SERSERV_PARENT_003
+Running test SERSERV_PARENT_003 (Printf() from a connected parent thread)
+Hello, world!
+test_name: SERSERV_PARENT_003, Test cost: 77242
+Test SERSERV_PARENT_003 passed
+Starting test 86: SERSERV_PARENT_004
+Running test SERSERV_PARENT_004 (Write() from a connected parent thread)
+Hello, world!
+test_name: SERSERV_PARENT_004, Test cost: 75040
+Test SERSERV_PARENT_004 passed
+Starting test 87: SERSERV_PARENT_005
+Running test SERSERV_PARENT_005 (Test printf() and write() from a parent thread when after a connection reset (disconnect/reconnect))
+Hello, world!
+Hello, world!
+Hello, world!
+Hello, world!
+test_name: SERSERV_PARENT_005, Test cost: 92965
+Test SERSERV_PARENT_005 passed
+Starting test 88: SERSERV_PARENT_006
+Running test SERSERV_PARENT_006 (Kill the Server from the Parent thread)
+test_name: SERSERV_PARENT_006, Test cost: 86555
+Test SERSERV_PARENT_006 passed
+Starting test 89: SERSERV_PARENT_007
+Running test SERSERV_PARENT_007 (Test a series of unexpected input values to spawn_thread)
+test_name: SERSERV_PARENT_007, Test cost: 13646
+Test SERSERV_PARENT_007 passed
+Starting test 90: SERSERV_PARENT_008
+Running test SERSERV_PARENT_008 (Test a series of unexpected input values to connect())
+test_name: SERSERV_PARENT_008, Test cost: 66308
+Test SERSERV_PARENT_008 passed
+Starting test 91: SERSERV_PARENT_009
+Running test SERSERV_PARENT_009 (Test a series of unexpected input values to printf())
+serial_server_printf@clientapi.c:178 Serserv Client: printf: NULL passed for required arguments.
+	Is connection handle valid?
+serial_server_printf@clientapi.c:178 Serserv Client: printf: NULL passed for required arguments.
+	Is connection handle valid?
+test_name: SERSERV_PARENT_009, Test cost: 94864
+Test SERSERV_PARENT_009 passed
+Starting test 92: SERSERV_PARENT_010
+Running test SERSERV_PARENT_010 (Test a series of unexpected input values to write())
+serial_server_write@clientapi.c:221 Serserv Client: printf: NULL passed for required arguments.
+	Is connection handle valid?
+serial_server_write@clientapi.c:221 Serserv Client: printf: NULL passed for required arguments.
+	Is connection handle valid?
+test_name: SERSERV_PARENT_010, Test cost: 96813
+Test SERSERV_PARENT_010 passed
+Starting test 93: SYNC001
+Running test SYNC001 (libsel4sync Test binary semaphores)
+test_name: SYNC001, Test cost: 94214
+Test SYNC001 passed
+Starting test 94: SYNC002
+Running test SYNC002 (libsel4sync Test semaphores)
+test_name: SYNC002, Test cost: 95178
+Test SYNC002 passed
+Starting test 95: SYNC003
+Running test SYNC003 (libsel4sync Test monitors)
+test_name: SYNC003, Test cost: 115368
+Test SYNC003 passed
+Starting test 96: SYNC004
+Running test SYNC004 (libsel4sync Test monitors - broadcast)
+test_name: SYNC004, Test cost: 109986
+Test SYNC004 passed
+Starting test 97: THREADS0004
+Running test THREADS0004 (seL4_TCB_Configure with a NULL CSpace should fail)
+<<seL4(CPU 0) [decodeTCBConfigure/1121 T0xffffffc084020600 "42" @53746]: TCB Configure: CSpace cap is invalid.>>
+test_name: THREADS0004, Test cost: 73990
+Test THREADS0004 passed
+Starting test 98: THREADS0005
+Running test THREADS0005 (seL4_TCB_SetSpace with a NULL CSpace should fail)
+<<seL4(CPU 0) [decodeSetSpace/1516 T0xffffffc084020600 "42" @53746]: TCB SetSpace: Invalid CNode cap.>>
+test_name: THREADS0005, Test cost: 74239
+Test THREADS0005 passed
+Starting test 99: TLS0001
+Running test TLS0001 (Test root thread accessing __thread variables)
+test_name: TLS0001, Test cost: 12613
+Test TLS0001 passed
+Starting test 100: TLS0002
+Running test TLS0002 (Test multiple threads using __thread variables)
+test_name: TLS0002, Test cost: 104703
+Test TLS0002 passed
+Starting test 101: TLS0006
+Running test TLS0006 (sel4utils_thread with distinct TLS should not interfere)
+test_name: TLS0006, Test cost: 196806
+Test TLS0006 passed
+Starting test 102: TRIVIAL0000
+Running test TRIVIAL0000 (Ensure the test framework functions)
+test_name: TRIVIAL0000, Test cost: 15884
+Test TRIVIAL0000 passed
+Starting test 103: TRIVIAL0001
+Running test TRIVIAL0001 (Ensure the allocator works)
+test_name: TRIVIAL0001, Test cost: 94205
+Test TRIVIAL0001 passed
+Starting test 104: TRIVIAL0002
+Running test TRIVIAL0002 (Ensure the allocator works more than once)
+test_name: TRIVIAL0002, Test cost: 92580
+Test TRIVIAL0002 passed
+Starting test 105: VSPACE0000
+Running test VSPACE0000 (Test threads in different cspace/vspace)
+test_name: VSPACE0000, Test cost: 699212
+Test VSPACE0000 passed
+Starting test 106: VSPACE0002
+Running test VSPACE0002 (Test create ASID pool)
+<<seL4(CPU 0) [decodeRISCVMMUInvocation/1035 T0xffffffc084020600 "42" @567e2]: RISCVASIDPool: Invalid vspace root.>>
+test_name: VSPACE0002, Test cost: 36070
+Test VSPACE0002 passed
+Starting test 107: VSPACE0003
+Running test VSPACE0003 (Test create multiple ASID pools)
+test_name: VSPACE0003, Test cost: 51596
+Test VSPACE0003 passed
+Starting test 108: VSPACE0004
+Running test VSPACE0004 (Test running out of ASID pools)
+test_name: VSPACE0004, Test cost: 45118
+Test VSPACE0004 passed
+Starting test 109: VSPACE0005
+Running test VSPACE0005 (Test overassigning ASID pool)
+test_name: VSPACE0005, Test cost: 92408
+Test VSPACE0005 passed
+Starting test 110: VSPACE0006
+Running test VSPACE0006 (Test touching all available ASID pools)
+test_name: VSPACE0006, Test cost: 76512509
+Test VSPACE0006 passed
+Starting test 112: Test all tests ran
+Test suite failed. 110/112 tests passed.
+*** FAILURES DETECTED ***
+
+
+Test end =====================
+start clock: 593008, end clock: 330010535, cost: 329417527

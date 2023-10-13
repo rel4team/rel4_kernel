@@ -12,6 +12,7 @@ pub struct resolveAddressBits_ret_t {
 }
 
 impl Default for resolveAddressBits_ret_t {
+    #[inline]
     fn default() -> Self {
         resolveAddressBits_ret_t {
             status: exception_t::EXCEPTION_NONE,

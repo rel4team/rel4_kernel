@@ -32,7 +32,7 @@ pub fn Arch_finaliseCap(cap: &cap_t, final_: bool) -> finaliseCap_ret {
             }
         }
 
-        CapTag::CapPageTableCap => {
+        CapTag::CapPageTableCap => unsafe {
             if final_ && cap.get_pt_is_mapped() != 0 {
                 let asid = cap.get_pt_mapped_asid();
                 let find_ret = find_vspace_for_asid(asid);
@@ -180,6 +180,9 @@ fn deleteASID(asid: asid_t, vspace: *mut pte_t) {
         if let Err(lookup_fault) = delete_asid(asid, vspace, &(*getCSpace(ksCurThread as usize, tcbVTable)).cap) {
             current_lookup_fault = lookup_fault;
         }
+        // if let Err(lookup_fault) = delete_asid(asid, vspace, &get_currenct_thread().get_cspace(tcbVTable).cap) {
+        //     current_lookup_fault = lookup_fault;
+        // }
     }
 }
 
@@ -189,5 +192,8 @@ fn deleteASIDPool(asid_base: asid_t, pool: *mut asid_pool_t) {
         if let Err(lookup_fault) = delete_asid_pool(asid_base, pool, &(*getCSpace(ksCurThread as usize, tcbVTable)).cap) {
             current_lookup_fault = lookup_fault;
         }
+        // if let Err(lookup_fault) = delete_asid_pool(asid_base, pool, &get_currenct_thread().get_cspace(tcbVTable).cap) {
+        //     current_lookup_fault = lookup_fault;
+        // }
     }
 }

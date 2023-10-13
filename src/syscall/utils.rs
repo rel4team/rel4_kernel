@@ -49,9 +49,24 @@ pub fn getSyscallArg(i: usize, ipc_buffer: *const usize) -> usize {
     }
 }
 
+#[inline]
 pub fn lookup_extra_caps(thread: &tcb_t) -> exception_t {
     unsafe {
         match thread.lookup_extra_caps(&mut current_extra_caps.excaprefs) {
+            Ok(()) =>{},
+            Err(fault) => {
+                current_fault = fault;
+                return exception_t::EXCEPTION_LOOKUP_FAULT;
+            },
+        }
+    }
+    return exception_t::EXCEPTION_NONE;
+}
+
+#[inline]
+pub fn lookup_extra_caps_with_buf(thread: &tcb_t, buf: Option<&seL4_IPCBuffer>) -> exception_t {
+    unsafe {
+        match thread.lookup_extra_caps_with_buf(&mut current_extra_caps.excaprefs, buf) {
             Ok(()) =>{},
             Err(fault) => {
                 current_fault = fault;

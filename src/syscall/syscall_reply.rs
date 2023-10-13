@@ -4,6 +4,7 @@ use common::sel4_config::*;
 use crate::config::badgeRegister;
 use crate::kernel::boot::{current_lookup_fault, current_syscall_error};
 
+#[inline]
 pub fn reply_error_from_kernel(thread: &mut tcb_t) {
     thread.set_register(badgeRegister, 0);
     unsafe {
@@ -12,7 +13,7 @@ pub fn reply_error_from_kernel(thread: &mut tcb_t) {
     }
 }
 
-
+#[inline]
 pub fn reply_success_from_kernel(thread: &mut tcb_t) {
     thread.set_register(badgeRegister, 0);
     thread.set_register(msgInfoRegister, seL4_MessageInfo_t::new(0, 0, 0, 0).to_word());
