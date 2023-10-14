@@ -140,18 +140,11 @@ impl tcb_t {
     fn do_normal_transfer(&self, receiver: &mut tcb_t, endpoint: Option<&endpoint_t>, badge: usize, can_grant: bool) {
         let mut tag = seL4_MessageInfo_t::from_word_security(self.get_register(msgInfoRegister));
         let mut current_extra_caps = [0; seL4_MsgMaxExtraCaps];
-        let send_buffer = self.lookup_ipc_buffer(false);
-        // let mut recv_buffer = receiver.lookup_mut_ipc_buffer(true);
         if can_grant {
-            // let _ = self.lookup_extra_caps(&mut current_extra_caps);
-            let _ = self.lookup_extra_caps_with_buf(&mut current_extra_caps, send_buffer);
+            let _ = self.lookup_extra_caps(&mut current_extra_caps);
         }
-        // let msg_transferred = self.copy_mrs(receiver, tag.get_length());
-        let msg_transferred = self.copy_mrs_with_buf(receiver, tag.get_length(), send_buffer);
-
-        // do_caps_transfer(&mut tag, endpoint, receiver, &current_extra_caps);
+        let msg_transferred = self.copy_mrs(receiver, tag.get_length());
         receiver.set_transfer_caps(endpoint, &mut tag, &current_extra_caps);
-        // receiver.set_transfer_caps_with_buf(endpoint, &mut tag, &current_extra_caps, recv_buffer.as_deref_mut());
         tag.set_length(msg_transferred);
         receiver.set_register(msgInfoRegister, tag.to_word());
         receiver.set_register(badgeRegister, badge);

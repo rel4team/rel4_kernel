@@ -449,13 +449,13 @@ impl tcb_t {
     }
 
     #[inline]
-    pub fn copy_mrs_with_buf(&self, receiver: &mut tcb_t, length: usize, send_buf: Option<&seL4_IPCBuffer>) -> usize {
+    pub fn copy_mrs(&self, receiver: &mut tcb_t, length: usize) -> usize {
         let mut i = 0;
         while i < length && i < n_msgRegisters {
             receiver.set_register(msgRegister[i], self.get_register(msgRegister[i]));
             i += 1;
         }
-        if let (Some(send_buffer), Some(recv_buffer)) = (send_buf, receiver.lookup_mut_ipc_buffer(true)) {
+        if let (Some(send_buffer), Some(recv_buffer)) = (self.lookup_ipc_buffer(false), receiver.lookup_mut_ipc_buffer(true)) {
             unsafe {
                 let recv_ptr = recv_buffer as *mut seL4_IPCBuffer as *mut usize;
                 let send_ptr = send_buffer as *const seL4_IPCBuffer as *const usize;

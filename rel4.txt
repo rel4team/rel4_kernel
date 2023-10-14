@@ -1,3 +1,4 @@
+./simulate: qemu-system-riscv64 -machine spike -cpu rv64 -nographic -serial mon:stdio -m size=4095M -bios none -kernel images/sel4test-driver-image-riscv-spike
 OpenSBI v0.8
    ____                    _____ ____ _____
   / __ \                  / ____|  _ \_   _|
@@ -24,17 +25,17 @@ MEDELEG : 0x000000000000b109
 PMP0    : 0x0000000080000000-0x000000008001ffff (A)
 PMP1    : 0x0000000000000000-0xffffffffffffffff (A,R,W,X)
 ELF-loader started on (HART 0) (NODES 1)
-  paddr=[80200000..80875037]
-Looking for DTB in CPIO archive...found at 804c3058.
-Loaded DTB from 804c3058.
+  paddr=[80200000..8087a037]
+Looking for DTB in CPIO archive...found at 804d3758.
+Loaded DTB from 804d3758.
    paddr=[84068000..84068fff]
 ELF-loading image 'kernel' to 84000000
   paddr=[84000000..84067fff]
   vaddr=[ffffffff84000000..ffffffff84067fff]
   virt_entry=ffffffff84000000
 ELF-loading image 'sel4test-driver' to 84069000
-  paddr=[84069000..8445efff]
-  vaddr=[10000..405fff]
+  paddr=[84069000..8444efff]
+  vaddr=[10000..3f5fff]
   virt_entry=1ba78
 Enabling MMU and paging
 Jumping to kernel-image entry point...
@@ -46,18 +47,18 @@ Jumping to kernel-image entry point...
 [DEBUG 0] reserved virt address space regions: 3
 [DEBUG 0]   [0xffffffc084000000..0xffffffc084068000]
 [DEBUG 0]   [0xffffffc084068000..0xffffffc0840683a1]
-[DEBUG 0]   [0xffffffc084069000..0xffffffc08445f000]
+[DEBUG 0]   [0xffffffc084069000..0xffffffc08444f000]
 [DEBUG 0] Booting all finished, dropped to user space
 [DEBUG 0]
 
 Node 0 of 1
 IOPT levels:     0
-IPC buffer:      0x406000
-Empty slots:     [1082 --> 8192)
+IPC buffer:      0x3f6000
+Empty slots:     [1067 --> 8192)
 sharedFrames:    [0 --> 0)
-userImageFrames: [19 --> 1033)
-userImagePaging: [14 --> 18)
-untypeds:        [1033 --> 1082)
+userImageFrames: [18 --> 1016)
+userImagePaging: [14 --> 17)
+untypeds:        [1016 --> 1067)
 Initial thread domain: 0
 Initial thread cnode size: 13
 List of untypeds
@@ -83,7 +84,8 @@ Paddr    | Size   | Device
 0x840683c0 | 6 | 0
 0x84068400 | 10 | 0
 0x84068800 | 11 | 0
-0x8445f000 | 12 | 0
+0x8444f000 | 12 | 0
+0x84450000 | 16 | 0
 0x84460000 | 17 | 0
 0x84480000 | 19 | 0
 0x84500000 | 20 | 0
@@ -106,8 +108,9 @@ Paddr    | Size   | Device
 0x17f800000 | 22 | 0
 0x17fc00000 | 21 | 0
 0x17fe00000 | 19 | 0
-0x17fec9400 | 10 | 0
-0x17fec9800 | 11 | 0
+0x17fec8400 | 10 | 0
+0x17fec8800 | 11 | 0
+0x17fec9000 | 12 | 0
 0x17feca000 | 13 | 0
 0x17fecc000 | 14 | 0
 0x17fed0000 | 16 | 0
@@ -117,10 +120,10 @@ Untyped summary
 1 untypeds of size 6
 2 untypeds of size 10
 2 untypeds of size 11
-1 untypeds of size 12
+2 untypeds of size 12
 2 untypeds of size 13
 1 untypeds of size 14
-1 untypeds of size 16
+2 untypeds of size 16
 2 untypeds of size 17
 2 untypeds of size 19
 2 untypeds of size 20
@@ -141,8 +144,7 @@ Untyped summary
 1 untypeds of size 36
 1 untypeds of size 37
 1 untypeds of size 38
-Switching to a safer, bigger stack... [DEBUG 0] RISCVPageTableMap: All objects mapped at this address
-
+Switching to a safer, bigger stack...
 seL4 Test
 =========
 
@@ -166,7 +168,7 @@ vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 3276
 vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 16384, error 1
 vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 8192, error 1
 vspace_reserve_range_at@vspace.h:738 vspace is NULL
-create_reservations@elf.c:245 Failed to make reservation: 0x10000, 696320
+create_reservations@elf.c:245 Failed to make reservation: 0x10000, 692224
 elf_reserve_regions_in_vspace@elf.c:438 Failed to create reservations
 sel4utils_elf_reserve@elf.c:465 Failed to reserve regions
 Starting test suite sel4test
@@ -258,602 +260,602 @@ Starting test 15: SYSCALL0017
 [DEBUG 0] CNodeCap: Illegal Operation attempted.
 Starting test 16: BIND0001
 Running test BIND0001 (Test that a bound tcb waiting on a sync endpoint receives normal sync ipc and notification notifications.)
-test_name: BIND0001, Test cost: 108262
+test_name: BIND0001, Test cost: 138355
 Test BIND0001 passed
 Starting test 17: BIND0002
 Running test BIND0002 (Test that a bound tcb waiting on its bound notification recieves notifications)
-test_name: BIND0002, Test cost: 80135
+test_name: BIND0002, Test cost: 106678
 Test BIND0002 passed
 Starting test 18: BIND0003
 Running test BIND0003 (Test IPC ordering 1) bound tcb waits on bound notification 2, true) another tcb sends a message)
-test_name: BIND0003, Test cost: 96493
+test_name: BIND0003, Test cost: 110514
 Test BIND0003 passed
 Starting test 19: BIND0004
 Running test BIND0004 (Test IPC ordering 2) bound tcb waits on bound notification 1, true) another tcb sends a message)
-test_name: BIND0004, Test cost: 92359
+test_name: BIND0004, Test cost: 134781
 Test BIND0004 passed
 Starting test 20: CANCEL_BADGED_SENDS_0001
 Running test CANCEL_BADGED_SENDS_0001 (Basic endpoint cancelBadgedSends testing.)
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x71, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xef, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x138, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16f, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x1ad, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x1eb, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb1, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf4, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x136, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16d, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x1af, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x1e9, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x230, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x26f, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x2a9, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x26d, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x327, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2ea, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x333, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x36c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x3b5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x331, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x36e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x3b3, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x3f3, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x42e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x46b, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x434, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4e4, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x4ad, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4ee, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x533, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x572, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4ec, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x535, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x570, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x5b9, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x5ef, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x636, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x5f3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x634, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x673, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x6b5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x6f4, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x73d, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x776, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x7b0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x7f5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x6b3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x6f6, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x73b, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x774, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x7be, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x7f3, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x838, CapNullCap.
-test_name: CANCEL_BADGED_SENDS_0001, Test cost: 598028
+test_name: CANCEL_BADGED_SENDS_0001, Test cost: 953976
 Test CANCEL_BADGED_SENDS_0001 passed
 Starting test 21: CANCEL_BADGED_SENDS_0002
 Running test CANCEL_BADGED_SENDS_0002 (cancelBadgedSends deletes caps)
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2a0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2a0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e2, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2a0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e2, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x313, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x311, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2a0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e2, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x313, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x311, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x353, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2a0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e2, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x313, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x311, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x353, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x397, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x393, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2a0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e2, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x313, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x311, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x353, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x397, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x393, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cf, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2a0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e2, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x313, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x311, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x353, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x397, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x40e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x393, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cf, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x40c, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2a0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e2, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x313, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x311, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x353, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x397, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x40e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x393, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cf, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x40c, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x450, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2a0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e2, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x313, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x311, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x353, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x397, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x40e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x393, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cf, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x40c, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x450, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x484, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x48a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2a0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e2, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x313, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x311, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x353, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x397, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x40e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x393, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cf, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x40c, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x450, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x484, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c3, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x48a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2a0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e2, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x313, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x311, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x353, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x397, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x40e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x393, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cf, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x40c, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x450, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x484, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c3, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fe, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x48a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fd, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2a0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e2, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x313, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x311, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x353, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x397, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x40e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x393, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cf, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x40c, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x450, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x484, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c3, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fe, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x53e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x48a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fd, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x53b, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2a0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e2, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x313, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x311, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x353, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x397, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x40e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x393, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cf, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x40c, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x450, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x484, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c3, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fe, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x53e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x57e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x48a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fd, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x53b, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x57f, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2a0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e2, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x313, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x311, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x353, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x397, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x40e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x393, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cf, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x40c, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x450, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x484, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c3, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fe, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x53e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x57e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x5bd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x48a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fd, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x53b, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x57f, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x5b9, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2a0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e2, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x313, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x311, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x353, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x397, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x40e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x393, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cf, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x40c, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x450, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x484, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c3, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fe, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x53e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x57e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x5bd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x5f5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x48a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fd, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x53b, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x57f, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x5b9, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x5f3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2a0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e2, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x313, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x311, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x353, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x397, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x40e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x393, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cf, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x40c, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x450, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x484, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c3, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fe, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x53e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x57e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x5bd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x5f5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x633, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x48a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fd, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x53b, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x57f, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x5b9, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x5f3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x637, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2a0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e2, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x313, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x311, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x353, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x397, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x40e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x393, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cf, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x40c, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x450, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x484, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c3, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fe, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x53e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x57e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x5bd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x5f5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x633, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x675, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x48a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fd, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x53b, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x57f, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x5b9, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x5f3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x637, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x673, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2a0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e2, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x313, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x311, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x353, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x397, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x40e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x393, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cf, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x40c, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x450, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x484, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c3, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fe, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x53e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x57e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x5bd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x5f5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x633, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x675, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x48a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fd, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x53b, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x57f, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x5b9, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x5f3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x637, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x673, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x6ae, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2a0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e2, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x313, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x311, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x353, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x397, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x40e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x393, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cf, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x40c, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x450, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x484, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c3, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fe, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x53e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x57e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x5bd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x5f5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x633, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x675, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x48a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fd, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x53b, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x57f, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x5b9, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x5f3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x637, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x673, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x6ae, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x6ee, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x6ec, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2a0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e2, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x313, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x311, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x353, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x397, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x40e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x393, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cf, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x40c, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x450, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x484, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c3, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fe, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x53e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x57e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x5bd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x5f5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x633, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x675, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x48a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fd, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x53b, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x57f, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x5b9, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x5f3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x637, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x673, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x6ae, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x6ee, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x72c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x6ec, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x72e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2a0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e2, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x313, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x311, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x353, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x397, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x40e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x393, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cf, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x40c, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x450, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x484, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c3, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fe, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x53e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x57e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x5bd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x5f5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x633, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x675, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x48a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fd, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x53b, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x57f, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x5b9, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x5f3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x637, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x673, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x6ae, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x6ee, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x72c, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x6ec, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x72e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x7e5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2a0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e2, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x313, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x311, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x353, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x397, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x40e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x393, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cf, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x40c, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x450, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x484, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c3, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fe, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x53e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x57e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x5bd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x5f5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x633, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x675, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x48a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fd, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x53b, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x57f, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x5b9, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x5f3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x637, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x673, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x6ae, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x6ee, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x72c, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x6ec, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x72e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x7e5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x827, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x825, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2a0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e2, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x313, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x311, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x353, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x397, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x40e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x393, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cf, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x40c, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x450, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x484, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c3, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fe, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x53e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x57e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x5bd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x5f5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x633, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x675, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x48a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fd, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x53b, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x57f, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x5b9, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x5f3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x637, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x673, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x6ae, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x6ee, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x72c, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x6ec, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x72e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x7e5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x827, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x859, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x825, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x865, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2a0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e2, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x313, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x311, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x353, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x397, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x40e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x393, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cf, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x40c, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x450, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x484, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c3, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fe, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x53e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x57e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x5bd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x5f5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x633, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x675, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x48a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fd, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x53b, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x57f, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x5b9, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x5f3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x637, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x673, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x6ae, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x6ee, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x72c, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x6ec, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x72e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x7e5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x827, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x859, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x89a, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x825, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x865, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x898, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2a0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e2, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x313, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x311, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x353, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x397, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x40e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x393, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cf, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x40c, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x450, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x484, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c3, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fe, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x53e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x57e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x5bd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x5f5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x633, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x675, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x48a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fd, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x53b, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x57f, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x5b9, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x5f3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x637, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x673, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x6ae, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x6ee, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x72c, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x6ec, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x72e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x7e5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x827, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x859, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x89a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x825, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x865, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x898, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x8dc, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xb5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0xf0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x134, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x16c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x21c, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x260, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xb3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0xf5, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x132, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x16a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x21e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x25e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x2a0, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e2, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x313, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x2e0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x311, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x353, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x397, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x40e, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x393, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x3cf, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x40c, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x450, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x484, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c3, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fe, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x53e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x57e, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x5bd, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x5f5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x633, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x675, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x48a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4c0, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x4fd, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x53b, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x57f, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x5b9, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x5f3, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x637, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x673, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x6ae, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x6ee, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x72c, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x6ec, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x72e, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x7e5, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x827, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x859, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x89a, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x825, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x865, CapNullCap.
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x898, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x8dc, CapNullCap.
-[DEBUG 0] Attempted to invoke a null or zombie cap 0x91c, CapNullCap.
-test_name: CANCEL_BADGED_SENDS_0002, Test cost: 2607543
+[DEBUG 0] Attempted to invoke a null or zombie cap 0x91a, CapNullCap.
+test_name: CANCEL_BADGED_SENDS_0002, Test cost: 6580860
 Test CANCEL_BADGED_SENDS_0002 passed
 Starting test 22: CNODEOP0001
 Running test CNODEOP0001 (Basic seL4_CNode_Copy() testing)
 [DEBUG 0] CNode Copy/Mint/Move/Mutate: Destination not empty.
 [DEBUG 0] CNode Copy/Mint/Move/Mutate: Destination not empty.
-test_name: CNODEOP0001, Test cost: 38664
+test_name: CNODEOP0001, Test cost: 56684
 Test CNODEOP0001 passed
 Starting test 23: CNODEOP0002
 Running test CNODEOP0002 (Basic seL4_CNode_Delete() testing)
-test_name: CNODEOP0002, Test cost: 25841
+test_name: CNODEOP0002, Test cost: 38619
 Test CNODEOP0002 passed
 Starting test 24: CNODEOP0003
 Running test CNODEOP0003 (Basic seL4_CNode_Mint() testing)
 [DEBUG 0] CNode Copy/Mint/Move/Mutate: Destination not empty.
-test_name: CNODEOP0003, Test cost: 32814
+test_name: CNODEOP0003, Test cost: 51178
 Test CNODEOP0003 passed
 Starting test 25: CNODEOP0004
 Running test CNODEOP0004 (Basic seL4_CNode_Move() testing)
@@ -861,7 +863,7 @@ Running test CNODEOP0004 (Basic seL4_CNode_Move() testing)
 [DEBUG 0] CNode Copy/Mint/Move/Mutate: Destination not empty.
 [DEBUG 0] CNode Copy/Mint/Move/Mutate: Destination not empty.
 [DEBUG 0] CNode Copy/Mint/Move/Mutate: Destination not empty.
-test_name: CNODEOP0004, Test cost: 35520
+test_name: CNODEOP0004, Test cost: 68658
 Test CNODEOP0004 passed
 Starting test 26: CNODEOP0005
 Running test CNODEOP0005 (Basic seL4_CNode_Mutate() testing)
@@ -869,18 +871,18 @@ Running test CNODEOP0005 (Basic seL4_CNode_Mutate() testing)
 [DEBUG 0] CNode Copy/Mint/Move/Mutate: Destination not empty.
 [DEBUG 0] CNode Copy/Mint/Move/Mutate: Destination not empty.
 [DEBUG 0] CNode Copy/Mint/Move/Mutate: Destination not empty.
-test_name: CNODEOP0005, Test cost: 40281
+test_name: CNODEOP0005, Test cost: 72196
 Test CNODEOP0005 passed
 Starting test 27: CNODEOP0006
 Running test CNODEOP0006 (Basic seL4_CNode_CancelBadgedSends() testing)
 [DEBUG 0] CNode Copy/Mint/Move/Mutate: Destination not empty.
 [DEBUG 0] CNode CancelBadgedSends: Target cap invalid.
-test_name: CNODEOP0006, Test cost: 35288
+test_name: CNODEOP0006, Test cost: 65699
 Test CNODEOP0006 passed
 Starting test 28: CNODEOP0007
 Running test CNODEOP0007 (Basic seL4_CNode_Revoke() testing)
 [DEBUG 0] CNode Copy/Mint/Move/Mutate: Destination not empty.
-test_name: CNODEOP0007, Test cost: 27770
+test_name: CNODEOP0007, Test cost: 37596
 Test CNODEOP0007 passed
 Starting test 29: CNODEOP0008
 Running test CNODEOP0008 (Basic seL4_CNode_Rotate() testing)
@@ -892,14 +894,14 @@ Running test CNODEOP0008 (Basic seL4_CNode_Rotate() testing)
 [DEBUG 0] CNode Copy/Mint/Move/Mutate: Destination not empty.
 [DEBUG 0] CNode Rotate: Pivot slot the same as source or dest slot.
 [DEBUG 0] CNode Copy/Mint/Move/Mutate: Destination not empty.
-test_name: CNODEOP0008, Test cost: 60355
+test_name: CNODEOP0008, Test cost: 118482
 Test CNODEOP0008 passed
 Starting test 30: CNODEOP0009
 Running test CNODEOP0009 (Basic seL4_CNode_SaveCaller() testing)
 [DEBUG 0] CNode SaveCaller: Reply cap not present.
 [DEBUG 0] CNode SaveCaller: Destination slot not empty.
 [DEBUG 0] CNode Copy/Mint/Move/Mutate: Destination not empty.
-test_name: CNODEOP0009, Test cost: 35894
+test_name: CNODEOP0009, Test cost: 70381
 Test CNODEOP0009 passed
 Starting test 31: CSPACE0001
 Running test CSPACE0001 (Test full cspace resolution)
@@ -1031,160 +1033,90 @@ Running test CSPACE0001 (Test full cspace resolution)
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x7555555555555555, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0x1555555555555555, CapNullCap.
 [DEBUG 0] Attempted to invoke a null or zombie cap 0xd555555555555555, CapNullCap.
-test_name: CSPACE0001, Test cost: 594886
+test_name: CSPACE0001, Test cost: 1575836
 Test CSPACE0001 passed
 Starting test 32: DOMAINS0001
 Running test DOMAINS0001 (Change domain successfully())
-test_name: DOMAINS0001, Test cost: 13732
+test_name: DOMAINS0001, Test cost: 24543
 Test DOMAINS0001 passed
 Starting test 33: DOMAINS0002
 Running test DOMAINS0002 (Try non-existant domain())
 [DEBUG 0] Domain Configure: invalid domain (11 >= 1).
-test_name: DOMAINS0002, Test cost: 14821
+test_name: DOMAINS0002, Test cost: 29891
 Test DOMAINS0002 passed
 Starting test 34: DOMAINS0003
 Running test DOMAINS0003 (Invoke non-domain cap())
 [DEBUG 0] TCB: Illegal operation invLabel :DomainSetSet
-test_name: DOMAINS0003, Test cost: 15814
+test_name: DOMAINS0003, Test cost: 34422
 Test DOMAINS0003 passed
 Starting test 35: FPU0000
 Running test FPU0000 (Ensure that simple FPU operations work)
-Invalid instruction from [FPU0000] at PC: 0x5983c
-Register of root thread in test (may not be the thread that faulted)
-Register dump:
-pc:	0x5983c
-ra:	0x25256
-sp:	0x10011960
-gp:	0xbecc0
-s0:	0x10011a10
-s1:	0x0
-s2:	0x0
-s3:	0x0
-s4:	0x0
-s5:	0x0
-s6:	0x0
-s7:	0x0
-s8:	0x0
-s9:	0x0
-s10:	0x0
-s11:	0x0
-a0:	0x400921fb54442d18
-a1:	0x4008000000000000
-a2:	0x0
-a3:	0x0
-a4:	0x0
-a5:	0xa2000
-a6:	0xf
-a7:	0x0
-t0:	0x59d44
-t1:	0x9dac5
-t2:	0x0
-t3:	0x11
-t4:	0x20730000
-t5:	0x39
-t6:	0x9dac3
-tp:	0xe8820
-	Failure: result == SUCCESS at line 291 of file /home/sel4/code/rel4test/projects/sel4test/apps/sel4test-driver/src/testtypes.c
-	Error: result == SUCCESS at line 217 of file /home/sel4/code/rel4test/projects/sel4test/apps/sel4test-driver/src/main.c
+test_name: FPU0000, Test cost: 15988
+Test FPU0000 passed
 Starting test 36: FPU0001
 Running test FPU0001 (Ensure multiple threads can use FPU simultaneously)
-Invalid instruction from [FPU0001] at PC: 0x5983c
-Register of root thread in test (may not be the thread that faulted)
-Register dump:
-pc:	0x10686
-ra:	0x10784
-sp:	0x10010510
-gp:	0xbecc0
-s0:	0x10010560
-s1:	0x10011980
-s2:	0x9a00
-s3:	0x0
-s4:	0x9a00
-s5:	0x0
-s6:	0x0
-s7:	0x0
-s8:	0x0
-s9:	0x0
-s10:	0x0
-s11:	0x0
-a0:	0x86
-a1:	0x86
-a2:	0x100105a0
-a3:	0x100105a8
-a4:	0x10010598
-a5:	0x10010590
-a6:	0x10010588
-a7:	0xfffffffffffffffb
-t0:	0x9a00
-t1:	0x2
-t2:	0x0
-t3:	0x0
-t4:	0x3a
-t5:	0x39
-t6:	0xaddcb
-tp:	0xe8820
-	Failure: result == SUCCESS at line 291 of file /home/sel4/code/rel4test/projects/sel4test/apps/sel4test-driver/src/testtypes.c
-	Error: result == SUCCESS at line 217 of file /home/sel4/code/rel4test/projects/sel4test/apps/sel4test-driver/src/main.c
+test_name: FPU0001, Test cost: 5311578
+Test FPU0001 passed
 Starting test 37: FRAMEDIPC0003
 Running test FRAMEDIPC0003 (Test that deleting a frame cap unmaps the frame)
-test_name: FRAMEDIPC0003, Test cost: 90919
+test_name: FRAMEDIPC0003, Test cost: 119631
 Test FRAMEDIPC0003 passed
 Starting test 38: FRAMEEXPORTS0001
 Running test FRAMEEXPORTS0001 (Test that we can access all exported frames)
 vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 1073741824, error 1
 vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 2097152, error 1
 vka_alloc_object_at_maybe_dev@object.h:57 Failed to allocate object of size 4096, error 1
-test_name: FRAMEEXPORTS0001, Test cost: 23425113
+test_name: FRAMEEXPORTS0001, Test cost: 20985642
 Test FRAMEEXPORTS0001 passed
 Starting test 39: IPC0001
 Running test IPC0001 (Test SMP seL4_Send + seL4_Recv)
-test_name: IPC0001, Test cost: 460134
+test_name: IPC0001, Test cost: 601317
 Test IPC0001 passed
 Starting test 40: IPC0002
 Running test IPC0002 (Test SMP seL4_Call + seL4_ReplyRecv)
-test_name: IPC0002, Test cost: 570106
+test_name: IPC0002, Test cost: 703789
 Test IPC0002 passed
 Starting test 41: IPC0003
 Running test IPC0003 (Test SMP seL4_Send + seL4_Reply + seL4_Recv)
-test_name: IPC0003, Test cost: 600761
+test_name: IPC0003, Test cost: 757496
 Test IPC0003 passed
 Starting test 42: IPC0004
 Running test IPC0004 (Test seL4_NBSend + seL4_Recv)
-test_name: IPC0004, Test cost: 355031
+test_name: IPC0004, Test cost: 460364
 Test IPC0004 passed
 Starting test 43: IPC0010
 Running test IPC0010 (Test suspending an IPC mid-Call())
-test_name: IPC0010, Test cost: 78615
+test_name: IPC0010, Test cost: 102554
 Test IPC0010 passed
 Starting test 44: IPC1001
 Running test IPC1001 (Test SMP inter-AS seL4_Send + seL4_Recv)
-test_name: IPC1001, Test cost: 14330393
+test_name: IPC1001, Test cost: 16994630
 Test IPC1001 passed
 Starting test 45: IPC1002
 Running test IPC1002 (Test SMP inter-AS seL4_Call + seL4_ReplyRecv)
-test_name: IPC1002, Test cost: 14412078
+test_name: IPC1002, Test cost: 17057707
 Test IPC1002 passed
 Starting test 46: IPC1003
 Running test IPC1003 (Test SMP inter-AS seL4_Send + seL4_Reply + seL4_Recv)
-test_name: IPC1003, Test cost: 14359965
+test_name: IPC1003, Test cost: 17286143
 Test IPC1003 passed
 Starting test 47: IPC1004
 Running test IPC1004 (Test inter-AS seL4_NBSend + seL4_Recv)
-test_name: IPC1004, Test cost: 14147179
+test_name: IPC1004, Test cost: 16832421
 Test IPC1004 passed
 Starting test 48: IPCRIGHTS0001
 Running test IPCRIGHTS0001 (seL4_Send needs write)
 [DEBUG 0] Attempted to invoke a read-only endpoint cap 114.
 [DEBUG 0] Attempted to invoke a read-only endpoint cap 114.
-test_name: IPCRIGHTS0001, Test cost: 108518
+test_name: IPCRIGHTS0001, Test cost: 159155
 Test IPCRIGHTS0001 passed
 Starting test 49: IPCRIGHTS0002
 Running test IPCRIGHTS0002 (seL4_Recv needs read)
-test_name: IPCRIGHTS0002, Test cost: 104740
+test_name: IPCRIGHTS0002, Test cost: 134096
 Test IPCRIGHTS0002 passed
 Starting test 50: IPCRIGHTS0003
 Running test IPCRIGHTS0003 (seL4_Send with caps needs grant)
-test_name: IPCRIGHTS0003, Test cost: 84125
+test_name: IPCRIGHTS0003, Test cost: 119595
 Test IPCRIGHTS0003 passed
 Starting test 51: IPCRIGHTS0004
 Running test IPCRIGHTS0004 (seL4_Call needs grant or grant-reply)
@@ -1200,37 +1132,37 @@ Running test IPCRIGHTS0004 (seL4_Call needs grant or grant-reply)
 [DEBUG 0] CNode Copy/Mint/Move/Mutate: Destination not empty.
 [DEBUG 0] CNode SaveCaller: Reply cap not present.
 [DEBUG 0] CNode Copy/Mint/Move/Mutate: Destination not empty.
-test_name: IPCRIGHTS0004, Test cost: 185364
+test_name: IPCRIGHTS0004, Test cost: 301140
 Test IPCRIGHTS0004 passed
 Starting test 52: IPCRIGHTS0005
 Running test IPCRIGHTS0005 (seL4_Reply grant depends of the grant of previous seL4_Recv)
 [DEBUG 0] CNode Copy/Mint/Move/Mutate: Destination not empty.
 [DEBUG 0] CNode Copy/Mint/Move/Mutate: Destination not empty.
-test_name: IPCRIGHTS0005, Test cost: 140804
+test_name: IPCRIGHTS0005, Test cost: 186105
 Test IPCRIGHTS0005 passed
 Starting test 53: NBWAIT0001
 Running test NBWAIT0001 (Test seL4_NBRecv)
-test_name: NBWAIT0001, Test cost: 77629
+test_name: NBWAIT0001, Test cost: 111047
 Test NBWAIT0001 passed
 Starting test 54: PAGEFAULT0001
 Running test PAGEFAULT0001 (Test read page fault)
-test_name: PAGEFAULT0001, Test cost: 347407
+test_name: PAGEFAULT0001, Test cost: 410365
 Test PAGEFAULT0001 passed
 Starting test 55: PAGEFAULT0002
 Running test PAGEFAULT0002 (Test write page fault)
-test_name: PAGEFAULT0002, Test cost: 291376
+test_name: PAGEFAULT0002, Test cost: 387039
 Test PAGEFAULT0002 passed
 Starting test 56: PAGEFAULT0003
 Running test PAGEFAULT0003 (Test execute page fault)
-test_name: PAGEFAULT0003, Test cost: 302332
+test_name: PAGEFAULT0003, Test cost: 396307
 Test PAGEFAULT0003 passed
 Starting test 57: PAGEFAULT0004
 Running test PAGEFAULT0004 (Test unknown system call)
-test_name: PAGEFAULT0004, Test cost: 289473
+test_name: PAGEFAULT0004, Test cost: 388844
 Test PAGEFAULT0004 passed
 Starting test 58: PAGEFAULT0005
 Running test PAGEFAULT0005 (Test undefined instruction)
-test_name: PAGEFAULT0005, Test cost: 293952
+test_name: PAGEFAULT0005, Test cost: 401203
 Test PAGEFAULT0005 passed
 Starting test 59: PAGEFAULT1001
 Running test PAGEFAULT1001 (Test read page fault (inter-AS))
@@ -1258,7 +1190,7 @@ sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
 
 sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
 
-test_name: PAGEFAULT1001, Test cost: 17110868
+test_name: PAGEFAULT1001, Test cost: 20209779
 Test PAGEFAULT1001 passed
 Starting test 60: PAGEFAULT1002
 Running test PAGEFAULT1002 (Test write page fault (inter-AS))
@@ -1286,7 +1218,7 @@ sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
 
 sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
 
-test_name: PAGEFAULT1002, Test cost: 17076016
+test_name: PAGEFAULT1002, Test cost: 20293101
 Test PAGEFAULT1002 passed
 Starting test 61: PAGEFAULT1003
 Running test PAGEFAULT1003 (Test execute page fault (inter-AS))
@@ -1314,7 +1246,7 @@ sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
 
 sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
 
-test_name: PAGEFAULT1003, Test cost: 16945378
+test_name: PAGEFAULT1003, Test cost: 20246971
 Test PAGEFAULT1003 passed
 Starting test 62: PAGEFAULT1004
 Running test PAGEFAULT1004 (Test unknown system call (inter-AS))
@@ -1342,11 +1274,11 @@ sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
 
 sel4utils_copy_path_to_process@process.c:131 Failed to copy cap
 
-test_name: PAGEFAULT1004, Test cost: 16943121
+test_name: PAGEFAULT1004, Test cost: 20161700
 Test PAGEFAULT1004 passed
 Starting test 63: REGRESSIONS0001
 Running test REGRESSIONS0001 (Ensure WriteRegisters functions correctly)
-test_name: REGRESSIONS0001, Test cost: 86765
+test_name: REGRESSIONS0001, Test cost: 91320
 Test REGRESSIONS0001 passed
 Starting test 64: RETYPE0000
 Running test RETYPE0000 (Retype test)
@@ -1362,7 +1294,7 @@ Running test RETYPE0000 (Retype test)
 [DEBUG 0] Untyped Retype: Slot 0x0 in destination window non-empty.
 [DEBUG 0] Untyped Retype: Slot 0x1 in destination window non-empty.
 [DEBUG 0] Untyped Retype: Slot 0x2 in destination window non-empty.
-test_name: RETYPE0000, Test cost: 67948
+test_name: RETYPE0000, Test cost: 151233
 Test RETYPE0000 passed
 Starting test 65: RETYPE0001
 Running test RETYPE0001 (Incremental retype test)
@@ -1406,53 +1338,53 @@ Running test RETYPE0001 (Incremental retype test)
 [DEBUG 0] Untyped Retype: Insufficient memory(1 * 65536 bytes needed, 8192 bytes available)
 [DEBUG 0] Untyped Retype: Insufficient memory(1 * 32768 bytes needed, 8192 bytes available)
 [DEBUG 0] Untyped Retype: Insufficient memory(1 * 16384 bytes needed, 8192 bytes available)
-test_name: RETYPE0001, Test cost: 201741
+test_name: RETYPE0001, Test cost: 449117
 Test RETYPE0001 passed
 Starting test 66: RETYPE0002
 Running test RETYPE0002 (Incremental retype test #2)
 [DEBUG 0] Untyped Retype: Number of requested objects 1048576 too small or large.
 [DEBUG 0] Untyped Retype: Slot 0x86 in destination window non-empty.
 [DEBUG 0] Untyped Retype: Insufficient memory(1 * 4096 bytes needed, 0 bytes available)
-test_name: RETYPE0002, Test cost: 30362
+test_name: RETYPE0002, Test cost: 62753
 Test RETYPE0002 passed
 Starting test 67: SCHED0002
 Running test SCHED0002 (Test resuming ourselves)
-test_name: SCHED0002, Test cost: 11435
+test_name: SCHED0002, Test cost: 22382
 Test SCHED0002 passed
 Starting test 68: SCHED0003
 Running test SCHED0003 (Test TCB suspend/resume)
-test_name: SCHED0003, Test cost: 231916
+test_name: SCHED0003, Test cost: 216489
 Test SCHED0003 passed
 Starting test 69: SCHED0004
 Running test SCHED0004 (Test threads at all priorities)
-test_name: SCHED0004, Test cost: 2758092
+test_name: SCHED0004, Test cost: 3738924
 Test SCHED0004 passed
 Starting test 70: SCHED0005
 Running test SCHED0005 (Test set priority)
 [DEBUG 0] TCB SetMCPriority: Requested maximum controlled priority 253 too high (max 249).
-test_name: SCHED0005, Test cost: 89405
+test_name: SCHED0005, Test cost: 123339
 Test SCHED0005 passed
 Starting test 71: SCHED0006
 Running test SCHED0006 (Test IPC priorities for Send)
-test_name: SCHED0006, Test cost: 123632
+test_name: SCHED0006, Test cost: 161072
 Test SCHED0006 passed
 Starting test 72: SCHED0020
 Running test SCHED0020 (test set prio to a higher prio runs higher prio thread)
-test_name: SCHED0020, Test cost: 59195
+test_name: SCHED0020, Test cost: 66650
 Test SCHED0020 passed
 Starting test 73: SERSERV_CLIENT_001
 Running test SERSERV_CLIENT_001 (Connect from client threads)
-test_name: SERSERV_CLIENT_001, Test cost: 124950
+test_name: SERSERV_CLIENT_001, Test cost: 133753
 Test SERSERV_CLIENT_001 passed
 Starting test 74: SERSERV_CLIENT_002
 Running test SERSERV_CLIENT_002 (Printf from client threads)
 Hello, world!
-test_name: SERSERV_CLIENT_002, Test cost: 128357
+test_name: SERSERV_CLIENT_002, Test cost: 139854
 Test SERSERV_CLIENT_002 passed
 Starting test 75: SERSERV_CLIENT_003
 Running test SERSERV_CLIENT_003 (Write from client threads)
 Hello, world!
-test_name: SERSERV_CLIENT_003, Test cost: 131934
+test_name: SERSERV_CLIENT_003, Test cost: 141855
 Test SERSERV_CLIENT_003 passed
 Starting test 76: SERSERV_CLIENT_004
 Running test SERSERV_CLIENT_004 (Printf, then write, then reset connection, and Printf, then write again, from client threads)
@@ -1460,25 +1392,25 @@ Hello, world!
 Hello, world!
 Hello, world!
 Hello, world!
-test_name: SERSERV_CLIENT_004, Test cost: 137166
+test_name: SERSERV_CLIENT_004, Test cost: 165982
 Test SERSERV_CLIENT_004 passed
 Starting test 77: SERSERV_CLIENT_005
 Running test SERSERV_CLIENT_005 (Connect, then disconnect from server on all threads, then kill server from parent thread)
-test_name: SERSERV_CLIENT_005, Test cost: 131450
+test_name: SERSERV_CLIENT_005, Test cost: 149803
 Test SERSERV_CLIENT_005 passed
 Starting test 78: SERSERV_CLI_PROC_001
 Running test SERSERV_CLI_PROC_001 (Connect to server from a client in another VSpace and CSpace)
-test_name: SERSERV_CLI_PROC_001, Test cost: 920968
+test_name: SERSERV_CLI_PROC_001, Test cost: 1119705
 Test SERSERV_CLI_PROC_001 passed
 Starting test 79: SERSERV_CLI_PROC_002
 Running test SERSERV_CLI_PROC_002 (Connect to server and printf(, true), from a client in another VSpace and CSpace)
 Hello, world!
-test_name: SERSERV_CLI_PROC_002, Test cost: 1005771
+test_name: SERSERV_CLI_PROC_002, Test cost: 1179647
 Test SERSERV_CLI_PROC_002 passed
 Starting test 80: SERSERV_CLI_PROC_003
 Running test SERSERV_CLI_PROC_003 (Connect to server and write(, true), from a client in another VSpace and CSpace)
 Hello, world!
-test_name: SERSERV_CLI_PROC_003, Test cost: 964558
+test_name: SERSERV_CLI_PROC_003, Test cost: 1182407
 Test SERSERV_CLI_PROC_003 passed
 Starting test 81: SERSERV_CLI_PROC_004
 Running test SERSERV_CLI_PROC_004 (Connect to server, printf(), write(, true), then disconnect, then reconnect and printf() and write() again, from clients in other VSpaces and CSpaces)
@@ -1486,29 +1418,29 @@ Hello, world!
 Hello, world!
 Hello, world!
 Hello, world!
-test_name: SERSERV_CLI_PROC_004, Test cost: 1003673
+test_name: SERSERV_CLI_PROC_004, Test cost: 1195054
 Test SERSERV_CLI_PROC_004 passed
 Starting test 82: SERSERV_CLI_PROC_005
 Running test SERSERV_CLI_PROC_005 (Connect to server then disconnect on all clients (in different VSpace/CSpace containers), and finally kill the server from the parent)
-test_name: SERSERV_CLI_PROC_005, Test cost: 965907
+test_name: SERSERV_CLI_PROC_005, Test cost: 1197314
 Test SERSERV_CLI_PROC_005 passed
 Starting test 83: SERSERV_PARENT_001
 Running test SERSERV_PARENT_001 (Serial server spawn test)
-test_name: SERSERV_PARENT_001, Test cost: 53828
+test_name: SERSERV_PARENT_001, Test cost: 77998
 Test SERSERV_PARENT_001 passed
 Starting test 84: SERSERV_PARENT_002
 Running test SERSERV_PARENT_002 (Test connecting to the server from a parent thread)
-test_name: SERSERV_PARENT_002, Test cost: 75265
+test_name: SERSERV_PARENT_002, Test cost: 92012
 Test SERSERV_PARENT_002 passed
 Starting test 85: SERSERV_PARENT_003
 Running test SERSERV_PARENT_003 (Printf() from a connected parent thread)
 Hello, world!
-test_name: SERSERV_PARENT_003, Test cost: 75645
+test_name: SERSERV_PARENT_003, Test cost: 106100
 Test SERSERV_PARENT_003 passed
 Starting test 86: SERSERV_PARENT_004
 Running test SERSERV_PARENT_004 (Write() from a connected parent thread)
 Hello, world!
-test_name: SERSERV_PARENT_004, Test cost: 69775
+test_name: SERSERV_PARENT_004, Test cost: 92794
 Test SERSERV_PARENT_004 passed
 Starting test 87: SERSERV_PARENT_005
 Running test SERSERV_PARENT_005 (Test printf() and write() from a parent thread when after a connection reset (disconnect/reconnect))
@@ -1516,115 +1448,115 @@ Hello, world!
 Hello, world!
 Hello, world!
 Hello, world!
-test_name: SERSERV_PARENT_005, Test cost: 100366
+test_name: SERSERV_PARENT_005, Test cost: 133186
 Test SERSERV_PARENT_005 passed
 Starting test 88: SERSERV_PARENT_006
 Running test SERSERV_PARENT_006 (Kill the Server from the Parent thread)
-test_name: SERSERV_PARENT_006, Test cost: 82831
+test_name: SERSERV_PARENT_006, Test cost: 101150
 Test SERSERV_PARENT_006 passed
 Starting test 89: SERSERV_PARENT_007
 Running test SERSERV_PARENT_007 (Test a series of unexpected input values to spawn_thread)
-test_name: SERSERV_PARENT_007, Test cost: 13710
+test_name: SERSERV_PARENT_007, Test cost: 15988
 Test SERSERV_PARENT_007 passed
 Starting test 90: SERSERV_PARENT_008
 Running test SERSERV_PARENT_008 (Test a series of unexpected input values to connect())
-test_name: SERSERV_PARENT_008, Test cost: 62712
+test_name: SERSERV_PARENT_008, Test cost: 79012
 Test SERSERV_PARENT_008 passed
 Starting test 91: SERSERV_PARENT_009
 Running test SERSERV_PARENT_009 (Test a series of unexpected input values to printf())
 serial_server_printf@clientapi.c:178 Serserv Client: printf: NULL passed for required arguments.
-	Is connection handle valid?
+        Is connection handle valid?
 serial_server_printf@clientapi.c:178 Serserv Client: printf: NULL passed for required arguments.
-	Is connection handle valid?
-test_name: SERSERV_PARENT_009, Test cost: 89325
+        Is connection handle valid?
+test_name: SERSERV_PARENT_009, Test cost: 133708
 Test SERSERV_PARENT_009 passed
 Starting test 92: SERSERV_PARENT_010
 Running test SERSERV_PARENT_010 (Test a series of unexpected input values to write())
 serial_server_write@clientapi.c:221 Serserv Client: printf: NULL passed for required arguments.
-	Is connection handle valid?
+        Is connection handle valid?
 serial_server_write@clientapi.c:221 Serserv Client: printf: NULL passed for required arguments.
-	Is connection handle valid?
-test_name: SERSERV_PARENT_010, Test cost: 89516
+        Is connection handle valid?
+test_name: SERSERV_PARENT_010, Test cost: 125678
 Test SERSERV_PARENT_010 passed
 Starting test 93: SYNC001
 Running test SYNC001 (libsel4sync Test binary semaphores)
-test_name: SYNC001, Test cost: 119742
+test_name: SYNC001, Test cost: 118900
 Test SYNC001 passed
 Starting test 94: SYNC002
 Running test SYNC002 (libsel4sync Test semaphores)
-test_name: SYNC002, Test cost: 93067
+test_name: SYNC002, Test cost: 116176
 Test SYNC002 passed
 Starting test 95: SYNC003
 Running test SYNC003 (libsel4sync Test monitors)
-test_name: SYNC003, Test cost: 111385
+test_name: SYNC003, Test cost: 200917
 Test SYNC003 passed
 Starting test 96: SYNC004
 Running test SYNC004 (libsel4sync Test monitors - broadcast)
-test_name: SYNC004, Test cost: 116717
+test_name: SYNC004, Test cost: 150227
 Test SYNC004 passed
 Starting test 97: THREADS0004
 Running test THREADS0004 (seL4_TCB_Configure with a NULL CSpace should fail)
 [DEBUG 0] TCB Configure: CSpace cap is invalid.
-test_name: THREADS0004, Test cost: 68591
+test_name: THREADS0004, Test cost: 98751
 Test THREADS0004 passed
 Starting test 98: THREADS0005
 Running test THREADS0005 (seL4_TCB_SetSpace with a NULL CSpace should fail)
 [DEBUG 0] TCB Configure: CSpace cap is invalid.
-test_name: THREADS0005, Test cost: 70352
+test_name: THREADS0005, Test cost: 94197
 Test THREADS0005 passed
 Starting test 99: TLS0001
 Running test TLS0001 (Test root thread accessing __thread variables)
-test_name: TLS0001, Test cost: 11251
+test_name: TLS0001, Test cost: 17766
 Test TLS0001 passed
 Starting test 100: TLS0002
 Running test TLS0002 (Test multiple threads using __thread variables)
-test_name: TLS0002, Test cost: 111044
+test_name: TLS0002, Test cost: 139281
 Test TLS0002 passed
 Starting test 101: TLS0006
 Running test TLS0006 (sel4utils_thread with distinct TLS should not interfere)
-test_name: TLS0006, Test cost: 168264
+test_name: TLS0006, Test cost: 200576
 Test TLS0006 passed
 Starting test 102: TRIVIAL0000
 Running test TRIVIAL0000 (Ensure the test framework functions)
-test_name: TRIVIAL0000, Test cost: 11201
+test_name: TRIVIAL0000, Test cost: 22759
 Test TRIVIAL0000 passed
 Starting test 103: TRIVIAL0001
 Running test TRIVIAL0001 (Ensure the allocator works)
-test_name: TRIVIAL0001, Test cost: 99047
+test_name: TRIVIAL0001, Test cost: 133384
 Test TRIVIAL0001 passed
 Starting test 104: TRIVIAL0002
 Running test TRIVIAL0002 (Ensure the allocator works more than once)
-test_name: TRIVIAL0002, Test cost: 102483
+test_name: TRIVIAL0002, Test cost: 134044
 Test TRIVIAL0002 passed
 Starting test 105: VSPACE0000
 Running test VSPACE0000 (Test threads in different cspace/vspace)
-test_name: VSPACE0000, Test cost: 810842
+test_name: VSPACE0000, Test cost: 958692
 Test VSPACE0000 passed
 Starting test 106: VSPACE0002
 Running test VSPACE0002 (Test create ASID pool)
 [DEBUG 0] RISCVASIDPool: Invalid vspace root.
-test_name: VSPACE0002, Test cost: 27306
+test_name: VSPACE0002, Test cost: 38475
 Test VSPACE0002 passed
 Starting test 107: VSPACE0003
 Running test VSPACE0003 (Test create multiple ASID pools)
-test_name: VSPACE0003, Test cost: 47133
+test_name: VSPACE0003, Test cost: 63152
 Test VSPACE0003 passed
 Starting test 108: VSPACE0004
 Running test VSPACE0004 (Test running out of ASID pools)
-test_name: VSPACE0004, Test cost: 44862
+test_name: VSPACE0004, Test cost: 52892
 Test VSPACE0004 passed
 Starting test 109: VSPACE0005
 Running test VSPACE0005 (Test overassigning ASID pool)
-test_name: VSPACE0005, Test cost: 113573
+test_name: VSPACE0005, Test cost: 137533
 Test VSPACE0005 passed
 Starting test 110: VSPACE0006
 Running test VSPACE0006 (Test touching all available ASID pools)
-test_name: VSPACE0006, Test cost: 88307147
+test_name: VSPACE0006, Test cost: 104784280
 Test VSPACE0006 passed
 Starting test 112: Test all tests ran
-Test suite failed. 110/112 tests passed.
-*** FAILURES DETECTED ***
+Test suite passed. 112 tests passed. 51 tests disabled.
+All is well in the universe
 
 
 Test end =====================
-start clock: 608651, end clock: 365777270, cost: 365168619
+start clock: 998524, end clock: 443440004, cost: 442441480
