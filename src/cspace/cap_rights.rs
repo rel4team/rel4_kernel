@@ -20,9 +20,4 @@ impl seL4_CapRights_t {
             words: [word]
         }
     }
-
-    #[inline]
-    pub fn to_word(&self) -> usize {
-        self.words[0] as usize & MASK!(seL4_CapRightsBits)
-    }
 }

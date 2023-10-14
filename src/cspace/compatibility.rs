@@ -1,23 +1,15 @@
 
 
 use super::{cap::{CapTag, cap_t}, interface::cte_t, cte::deriveCap_ret};
-pub use super::cap::endpoint::{
-  cap_endpoint_cap_get_capCanGrant, cap_endpoint_cap_get_capCanGrantReply,
-  cap_endpoint_cap_get_capCanSend, cap_endpoint_cap_get_capEPPtr,
-};
+
 
 pub use super::cap::zombie::{
   Zombie_new,
   ZombieType_ZombieTCB
 };
 
-pub use super::cap::reply::cap_reply_cap_get_capTCBPtr;
-
-pub use super::cap::notification::cap_notification_cap_get_capNtfnCanSend;
-
 //cap_tag_t
 pub const cap_endpoint_cap: usize = CapTag::CapEndpointCap as usize;
-pub const cap_reply_cap: usize = CapTag::CapReplyCap as usize;
 pub const cap_cnode_cap: usize = CapTag::CapCNodeCap as usize;
 pub const cap_page_table_cap: usize = CapTag::CapPageTableCap as usize;
 

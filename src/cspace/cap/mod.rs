@@ -1,8 +1,5 @@
 use crate::common::{sel4_config::*, utils::pageBitsForSize};
 use crate::{plus_define_bitfield, MASK};
-pub mod endpoint;
-pub mod notification;
-pub mod reply;
 pub mod zombie;
 
 #[repr(C)]
