@@ -2,10 +2,9 @@ use crate::{config::seL4_MsgLengthBits, syscall::{slowpath, SysCall, SysReplyRec
 use cspace::compatibility::*;
 use task_manager::*;
 use task_manager::ipc::*;
-use log::error;
 use vspace::*;
 use core::intrinsics::{likely, unlikely};
-use common::{sel4_config::{wordBits, tcbCTable, tcbVTable, tcbReply, tcbCaller, seL4_MsgExtraCapBits}, MASK, message_info::*, fault::*};
+use common::{sel4_config::{wordBits, tcbCTable, tcbVTable, tcbReply, tcbCaller, seL4_MsgExtraCapBits}, MASK, message_info::*, fault::*, utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref}};
 use cspace::interface::*;
 
 #[inline]
@@ -46,11 +45,6 @@ pub fn lookup_fp(_cap: &cap_t, cptr: usize) -> cap_t {
     return cap;
 }
 
-#[inline]
-#[no_mangle]
-pub fn thread_state_ptr_set_tsType_np(ts_ptr: &mut thread_state_t, tsType: usize) {
-    ts_ptr.words[0] = tsType;
-}
 
 #[inline]
 #[no_mangle]
@@ -62,34 +56,12 @@ pub fn thread_state_ptr_mset_blockingObject_tsType(
     (*ptr).words[0] = ep | tsType;
 }
 
-#[inline]
-#[no_mangle]
-pub fn cap_reply_cap_ptr_new_np(
-    ptr: &mut cap_t,
-    capReplyCanGrant: usize,
-    capReplyMaster: usize,
-    capTCBPtr: usize,
-) {
-    // ptr.words[1] = capTCBPtr;
-    // ptr.words[0] = capReplyMaster | (capReplyCanGrant << 1) | (cap_reply_cap << 59);
-    *ptr = cap_t::new_reply_cap(capReplyCanGrant, capReplyMaster, capTCBPtr);
-}
 
 #[inline]
 #[no_mangle]
 pub fn endpoint_ptr_mset_epQueue_tail_state(ptr: *mut endpoint_t, tail: usize, state: usize) {
     unsafe {
-        // (*ptr).words[0] = tail | state;
-        (*ptr).set_queue_tail(tail);
-        (*ptr).set_state(state);
-    }
-}
-#[inline]
-#[no_mangle]
-pub fn endpoint_ptr_set_epQueue_head_np(ptr: *mut endpoint_t, head: usize) {
-    unsafe {
-        // (*ptr).words[1] = head;
-        (*ptr).set_queue_head(head);
+        (*ptr).words[0] = tail | state;
     }
 }
 
@@ -111,18 +83,9 @@ pub fn mdb_node_ptr_mset_mdbNext_mdbRevocable_mdbFirstBadged(
     mdbRevocable: usize,
     mdbFirstBadged: usize,
 ) {
-    // ptr.words[1] = mdbNext | (mdbRevocable << 1) | mdbFirstBadged;
-    ptr.set_next(mdbNext);
-    ptr.set_revocable(mdbRevocable);
-    ptr.set_first_badged(mdbFirstBadged);
+    ptr.words[1] = mdbNext | (mdbRevocable << 1) | mdbFirstBadged;
 }
 
-#[inline]
-#[no_mangle]
-pub fn mdb_node_ptr_set_mdbPrev_np(ptr: &mut mdb_node_t, prev: usize) {
-    // ptr.words[0] = prev;
-    ptr.set_prev(prev);
-}
 
 #[inline]
 #[no_mangle]
@@ -136,23 +99,15 @@ pub fn fastpath_mi_check(msgInfo: usize) -> bool {
     (msgInfo & MASK!(seL4_MsgLengthBits + seL4_MsgExtraCapBits)) > 4
 }
 
-#[inline]
-#[no_mangle]
-pub fn fastpath_copy_mrs(length: usize, src: *mut tcb_t, dest: *mut tcb_t) {
-    let mut reg: usize;
-    for i in 0..length {
-        reg = msgRegister[0] + i;
-        setRegister(dest, reg, getRegister(src, reg));
-        if getRegister(src, reg) != getRegister(dest, reg) {
-            error!("wrong!!!!");
-        }
-    }
-}
 
 #[inline]
 #[no_mangle]
-pub fn fastpath_reply_cap_check(cap: &cap_t) -> bool {
-    cap_capType_equals(cap, cap_reply_cap)
+pub fn fastpath_copy_mrs(length: usize, src: &mut tcb_t, dest: &mut tcb_t) {
+    let mut reg: usize;
+    for i in 0..length {
+        reg = msgRegister[0] + i;
+        dest.set_register(reg, src.get_register(reg));
+    }
 }
 
 core::arch::global_asm!(include_str!("restore_fp.S"));
@@ -172,213 +127,171 @@ pub fn fastpath_restore(badge: usize, msgInfo: usize, cur_thread: *mut tcb_t) {
 #[inline]
 #[no_mangle]
 pub fn fastpath_call(cptr: usize, msgInfo: usize) {
-    // slowpath(SysCall as usize);
-    let mut info: seL4_MessageInfo_t = messageInfoFromWord_raw(msgInfo);
-    let length = seL4_MessageInfo_ptr_get_length((&info) as *const seL4_MessageInfo_t);
-    let fault_type = unsafe { seL4_Fault_get_seL4_FaultType(&(*ksCurThread).tcbFault) };
+    let current = get_currenct_thread();
+    let mut info = seL4_MessageInfo_t::from_word(msgInfo);
+    let length = info.get_length();
 
-    if fastpath_mi_check(msgInfo) || fault_type != seL4_Fault_NullFault {
+    if fastpath_mi_check(msgInfo) || current.tcbFault.get_fault_type() != FaultType::NullFault {
         slowpath(SysCall as usize);
     }
-    let ep_slot = unsafe { getCSpace(ksCurThread as usize, tcbCTable) };
-    let ep_cap = unsafe { lookup_fp(&(*ep_slot).cap, cptr) };
+    let ep_cap = lookup_fp(&current.get_cspace(tcbCTable).cap, cptr);
     if unlikely(
         !cap_capType_equals(&ep_cap, cap_endpoint_cap)
-            || (cap_endpoint_cap_get_capCanSend(&ep_cap) == 0),
+            || (ep_cap.get_ep_can_send() == 0),
     ) {
         slowpath(SysCall as usize);
     }
-    let ep_ptr = cap_endpoint_cap_get_capEPPtr(&ep_cap) as *mut endpoint_t;
+    let ep = convert_to_mut_type_ref::<endpoint_t>(ep_cap.get_ep_ptr());
 
-    let dest = unsafe {
-        (*ep_ptr).get_queue_head() as *mut tcb_t
-    };
-
-    if unlikely(endpoint_ptr_get_state(ep_ptr) != EPState_Recv) {
+    if unlikely(ep.get_state() != EPState::Recv) {
         slowpath(SysCall as usize);
     }
 
-    let newVTable = unsafe { &(*getCSpace(dest as usize, tcbVTable)).cap };
+    let dest = convert_to_mut_type_ref::<tcb_t>(ep.get_queue_head());
+    let new_vtable = dest.get_cspace(tcbVTable).cap;
 
-    let cap_pd = newVTable.get_pt_base_ptr() as *mut pte_t;
 
-    if unlikely(!isValidVTableRoot_fp(newVTable)) {
+    if unlikely(!isValidVTableRoot_fp(&new_vtable)) {
         slowpath(SysCall as usize);
     }
-
-    let mut stored_hw_asid: pte_t = pte_t { words: [0] };
-    stored_hw_asid.words[0] = newVTable.get_pt_mapped_asid();
 
     let dom = 0;
-    unsafe {
-        if unlikely(
-            (*dest).tcbPriority < (*ksCurThread).tcbPriority
-                && !isHighestPrio(dom, (*dest).tcbPriority),
-        ) {
-            slowpath(SysCall as usize);
-        }
-    }
     if unlikely(
-        (cap_endpoint_cap_get_capCanGrant(&ep_cap) == 0)
-            && (cap_endpoint_cap_get_capCanGrantReply(&ep_cap) == 0),
+        dest.tcbPriority < current.tcbPriority
+            && !isHighestPrio(dom, dest.tcbPriority),
     ) {
         slowpath(SysCall as usize);
     }
-    unsafe {
-        endpoint_ptr_set_epQueue_head_np(ep_ptr, (*dest).tcbEPNext);
-        if unlikely((*dest).tcbEPNext != 0) {
-            (*((*dest).tcbEPNext as *mut tcb_t)).tcbEPPrev = 0;
-        } else {
-            endpoint_ptr_mset_epQueue_tail_state(ep_ptr, 0, EPState_Idle);
-        }
+    if unlikely(
+        (ep_cap.get_ep_can_grant() == 0)
+            && (ep_cap.get_ep_can_grant_reply() == 0),
+    ) {
+        slowpath(SysCall as usize);
     }
 
+    ep.set_queue_head(dest.tcbEPNext);
+    if unlikely(dest.tcbEPNext != 0) {
+        convert_to_mut_type_ref::<tcb_t>(dest.tcbEPNext).tcbEPNext = 0;
+    } else {
+        ep.set_queue_tail(0);
+        ep.set_state(EPState::Idle as usize);
+    }
+
+    current.tcbState.words[0] = ThreadState::ThreadStateBlockedOnReply as usize;
+
+    let reply_slot = current.get_cspace_mut_ref(tcbReply);
+    let caller_slot = dest.get_cspace_mut_ref(tcbCaller);
+    let reply_can_grant = dest.tcbState.get_blocking_ipc_can_grant();
+
+    caller_slot.cap = cap_t::new_reply_cap(reply_can_grant, 0, current.get_ptr());
+    caller_slot.cteMDBNode.words[0] = reply_slot.get_ptr();
+    mdb_node_ptr_mset_mdbNext_mdbRevocable_mdbFirstBadged(
+        &mut reply_slot.cteMDBNode,
+        caller_slot.get_ptr(),
+        1,
+        1,
+    );
+    fastpath_copy_mrs(length, current, dest);
+    dest.tcbState.words[0] = ThreadState::ThreadStateRunning as usize;
+    let cap_pd = new_vtable.get_pt_base_ptr() as *mut pte_t;
+    let stored_hw_asid: pte_t = pte_t { words: [new_vtable.get_pt_mapped_asid()] };
+    switchToThread_fp(dest as *mut tcb_t, cap_pd, stored_hw_asid);
+    seL4_MessageInfo_ptr_set_capsUnwrapped((&mut info) as *mut seL4_MessageInfo_t, 0);
+    let msgInfo1 = info.to_word();
     let badge = ep_cap.get_ep_badge();
-    unsafe {
-        thread_state_ptr_set_tsType_np(&mut (*ksCurThread).tcbState, ThreadStateBlockedOnReply);
-    }
-
-    let replySlot = unsafe { getCSpace(ksCurThread as usize, tcbReply) };
-
-    let callerSlot = getCSpace(dest as usize, tcbCaller);
-
-    let replyCanGrant = unsafe { thread_state_get_blockingIPCCanGrant(&(*dest).tcbState) };
-    unsafe {
-        cap_reply_cap_ptr_new_np(
-            &mut (*callerSlot).cap,
-            replyCanGrant,
-            0,
-            ksCurThread as usize,
-        );
-        mdb_node_ptr_set_mdbPrev_np(&mut (*callerSlot).cteMDBNode, replySlot as usize);
-        mdb_node_ptr_mset_mdbNext_mdbRevocable_mdbFirstBadged(
-            &mut (*replySlot).cteMDBNode,
-            callerSlot as usize,
-            1,
-            1,
-        );
-        fastpath_copy_mrs(length, ksCurThread, dest);
-        thread_state_ptr_set_tsType_np(&mut (*dest).tcbState, ThreadStateRunning);
-        switchToThread_fp(dest, cap_pd, stored_hw_asid);
-        seL4_MessageInfo_ptr_set_capsUnwrapped((&mut info) as *mut seL4_MessageInfo_t, 0);
-        let msgInfo1 = wordFromMessageInfo(info);
-        // debug!("badge :{:#x} msgInfo:{:#x} ksCurThread:{:#x},dest:{:#x},cap_pd:{:#x},stored_hw_asid:{:#x}",badge,msgInfo,ksCurThread as usize,dest as usize ,cap_pd as usize , stored_hw_asid.words[0]);
-        fastpath_restore(badge, msgInfo1, ksCurThread);
-    }
+    fastpath_restore(badge, msgInfo1, get_currenct_thread());
 }
 
 #[inline]
 #[no_mangle]
 pub fn fastpath_reply_recv(cptr: usize, msgInfo: usize) {
-    // slowpath(SysReplyRecv as usize);
-    let mut info = messageInfoFromWord_raw(msgInfo);
-    let length = seL4_MessageInfo_ptr_get_length((&info) as *const seL4_MessageInfo_t);
-    let mut fault_type = unsafe { seL4_Fault_get_seL4_FaultType(&(*ksCurThread).tcbFault) };
+    let current = get_currenct_thread();
+    let mut info = seL4_MessageInfo_t::from_word(msgInfo);
+    let length = info.get_length();
+    let mut fault_type = current.tcbFault.get_fault_type();
 
-    if fastpath_mi_check(msgInfo) || fault_type != seL4_Fault_NullFault {
+    if fastpath_mi_check(msgInfo) || fault_type != FaultType::NullFault {
         slowpath(SysReplyRecv as usize);
     }
-    let ep_slot = unsafe { getCSpace(ksCurThread as usize, tcbCTable) };
-    let ep_cap = unsafe { lookup_fp(&(*ep_slot).cap, cptr) };
+
+    let ep_cap = lookup_fp(&current.get_cspace(tcbCTable).cap, cptr);
 
     if unlikely(
-        !cap_capType_equals(&ep_cap, cap_endpoint_cap)
-            || (cap_endpoint_cap_get_capCanSend(&ep_cap) == 0),
+        ep_cap.get_cap_type() != CapTag::CapEndpointCap
+            || ep_cap.get_ep_can_send() == 0
     ) {
         slowpath(SysReplyRecv as usize);
     }
 
-    unsafe {
-        if unlikely(
-            (*ksCurThread).tcbBoundNotification != 0
-                && notification_ptr_get_state((*ksCurThread).tcbBoundNotification as *const notification_t)
-                    == NtfnState_Active,
-        ) {
+    if let Some(ntfn) = convert_to_option_mut_type_ref::<notification_t>(current.tcbBoundNotification) {
+        if ntfn.get_state() == NtfnState::Active {
             slowpath(SysReplyRecv as usize);
         }
     }
-    let ep_ptr = cap_endpoint_cap_get_capEPPtr(&ep_cap) as *mut endpoint_t;
 
-    if unlikely(endpoint_ptr_get_state(ep_ptr) == EPState_Send) {
+    let ep = convert_to_mut_type_ref::<endpoint_t>(ep_cap.get_ep_ptr());
+    if unlikely(ep.get_state() == EPState::Send) {
         slowpath(SysReplyRecv as usize);
     }
 
-    let callerSlot = unsafe { getCSpace(ksCurThread as usize, tcbCaller) };
-    let callerCap = unsafe { &(*callerSlot).cap };
+    let caller_slot = current.get_cspace_mut_ref(tcbCaller);
+    let caller_cap = &caller_slot.cap;
 
-    if unlikely(!fastpath_reply_cap_check(callerCap)) {
+    if unlikely(caller_cap.get_cap_type() != CapTag::CapReplyCap) {
         slowpath(SysReplyRecv as usize);
     }
 
-    let caller = cap_reply_cap_get_capTCBPtr(callerCap) as *mut tcb_t;
-
-    fault_type = unsafe { seL4_Fault_get_seL4_FaultType(&(*caller).tcbFault) };
-
-    if unlikely(fault_type != seL4_Fault_NullFault) {
+    let caller = convert_to_mut_type_ref::<tcb_t>(caller_cap.get_reply_tcb_ptr());
+    if unlikely(caller.tcbFault.get_fault_type() != FaultType::NullFault) {
         slowpath(SysReplyRecv as usize);
     }
 
-    let newVTable = unsafe { &(*getCSpace(caller as usize, tcbVTable)).cap };
+    let new_vtable = &caller.get_cspace(tcbVTable).cap;
 
-    let cap_pd = newVTable.get_pt_base_ptr() as *mut pte_t;
-
-    if unlikely(!isValidVTableRoot_fp(newVTable)) {
+    if unlikely(!isValidVTableRoot_fp(new_vtable)) {
         slowpath(SysReplyRecv as usize);
     }
-
-    let mut stored_hw_asid: pte_t = pte_t { words: [0] };
-    stored_hw_asid.words[0] = newVTable.get_pt_mapped_asid();
 
     let dom = 0;
-
-    unsafe {
-        if unlikely(!isHighestPrio(dom, (*caller).tcbPriority)) {
-            slowpath(SysReplyRecv as usize);
-        }
-        thread_state_ptr_mset_blockingObject_tsType(
-            &mut (*ksCurThread).tcbState,
-            ep_ptr as usize,
-            ThreadStateBlockedOnReceive,
-        );
-        thread_state_set_blockingIPCCanGrant(
-            &mut (*ksCurThread).tcbState,
-            cap_endpoint_cap_get_capCanGrant(&ep_cap),
-        );
+    if unlikely(!isHighestPrio(dom, caller.tcbPriority)) {
+        slowpath(SysReplyRecv as usize);
     }
+    thread_state_ptr_mset_blockingObject_tsType(
+        &mut current.tcbState,
+        ep.get_ptr(),
+        ThreadStateBlockedOnReceive,
+    );
+    current.tcbState.set_blocking_ipc_can_grant(ep_cap.get_ep_can_grant());
 
     let endpointTail = unsafe {
-        (*ep_ptr).get_queue_tail() as *mut tcb_t
+        ep.get_queue_tail() as *mut tcb_t
     };
 
-    if endpointTail as usize == 0 {
-        unsafe {
-            (*ksCurThread).tcbEPPrev = 0;
-            (*ksCurThread).tcbEPNext = 0;
-            endpoint_ptr_set_epQueue_head_np(ep_ptr, ksCurThread as usize);
-            endpoint_ptr_mset_epQueue_tail_state(ep_ptr, ksCurThread as usize, EPState_Recv);
-        }
+    if let Some(ep_tail_tcb) = convert_to_option_mut_type_ref::<tcb_t>(ep.get_queue_tail()) {
+        ep_tail_tcb.tcbEPNext = current.get_ptr();
+        current.tcbEPPrev = ep_tail_tcb.get_ptr();
+        current.tcbEPNext = 0;
     } else {
-        unsafe {
-            (*endpointTail).tcbEPNext = ksCurThread as usize;
-            (*ksCurThread).tcbEPPrev = endpointTail as usize;
-            (*ksCurThread).tcbEPNext = 0;
-            endpoint_ptr_mset_epQueue_tail_state(ep_ptr, ksCurThread as usize, EPState_Recv);
-        }
+        current.tcbEPPrev = 0;
+        current.tcbEPNext = 0;
+        ep.set_queue_head(current.get_ptr());
     }
+    endpoint_ptr_mset_epQueue_tail_state(ep as *mut endpoint_t, unsafe { ksCurThread } as usize, EPState_Recv);
 
     unsafe {
-        let node = (*callerSlot).cteMDBNode.get_prev() as *mut cte_t;
-        mdb_node_ptr_mset_mdbNext_mdbRevocable_mdbFirstBadged(&mut (*node).cteMDBNode, 0, 1, 1);
-        (*callerSlot).cap = cap_t::new_null_cap();
-        (*callerSlot).cteMDBNode = mdb_node_t::new(0, 0, 0, 0);
-        fastpath_copy_mrs(length, ksCurThread, caller);
+        let node = convert_to_mut_type_ref::<cte_t>(caller_slot.cteMDBNode.get_prev());
+        mdb_node_ptr_mset_mdbNext_mdbRevocable_mdbFirstBadged(&mut node.cteMDBNode, 0, 1, 1);
+        caller_slot.cap = cap_t::new_null_cap();
+        caller_slot.cteMDBNode = mdb_node_t::new(0, 0, 0, 0);
+        fastpath_copy_mrs(length, current, caller);
 
-        thread_state_ptr_set_tsType_np(&mut (*caller).tcbState, ThreadStateRunning);
+        caller.tcbState.words[0] = ThreadState::ThreadStateRunning as usize;
+        let cap_pd = new_vtable.get_pt_base_ptr() as *mut pte_t;
+        let stored_hw_asid: pte_t = pte_t { words: [new_vtable.get_pt_mapped_asid()] };
         switchToThread_fp(caller, cap_pd, stored_hw_asid);
-        seL4_MessageInfo_ptr_set_capsUnwrapped((&mut info) as *mut seL4_MessageInfo_t, 0);
-        let msgInfo1 = wordFromMessageInfo(info);
-        // debug!("out fastpath_reply_recv{}", msgInfo1);
-        fastpath_restore(0, msgInfo1, ksCurThread);
+        info.set_caps_unwrapped(0);
+        let msg_info1 = info.to_word();
+        fastpath_restore(0, msg_info1, ksCurThread);
     }
 }
  
