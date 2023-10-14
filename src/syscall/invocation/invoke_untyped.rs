@@ -1,11 +1,11 @@
 
-use common::{object::ObjectType, utils::convert_to_mut_type_ref, sel4_config::*, structures::exception_t, ROUND_DOWN, BIT};
-use task_manager::{tcb_t, get_current_domain};
-use vspace::{pptr_t, VMReadWrite};
-use cspace::interface::{cap_t, cte_t, insert_new_cap};
+use crate::common::{object::ObjectType, utils::convert_to_mut_type_ref, sel4_config::*, structures::exception_t};
+use crate::task_manager::{tcb_t, get_current_domain};
+use crate::vspace::{pptr_t, VMReadWrite};
+use crate::cspace::interface::{cap_t, cte_t, insert_new_cap};
 use crate::syscall::{FREE_INDEX_TO_OFFSET, GET_FREE_INDEX, GET_OFFSET_FREE_PTR, OFFSET_TO_FREE_IDNEX};
 
-use crate::utils::*;
+use crate::{utils::*, ROUND_DOWN, BIT};
 
 #[link(name = "kernel_all.c")]
 extern "C" {

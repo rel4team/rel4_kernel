@@ -1,11 +1,11 @@
-use common::{message_info::MessageLabel, structures::{exception_t, seL4_IPCBuffer}, 
-    sel4_config::{seL4_IllegalOperation, seL4_TruncatedMessage, seL4_RangeError, tcbCTable, tcbVTable, seL4_InvalidCapability}, BIT, 
+use crate::{common::{message_info::MessageLabel, structures::{exception_t, seL4_IPCBuffer}, 
+    sel4_config::{seL4_IllegalOperation, seL4_TruncatedMessage, seL4_RangeError, tcbCTable, tcbVTable, seL4_InvalidCapability}, 
     utils::convert_to_mut_type_ref,
-};
-use cspace::interface::{cap_t, cte_t, CapTag};
-use task_manager::ipc::notification_t;
+}, BIT};
+use crate::cspace::interface::{cap_t, cte_t, CapTag};
+use crate::task_manager::ipc::notification_t;
 use log::debug;
-use task_manager::{tcb_t, set_thread_state, get_currenct_thread, ThreadState};
+use crate::task_manager::{tcb_t, set_thread_state, get_currenct_thread, ThreadState};
 
 use crate::{
     kernel::boot::{current_syscall_error, get_extra_cap_by_index},

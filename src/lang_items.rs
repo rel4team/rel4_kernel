@@ -1,6 +1,6 @@
 use log::error;
 
-use common::sbi::shutdown;
+use crate::common::sbi::shutdown;
 use core::panic::PanicInfo;
 
 #[panic_handler]

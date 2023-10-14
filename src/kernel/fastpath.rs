@@ -1,11 +1,12 @@
 use crate::{config::seL4_MsgLengthBits, syscall::{slowpath, SysCall, SysReplyRecv}};
-use cspace::compatibility::*;
-use task_manager::*;
-use task_manager::ipc::*;
-use vspace::*;
+use crate::cspace::compatibility::*;
+use crate::task_manager::*;
+use crate::task_manager::ipc::*;
+use crate::vspace::*;
 use core::intrinsics::{likely, unlikely};
-use common::{sel4_config::{wordBits, tcbCTable, tcbVTable, tcbReply, tcbCaller, seL4_MsgExtraCapBits}, MASK, message_info::*, fault::*, utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref}};
-use cspace::interface::*;
+use crate::common::{sel4_config::*, message_info::*, fault::*, utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref}};
+use crate::cspace::interface::*;
+use crate::MASK;
 
 #[inline]
 #[no_mangle]

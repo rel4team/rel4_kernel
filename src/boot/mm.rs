@@ -1,5 +1,5 @@
 
-use common::sel4_config::KERNEL_ELF_BASE;
+use crate::common::sel4_config::KERNEL_ELF_BASE;
 use log::debug;
 
 use crate::boot::utils::ceiling_kernel_window;
@@ -8,7 +8,7 @@ use crate::boot::utils::paddr_to_pptr_reg;
 use crate::boot::utils::pptr_to_paddr_reg;
 use crate::config::*;
 use crate::structures::*;
-use vspace::*;
+use crate::vspace::*;
 use super::ndks_boot;
 #[link_section = ".boot.bss"]
 static mut res_reg: [region_t; NUM_RESERVED_REGIONS] =

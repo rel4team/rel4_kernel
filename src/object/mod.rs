@@ -1,11 +1,9 @@
-use common::message_info::MessageLabel;
-use common::structures::exception_t;
-use cspace::interface::{cap_t, cte_t};
-use task_manager::tcb_t;
+use crate::common::message_info::MessageLabel;
+use crate::common::structures::exception_t;
+use crate::cspace::interface::{cap_t, cte_t};
+use crate::task_manager::tcb_t;
 use crate::structures::lookupCapAndSlot_ret_t;
 use crate::syscall::handle_fault;
-
-pub mod objecttype;
 
 #[no_mangle]
 pub fn decodeRISCVMMUInvocation(_label: MessageLabel, _length: usize, _cptr: usize, _cte: *mut cte_t,

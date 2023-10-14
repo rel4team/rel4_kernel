@@ -3,8 +3,8 @@ pub mod invocation;
 pub mod syscall_reply;
 
 use core::intrinsics::unlikely;
-use common::fault::{FaultType, lookup_fault_t, seL4_Fault_t};
-use common::sel4_config::tcbCaller;
+use crate::common::fault::{FaultType, lookup_fault_t, seL4_Fault_t};
+use crate::common::sel4_config::tcbCaller;
 
 pub const SysCall: isize = -1;
 pub const SysReplyRecv: isize = -2;
@@ -14,11 +14,11 @@ pub const SysRecv: isize = -5;
 pub const SysReply: isize = -6;
 pub const SysYield: isize = -7;
 pub const SysNBRecv: isize = -8;
-use common::structures::exception_t;
-use common::utils::convert_to_mut_type_ref;
-use cspace::interface::CapTag;
-use task_manager::{schedule, activateThread, tcb_t, set_thread_state, ThreadState, get_currenct_thread, capRegister, rescheduleRequired};
-use task_manager::ipc::{endpoint_t, notification_t};
+use crate::common::structures::exception_t;
+use crate::common::utils::convert_to_mut_type_ref;
+use crate::cspace::interface::CapTag;
+use crate::task_manager::{schedule, activateThread, tcb_t, set_thread_state, ThreadState, get_currenct_thread, capRegister, rescheduleRequired};
+use crate::task_manager::ipc::{endpoint_t, notification_t};
 pub use utils::*;
 
 use crate::{kernel::c_traps::restore_user_context, config::irqInvalid, interrupt::getActiveIRQ};

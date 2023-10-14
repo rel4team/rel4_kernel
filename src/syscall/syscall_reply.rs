@@ -1,6 +1,6 @@
-use common::message_info::seL4_MessageInfo_t;
-use task_manager::{msgInfoRegister, tcb_t};
-use common::sel4_config::*;
+use crate::common::message_info::seL4_MessageInfo_t;
+use crate::task_manager::{msgInfoRegister, tcb_t};
+use crate::common::sel4_config::*;
 use crate::config::badgeRegister;
 use crate::kernel::boot::{current_lookup_fault, current_syscall_error};
 

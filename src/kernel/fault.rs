@@ -1,4 +1,4 @@
-use task_manager::*;
+use crate::task_manager::*;
 
 #[no_mangle]
 pub fn process3(sender: *mut tcb_t, receiver: *mut tcb_t, _receiveIPCBuffer: *mut usize) -> usize {

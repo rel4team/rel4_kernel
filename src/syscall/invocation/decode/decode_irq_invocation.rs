@@ -1,7 +1,7 @@
-use common::{message_info::MessageLabel, structures::{seL4_IPCBuffer, exception_t}, sel4_config::*, utils::convert_to_mut_type_ref};
-use cspace::interface::{cte_t, CapTag};
+use crate::common::{message_info::MessageLabel, structures::{seL4_IPCBuffer, exception_t}, sel4_config::*, utils::convert_to_mut_type_ref};
+use crate::cspace::interface::{cte_t, CapTag};
 use log::debug;
-use task_manager::{set_thread_state, get_currenct_thread, ThreadState};
+use crate::task_manager::{set_thread_state, get_currenct_thread, ThreadState};
 
 use crate::{
     kernel::boot::{get_extra_cap_by_index, current_syscall_error},

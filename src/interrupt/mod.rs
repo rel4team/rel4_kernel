@@ -1,9 +1,10 @@
 pub mod handler;
 use core::arch::asm;
 
-use common::{BIT, utils::convert_to_mut_type_ref};
-use cspace::interface::cte_t;
-use vspace::pptr_t;
+use crate::common::utils::convert_to_mut_type_ref;
+use crate::BIT;
+use crate::cspace::interface::cte_t;
+use crate::vspace::pptr_t;
 
 use crate::{config::*, riscv::read_sip};
 

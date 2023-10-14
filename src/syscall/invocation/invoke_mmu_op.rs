@@ -1,8 +1,8 @@
-use common::{structures::exception_t, utils::{convert_to_mut_type_ref, pageBitsForSize}, sel4_config::*, message_info::seL4_MessageInfo_t, MASK};
-use common::utils::MAX_FREE_INDEX;
-use cspace::interface::{cap_t, cte_t, seL4_CapRights_t, cte_insert};
-use task_manager::{get_currenct_thread, msgInfoRegister, set_thread_state, ThreadState};
-use vspace::{pte_t, sfence, pptr_to_paddr, unmapPage, vm_attributes_t, maskVMRights, pptr_t, set_asid_pool_by_index, asid_pool_t, copyGlobalMappings};
+use crate::{common::{structures::exception_t, utils::{convert_to_mut_type_ref, pageBitsForSize}, sel4_config::*, message_info::seL4_MessageInfo_t}, MASK};
+use crate::common::utils::MAX_FREE_INDEX;
+use crate::cspace::interface::{cap_t, cte_t, seL4_CapRights_t, cte_insert};
+use crate::task_manager::{get_currenct_thread, msgInfoRegister, set_thread_state, ThreadState};
+use crate::vspace::{pte_t, sfence, pptr_to_paddr, unmapPage, vm_attributes_t, maskVMRights, pptr_t, set_asid_pool_by_index, asid_pool_t, copyGlobalMappings};
 
 use crate::{utils::clear_memory, config::badgeRegister, kernel::boot::current_lookup_fault};
 

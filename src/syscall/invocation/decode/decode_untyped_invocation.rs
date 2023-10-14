@@ -1,7 +1,8 @@
-use common::{message_info::MessageLabel, sel4_config::*, structures::*, object::ObjectType, BIT, utils::convert_to_mut_type_ref, fault::lookup_fault_missing_capability_new};
-use cspace::interface::{cap_t, cte_t, CapTag};
+use crate::BIT;
+use crate::common::{message_info::MessageLabel, sel4_config::*, structures::*, object::ObjectType, utils::convert_to_mut_type_ref, fault::lookup_fault_missing_capability_new};
+use crate::cspace::interface::{cap_t, cte_t, CapTag};
 use log::debug;
-use task_manager::{set_thread_state, get_currenct_thread, ThreadState};
+use crate::task_manager::{set_thread_state, get_currenct_thread, ThreadState};
 
 use crate::{kernel::boot::{current_syscall_error, current_lookup_fault, get_extra_cap_by_index},
     syscall::{invocation::invoke_untyped::invoke_untyped_retype, get_syscall_arg, lookup_slot_for_cnode_op},

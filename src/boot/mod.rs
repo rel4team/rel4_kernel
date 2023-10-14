@@ -7,8 +7,8 @@ mod interface;
 
 use core::mem::size_of;
 
-use common::{BIT, ROUND_UP};
-use common::sel4_config::{PADDR_TOP, KERNEL_ELF_BASE, seL4_PageBits, PAGE_BITS};
+use crate::{BIT, ROUND_UP};
+use crate::common::sel4_config::{PADDR_TOP, KERNEL_ELF_BASE, seL4_PageBits, PAGE_BITS};
 use log::debug;
 use riscv::register::stvec;
 use riscv::register::utvec::TrapMode;
@@ -18,12 +18,12 @@ use crate::boot::root_server::root_server_init;
 use crate::boot::untyped::create_untypeds;
 use crate::boot::utils::paddr_to_pptr_reg;
 use crate::interrupt::set_sie_mask;
-use common::sbi::{set_timer, get_time};
+use crate::common::sbi::{set_timer, get_time};
 use crate::structures::{ndks_boot_t, region_t, p_region_t, seL4_BootInfo, seL4_BootInfoHeader, seL4_SlotRegion, v_region_t};
 use crate::config::*;
 
-use vspace::*;
-use task_manager::*;
+use crate::vspace::*;
+use crate::task_manager::*;
 pub use root_server::rootserver;
 pub use utils::{write_slot, provide_cap};
 
@@ -160,7 +160,7 @@ pub fn try_init_kernel(
     dtb_size: usize,
     ki_boot_end: usize
 ) -> bool {
-    common::logging::init();
+    crate::common::logging::init();
     debug!("hello logging");
     debug!("hello logging");
     let boot_mem_reuse_p_reg = p_region_t {

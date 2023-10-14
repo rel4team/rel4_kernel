@@ -10,6 +10,7 @@
 #![feature(alloc_error_handler)]
 #![feature(panic_info_message)]
 #![feature(stdsimd)]
+#![feature(linkage)]
 
 
 extern crate core;
@@ -32,6 +33,10 @@ mod boot;
 mod sbi;
 mod interrupt;
 mod exception;
+mod common;
+mod task_manager;
+mod vspace;
+mod cspace;
 
 #[no_mangle]
 pub extern "C" fn idle_thread() {

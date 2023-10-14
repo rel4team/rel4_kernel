@@ -1,7 +1,7 @@
 extern crate core;
 
-use common::{sel4_config::seL4_MsgMaxExtraCaps, utils::convert_to_option_mut_type_ref, fault::{seL4_Fault_t, lookup_fault_t}};
-use cspace::interface::cte_t;
+use crate::common::{sel4_config::seL4_MsgMaxExtraCaps, utils::convert_to_option_mut_type_ref, fault::{seL4_Fault_t, lookup_fault_t}};
+use crate::cspace::interface::cte_t;
 
 use crate::structures::{
     extra_caps_t, syscall_error_t, 

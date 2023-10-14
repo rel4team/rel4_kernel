@@ -1,7 +1,7 @@
 
 
-use common::structures::exception_t;
-use cspace::interface::{cte_t, cte_insert, cap_t};
+use crate::common::structures::exception_t;
+use crate::cspace::interface::{cte_t, cte_insert, cap_t};
 
 use crate::interrupt::{set_irq_state, IRQState, get_irq_handler_slot};
 

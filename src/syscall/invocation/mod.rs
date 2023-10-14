@@ -7,13 +7,13 @@ pub mod invoke_irq;
 
 use core::intrinsics::unlikely;
 
-use common::{structures::exception_t, message_info::seL4_MessageInfo_t, fault::seL4_Fault_t};
+use crate::common::{structures::exception_t, message_info::seL4_MessageInfo_t, fault::seL4_Fault_t};
 use log::debug;
-use task_manager::{get_currenct_thread, msgInfoRegister, capRegister, ThreadState, set_thread_state, n_msgRegisters};
+use crate::task_manager::{get_currenct_thread, msgInfoRegister, capRegister, ThreadState, set_thread_state, n_msgRegisters};
 
 use crate::kernel::boot::current_fault;
 use crate::syscall::invocation::decode::decode_invocation;
-use crate::syscall::{handle_fault, lookup_extra_caps, lookup_extra_caps_with_buf};
+use crate::syscall::{handle_fault, lookup_extra_caps_with_buf};
 use crate::syscall::syscall_reply::{reply_error_from_kernel, reply_success_from_kernel};
 
 #[no_mangle]

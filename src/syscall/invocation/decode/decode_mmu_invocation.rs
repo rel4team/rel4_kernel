@@ -1,14 +1,13 @@
 use core::intrinsics::unlikely;
 
-use common::{
+use crate::{common::{
     message_info::MessageLabel, structures::{exception_t, seL4_IPCBuffer}, 
-    sel4_config::*, MASK, 
-    utils::{convert_to_mut_type_ref, pageBitsForSize}, BIT, fault::*,
-};
-use cspace::interface::{cte_t, CapTag, cap_t};
+    sel4_config::*, utils::{convert_to_mut_type_ref, pageBitsForSize}, fault::*,
+}, BIT, MASK};
+use crate::cspace::interface::{cte_t, CapTag, cap_t};
 use log::debug;
-use task_manager::{set_thread_state, get_currenct_thread, ThreadState};
-use vspace::{find_vspace_for_asid, pte_t, vm_attributes_t, checkVPAlignment, get_asid_pool_by_index};
+use crate::task_manager::{set_thread_state, get_currenct_thread, ThreadState};
+use crate::vspace::{find_vspace_for_asid, pte_t, vm_attributes_t, checkVPAlignment, get_asid_pool_by_index};
 
 use crate::{
     kernel::boot::{current_syscall_error, current_lookup_fault, get_extra_cap_by_index},

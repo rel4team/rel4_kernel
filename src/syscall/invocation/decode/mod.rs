@@ -7,11 +7,11 @@ pub mod decode_irq_invocation;
 
 use core::intrinsics::unlikely;
 
-use common::{structures::{exception_t, seL4_IPCBuffer}, sel4_config::seL4_InvalidCapability, utils::{convert_to_mut_type_ref}, message_info::MessageLabel};
-use cspace::interface::{cte_t, cap_t, CapTag};
-use task_manager::ipc::{endpoint_t, notification_t};
+use crate::common::{structures::{exception_t, seL4_IPCBuffer}, sel4_config::seL4_InvalidCapability, utils::convert_to_mut_type_ref, message_info::MessageLabel};
+use crate::cspace::interface::{cte_t, cap_t, CapTag};
+use crate::task_manager::ipc::{endpoint_t, notification_t};
 use log::debug;
-use task_manager::{set_thread_state, get_currenct_thread, ThreadState, tcb_t};
+use crate::task_manager::{set_thread_state, get_currenct_thread, ThreadState, tcb_t};
 
 use crate::kernel::boot::current_syscall_error;
 use crate::syscall::invocation::decode::decode_irq_invocation::decode_irq_handler_invocation;

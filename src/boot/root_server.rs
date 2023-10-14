@@ -1,12 +1,12 @@
 use super::calculate_extra_bi_size_bits;
 use super::utils::{arch_get_n_paging, write_slot, provide_cap, create_it_pt_cap, map_it_frame_cap};
 use super::{ndks_boot, utils::is_reg_empty};
-use common::{BIT, ROUND_DOWN};
-use common::sel4_config::{wordBits, seL4_SlotBits, IT_ASID, asidLowBits, seL4_PageBits, seL4_PageTableBits, CONFIG_PT_LEVELS,
+use crate::{BIT, ROUND_DOWN};
+use crate::common::sel4_config::{wordBits, seL4_SlotBits, IT_ASID, asidLowBits, seL4_PageBits, seL4_PageTableBits, CONFIG_PT_LEVELS,
     PAGE_BITS, CONFIG_MAX_NUM_NODES, TCB_OFFSET, CONFIG_TIME_SLICE, tcbCTable, tcbVTable, tcbBuffer, CONFIG_NUM_DOMAINS, seL4_TCBBits};
-use common::structures::{exception_t, seL4_IPCBuffer};
-use common::utils::convert_to_mut_type_ref;
-use cspace::interface::*;
+use crate::common::structures::{exception_t, seL4_IPCBuffer};
+use crate::common::utils::convert_to_mut_type_ref;
+use crate::cspace::interface::*;
 use log::debug;
 use crate::interrupt::{setIRQState, IRQState};
 use crate::structures::{region_t, rootserver_mem_t, v_region_t, seL4_SlotRegion, create_frames_of_region_ret_t,
@@ -15,8 +15,8 @@ use crate::structures::{region_t, rootserver_mem_t, v_region_t, seL4_SlotRegion,
 use crate::config::*;
 use crate::utils::clear_memory;
 
-use task_manager::*;
-use vspace::*;
+use crate::task_manager::*;
+use crate::vspace::*;
 #[no_mangle]
 #[link_section = ".boot.bss"]
 pub static mut rootserver_mem: region_t = region_t { start: 0, end: 0 };

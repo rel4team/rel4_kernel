@@ -1,7 +1,7 @@
-use common::{structures::{exception_t, seL4_IPCBuffer}, message_info::seL4_MessageInfo_t, sel4_config::{tcbCTable, tcbVTable, tcbBuffer}};
-use cspace::interface::{cap_t, cte_t, same_object_as, cte_insert};
-use task_manager::ipc::notification_t;
-use task_manager::{
+use crate::common::{structures::{exception_t, seL4_IPCBuffer}, message_info::seL4_MessageInfo_t, sel4_config::{tcbCTable, tcbVTable, tcbBuffer}};
+use crate::cspace::interface::{cap_t, cte_t, same_object_as, cte_insert};
+use crate::task_manager::ipc::notification_t;
+use crate::task_manager::{
     tcb_t, badgeRegister, msgInfoRegister, get_currenct_thread, set_thread_state, ThreadState,
     FaultIP, NextIP, rescheduleRequired, TLS_BASE, msgRegister, n_msgRegisters
 };

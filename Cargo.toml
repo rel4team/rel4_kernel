@@ -11,10 +11,6 @@ crate-type = ["staticlib"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cspace = { path = "./cspace" }
-common = { path = "./common" }
-vspace = { path = "./vspace" }
-task_manager = { path = "./task_manager" }
 buddy_system_allocator = "0.6"
 riscv = { git = "https://gitee.com/rcore-os/riscv", features = ["inline-asm"] }
 log = "0.4"

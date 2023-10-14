@@ -1,7 +1,7 @@
 use core::arch::asm;
 
 use crate::config::RESET_CYCLES;
-use common::sbi::set_timer;
+use crate::common::sbi::set_timer;
 
 pub fn read_stval() -> usize {
     let temp: usize;
