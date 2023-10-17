@@ -1,6 +1,7 @@
 use core::intrinsics::{unlikely, likely};
 use common::{structures::exception_t, utils::{convert_to_type_ref, convert_to_mut_type_ref}, MASK, sel4_config::wordRadix};
 use common::utils::MAX_FREE_INDEX;
+use log::debug;
 use crate::{cap::{cap_t, CapTag, same_region_as, same_object_as, is_cap_revocable, zombie::capCyclicZombie}, mdb::mdb_node_t,
     utils::{resolveAddressBits_ret_t}, structures::finaliseSlot_ret,
     deps::{finaliseCap, preemptionPoint, post_cap_deletion}};
@@ -230,6 +231,7 @@ impl cte_t {
             let prev_addr = mdb_node.get_prev();
             let next_addr = mdb_node.get_next();
             if prev_addr != 0 {
+                debug!("prev_addr: {:#x}, nex_addr: {:#x}", prev_addr, next_addr);
                 let prev_node = convert_to_mut_type_ref::<cte_t>(prev_addr);
                 prev_node.cteMDBNode.set_next(next_addr);
             }
@@ -289,10 +291,12 @@ impl cte_t {
 
     #[inline]
     pub fn revoke(&mut self) -> exception_t {
-       let mut next_ptr = self.cteMDBNode.get_next();
+        debug!("revoke");
+        let mut next_ptr = self.cteMDBNode.get_next();
         if next_ptr != 0 {
             let mut next_cte = convert_to_mut_type_ref::<cte_t>(next_ptr);
             while next_ptr != 0 && self.is_mdb_parent_of(next_cte) {
+                debug!("nex_ptr: {:#x}, self ptr: {:#x}", next_ptr, self.get_ptr());
                 let mut status = next_cte.delete_all(true);
                 if status != exception_t::EXCEPTION_NONE {
                     return status;
@@ -303,6 +307,7 @@ impl cte_t {
                 }
 
                 next_ptr = self.cteMDBNode.get_next();
+                debug!("nex_ptr after delete: {:#x}", next_ptr);
                 if next_ptr == 0 {
                     break;
                 }
