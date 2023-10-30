@@ -2,10 +2,38 @@ use crate::{BIT, MASK};
 use crate::common::{sel4_config::*, utils::convert_to_mut_type_ref};
 use core::arch::asm;
 use core::intrinsics::{likely, unlikely};
+use crate::common::utils::hart_id;
+use super::{FaultIP, NextIP, SSTATUS, SSTATUS_SPP, SSTATUS_SPIE, sp, set_thread_state, ThreadState};
 
-use super::{FaultIP, NextIP, SSTATUS, SSTATUS_SPP, SSTATUS_SPIE, sp, set_thread_state};
+use super::{tcb::tcb_t, tcb_queue_t};
 
-use super::{tcb::tcb_t, tcb_queue_t, get_idle_thread, get_currenct_thread, ThreadState};
+#[cfg(feature = "ENABLE_SMP")]
+#[derive(Debug, Copy, Clone)]
+pub struct SmpStateData {
+    pub ipiReschedulePending: usize,
+    pub ksReadyQueues: [tcb_queue_t; CONFIG_NUM_DOMAINS * CONFIG_NUM_PRIORITIES],
+    pub ksReadyQueuesL1Bitmap: [usize; CONFIG_NUM_DOMAINS],
+    pub ksReadyQueuesL2Bitmap: [usize; CONFIG_NUM_DOMAINS * L2_BITMAP_SIZE],
+    pub ksCurThread: usize,
+    pub ksIdleThread: usize,
+    pub ksSchedulerAction: usize,
+    pub ksDebugTCBs: usize,
+    // TODO: Cache Line 对齐
+
+}
+
+#[cfg(feature = "ENABLE_SMP")]
+#[no_mangle]
+pub static mut ksSMP: [SmpStateData; CONFIG_MAX_NUM_NODES] = [SmpStateData {
+            ipiReschedulePending: 0,
+            ksReadyQueues: [tcb_queue_t {head: 0, tail: 0}; CONFIG_NUM_DOMAINS * CONFIG_NUM_PRIORITIES],
+            ksReadyQueuesL1Bitmap: [0; CONFIG_NUM_DOMAINS],
+            ksReadyQueuesL2Bitmap: [0; CONFIG_NUM_DOMAINS * L2_BITMAP_SIZE],
+            ksCurThread: 0,
+            ksIdleThread: 0,
+            ksSchedulerAction: 1,
+            ksDebugTCBs: 0,
+        }; CONFIG_MAX_NUM_NODES];
 
 
 #[repr(C)]
@@ -30,13 +58,13 @@ pub static mut ksCurDomain: usize = 0;
 pub static mut ksDomScheduleIdx: usize = 0;
 
 #[no_mangle]
-pub static mut ksCurThread: *mut tcb_t = 0 as *mut tcb_t;
+pub static mut ksCurThread: usize = 0;
 
 #[no_mangle]
-pub static mut ksIdleThread: *mut tcb_t = 0 as *mut tcb_t;
+pub static mut ksIdleThread: usize = 0;
 
 #[no_mangle]
-pub static mut ksSchedulerAction: *mut tcb_t = 1 as *mut tcb_t;
+pub static mut ksSchedulerAction: usize = 1;
 
 #[no_mangle]
 pub static mut ksReadyQueues: [tcb_queue_t; NUM_READY_QUEUES] = [tcb_queue_t {
@@ -67,6 +95,67 @@ pub static mut ksDomSchedule: [dschedule_t; ksDomScheduleLength] = [dschedule_t 
 }; ksDomScheduleLength];
 
 type prio_t = usize;
+
+
+#[cfg(not(feature = "ENABLE_SMP"))]
+#[inline]
+pub fn get_idle_thread() -> &'static mut tcb_t {
+    unsafe {
+        convert_to_mut_type_ref::<tcb_t>(ksIdleThread as usize)
+    }
+}
+#[cfg(feature = "ENABLE_SMP")]
+#[inline]
+pub fn get_idle_thread() -> &'static mut tcb_t {
+    unsafe {
+        convert_to_mut_type_ref::<tcb_t>(ksSMP[hart_id()].ksIdleThread as usize)
+    }
+}
+
+#[cfg(not(feature = "ENABLE_SMP"))]
+#[inline]
+pub fn get_currenct_thread() -> &'static mut tcb_t {
+    unsafe {
+        convert_to_mut_type_ref::<tcb_t>(ksCurThread as usize)
+    }
+}
+
+#[cfg(feature = "ENABLE_SMP")]
+#[inline]
+pub fn get_currenct_thread() -> &'static mut tcb_t {
+    unsafe {
+        convert_to_mut_type_ref::<tcb_t>(ksSMP[hart_id()].ksCurThread as usize)
+    }
+}
+
+#[cfg(not(feature = "ENABLE_SMP"))]
+#[inline]
+pub fn set_current_scheduler_action(action: usize) {
+    unsafe { ksSchedulerAction = action; }
+}
+
+
+#[cfg(not(feature = "ENABLE_SMP"))]
+#[inline]
+pub fn set_current_thread(thread: &tcb_t) {
+    unsafe { ksCurThread = thread.get_ptr() }
+}
+
+#[cfg(feature = "ENABLE_SMP")]
+#[inline]
+pub fn set_current_scheduler_action(action: usize) {
+    unsafe {
+        ksSMP[hart_id()].ksSchedulerAction = action;
+    }
+}
+
+#[cfg(feature = "ENABLE_SMP")]
+#[inline]
+pub fn set_current_thread(thread: &tcb_t) {
+    unsafe {
+        ksSMP[hart_id()].ksCurThread = thread.get_ptr();
+    }
+}
 
 
 #[inline]
@@ -180,7 +269,7 @@ pub fn rescheduleRequired() {
         {
             convert_to_mut_type_ref::<tcb_t>(ksSchedulerAction as usize).sched_enqueue();
         }
-        ksSchedulerAction = SchedulerAction_ChooseNewThread as *mut tcb_t;
+        ksSchedulerAction = SchedulerAction_ChooseNewThread;
     }
 }
 
@@ -206,20 +295,20 @@ pub fn schedule() {
                     || (*candidate).tcbPriority < (*(ksCurThread as *const tcb_t)).tcbPriority;
                 if fastfail && !isHighestPrio(ksCurDomain, candidate.tcbPriority) {
                     candidate.sched_enqueue();
-                    ksSchedulerAction = SchedulerAction_ChooseNewThread as *mut tcb_t;
+                    ksSchedulerAction = SchedulerAction_ChooseNewThread;
                     scheduleChooseNewThread();
                 } else if was_runnable
                     && candidate.tcbPriority == (*(ksCurThread as *const tcb_t)).tcbPriority
                 {
                     candidate.sched_append();
-                    ksSchedulerAction = SchedulerAction_ChooseNewThread as *mut tcb_t;
+                    ksSchedulerAction = SchedulerAction_ChooseNewThread;
                     scheduleChooseNewThread();
                 } else {
                     candidate.switch_to_this();
                 }
             }
         }
-        ksSchedulerAction = SchedulerAction_ResumeCurrentThread as *mut tcb_t;
+        ksSchedulerAction = SchedulerAction_ResumeCurrentThread;
     }
 }
 
@@ -243,7 +332,7 @@ pub fn possible_switch_to(target: &mut tcb_t) {
         rescheduleRequired();
         target.sched_enqueue();
     } else {
-        unsafe { ksSchedulerAction = target as *mut tcb_t; }
+        unsafe { ksSchedulerAction = target.get_ptr(); }
     }
 }
 
@@ -293,16 +382,36 @@ pub fn activateThread() {
 pub static mut kernel_stack_alloc: [[u8; BIT!(CONFIG_KERNEL_STACK_BITS)]; CONFIG_MAX_NUM_NODES] =
     [[0; BIT!(CONFIG_KERNEL_STACK_BITS)]; CONFIG_MAX_NUM_NODES];
 
-
+#[cfg(not(feature = "ENABLE_SMP"))]
 pub fn create_idle_thread() {
     unsafe {
         let pptr = ksIdleThreadTCB.as_ptr() as *mut usize;
-        ksIdleThread = pptr.add(TCB_OFFSET) as *mut tcb_t;
-        let tcb = convert_to_mut_type_ref::<tcb_t>(ksIdleThread as usize);
+        ksIdleThread = pptr.add(TCB_OFFSET) as usize;
+        // let tcb = convert_to_mut_type_ref::<tcb_t>(ksIdleThread as usize);
+        let tcb = get_idle_thread();
         tcb.set_register(NextIP, idle_thread as usize);
         tcb.set_register(SSTATUS, SSTATUS_SPP | SSTATUS_SPIE);
         tcb.set_register(sp, kernel_stack_alloc.as_ptr() as usize + BIT!(CONFIG_KERNEL_STACK_BITS));
         set_thread_state(tcb, ThreadState::ThreadStateIdleThreadState);
+    }
+}
+
+#[cfg(feature = "ENABLE_SMP")]
+pub fn create_idle_thread() {
+    use log::debug;
+
+    unsafe {
+        for i in 0..CONFIG_MAX_NUM_NODES {
+            let pptr = ksIdleThreadTCB[i].as_ptr() as *mut usize;
+            ksSMP[i].ksIdleThread = pptr.add(TCB_OFFSET) as usize;
+            debug!("ksIdleThread: {}", ksSMP[i].ksIdleThread);
+            let tcb = convert_to_mut_type_ref::<tcb_t>(ksSMP[i].ksIdleThread);
+            tcb.set_register(NextIP, idle_thread as usize);
+            tcb.set_register(SSTATUS, SSTATUS_SPP | SSTATUS_SPIE);
+            tcb.set_register(sp, kernel_stack_alloc.as_ptr() as usize + (i + 1) * BIT!(CONFIG_KERNEL_STACK_BITS));
+            set_thread_state(tcb, ThreadState::ThreadStateIdleThreadState);
+            tcb.tcbAffinity = i;
+        }
     }
 }
 

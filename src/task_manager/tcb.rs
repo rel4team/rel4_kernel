@@ -52,6 +52,8 @@ pub struct tcb_t {
     pub tcbTimeSlice: usize,
     pub tcbFaultHandler: usize,
     pub tcbIPCBuffer: usize,
+    #[cfg(feature = "ENABLE_SMP")]
+    pub tcbAffinity: usize,
     pub tcbSchedNext: usize,
     pub tcbSchedPrev: usize,
     pub tcbEPNext: usize,
@@ -240,7 +242,7 @@ impl tcb_t {
         let _ = self.set_vm_root();
         self.sched_dequeue();
         unsafe {
-            ksCurThread = self as *mut tcb_t;
+            ksCurThread = self.get_ptr();
         }
     }
 
@@ -548,20 +550,6 @@ impl tcb_t {
         }
     }
 
-}
-
-#[inline]
-pub fn get_idle_thread() -> &'static mut tcb_t {
-    unsafe {
-        convert_to_mut_type_ref::<tcb_t>(ksIdleThread as usize)
-    }
-}
-
-#[inline]
-pub fn get_currenct_thread() -> &'static mut tcb_t {
-    unsafe {
-        convert_to_mut_type_ref::<tcb_t>(ksCurThread as usize)
-    }
 }
 
 #[inline]

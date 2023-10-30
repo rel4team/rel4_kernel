@@ -48,15 +48,21 @@ if __name__ == "__main__":
             clean_config()
             sys.exit(-1)
     else:
-        if not exec_shell("make run"):
-            clean_config()
-            sys.exit(-1)
+        if args.cpu_nums > 1:
+            if not exec_shell("cargo build --release --target riscv64imac-unknown-none-elf --features ENABLE_SMP"):
+                clean_config()
+                sys.exit(-1)
+        else:
+            if not exec_shell("cargo build --release --target riscv64imac-unknown-none-elf"):
+                clean_config()
+                sys.exit(-1)
     
     if args.cpu_nums > 1:
-        clean_config()
-        print("unsupport smp")
-        sys.exit(-1)
-    
+        shell_command = "cd ./build && ../../init-build.sh  -DPLATFORM=spike -DSIMULATION=TRUE -DSMP=TRUE && ninja"
+        if not exec_shell(shell_command):
+            clean_config()
+            sys.exit(-1)
+        sys.exit(0)
     shell_command = "cd ./build && ../../init-build.sh  -DPLATFORM=spike -DSIMULATION=TRUE && ninja"
     if not exec_shell(shell_command):
         clean_config()

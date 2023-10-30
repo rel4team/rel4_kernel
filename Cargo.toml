@@ -14,3 +14,6 @@ crate-type = ["staticlib"]
 buddy_system_allocator = "0.6"
 riscv = { git = "https://gitee.com/rcore-os/riscv", features = ["inline-asm"] }
 log = "0.4"
+spin = { version = "0.9", features = ["use_ticket_mutex"] }
+[features]
+ENABLE_SMP = []

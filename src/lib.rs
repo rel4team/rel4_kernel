@@ -38,6 +38,9 @@ mod task_manager;
 mod vspace;
 mod cspace;
 
+// #[cfg(feature = "ENABLE_SMP")]
+// mod sync;
+
 #[no_mangle]
 pub extern "C" fn idle_thread() {
     while true {

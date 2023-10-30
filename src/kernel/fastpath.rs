@@ -72,7 +72,7 @@ pub fn switchToThread_fp(thread: *mut tcb_t, vroot: *mut pte_t, stored_hw_asid: 
     let asid = stored_hw_asid.words[0];
     unsafe {
         setVSpaceRoot(pptr_to_paddr(vroot as usize), asid);
-        ksCurThread = thread;
+        ksCurThread = thread as usize;
     }
 }
 
@@ -292,7 +292,7 @@ pub fn fastpath_reply_recv(cptr: usize, msgInfo: usize) {
         switchToThread_fp(caller, cap_pd, stored_hw_asid);
         info.set_caps_unwrapped(0);
         let msg_info1 = info.to_word();
-        fastpath_restore(0, msg_info1, ksCurThread);
+        fastpath_restore(0, msg_info1, ksCurThread as *mut tcb_t);
     }
 }
  

@@ -145,6 +145,10 @@ unsafe fn create_initial_thread(
         ksCurDomain = ksDomSchedule[ksDomScheduleIdx].domain;
         ksDomainTime = ksDomSchedule[ksDomScheduleIdx].length;
     }
+    #[cfg(feature = "ENABLE_SMP")]
+    {
+        tcb.tcbAffinity = 0;
+    }
 
     let cap = cap_t::new_thread_cap(tcb.get_ptr());
     write_slot(cnode.get_offset_slot(seL4_CapInitThreadTCB) as *mut cte_t, cap);

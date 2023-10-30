@@ -1,3 +1,5 @@
+use crate::task_manager::tcb_t;
+
 use super::{mm::{avail_p_regs_addr, avail_p_regs_size}, try_init_kernel};
 
 #[no_mangle]
@@ -22,4 +24,21 @@ pub fn rust_try_init_kernel(ui_p_reg_start: usize,
     dtb_size: usize) -> bool {
 
     try_init_kernel(ui_p_reg_start, ui_p_reg_end, pv_offset, v_entry, dtb_phys_addr, dtb_size, ki_boot_end as usize)
+}
+
+#[cfg(feature = "ENABLE_SMP")]
+#[no_mangle]
+pub fn rust_try_init_kernel_secondary_core(hart_id: usize, core_id: usize) -> bool {
+    use super::try_init_kernel_secondary_core;
+    try_init_kernel_secondary_core(hart_id, core_id)
+}
+
+#[no_mangle]
+pub fn tcbSchedEnqueue(tcb: *mut tcb_t) {
+    panic!("should not be invoke!");
+}
+
+#[no_mangle]
+pub fn switchToIdleThread() {
+    panic!("should not be invoke!");
 }

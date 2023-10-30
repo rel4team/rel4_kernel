@@ -1,4 +1,4 @@
-use crate::{MASK, plus_define_bitfield};
+use crate::plus_define_bitfield;
 const seL4_CapRightsBits: usize = 4;
 
 plus_define_bitfield! {

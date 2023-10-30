@@ -4,7 +4,7 @@ use super::tcb::tcb_t;
 
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub struct tcb_queue_t {
     pub head: usize,
     pub tail: usize,
