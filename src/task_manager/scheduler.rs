@@ -2,10 +2,14 @@ use crate::{BIT, MASK};
 use crate::common::{sel4_config::*, utils::convert_to_mut_type_ref};
 use core::arch::asm;
 use core::intrinsics::{likely, unlikely};
-use crate::common::utils::hart_id;
+
+use crate::common::utils::{convert_to_mut_type_ref_unsafe};
 use super::{FaultIP, NextIP, SSTATUS, SSTATUS_SPP, SSTATUS_SPIE, sp, set_thread_state, ThreadState};
 
 use super::{tcb::tcb_t, tcb_queue_t};
+
+#[cfg(feature = "ENABLE_SMP")]
+use crate::common::utils::hart_id;
 
 #[cfg(feature = "ENABLE_SMP")]
 #[derive(Debug, Copy, Clone)]
@@ -13,7 +17,7 @@ pub struct SmpStateData {
     pub ipiReschedulePending: usize,
     pub ksReadyQueues: [tcb_queue_t; CONFIG_NUM_DOMAINS * CONFIG_NUM_PRIORITIES],
     pub ksReadyQueuesL1Bitmap: [usize; CONFIG_NUM_DOMAINS],
-    pub ksReadyQueuesL2Bitmap: [usize; CONFIG_NUM_DOMAINS * L2_BITMAP_SIZE],
+    pub ksReadyQueuesL2Bitmap: [[usize; L2_BITMAP_SIZE]; CONFIG_NUM_DOMAINS],
     pub ksCurThread: usize,
     pub ksIdleThread: usize,
     pub ksSchedulerAction: usize,
@@ -28,7 +32,7 @@ pub static mut ksSMP: [SmpStateData; CONFIG_MAX_NUM_NODES] = [SmpStateData {
             ipiReschedulePending: 0,
             ksReadyQueues: [tcb_queue_t {head: 0, tail: 0}; CONFIG_NUM_DOMAINS * CONFIG_NUM_PRIORITIES],
             ksReadyQueuesL1Bitmap: [0; CONFIG_NUM_DOMAINS],
-            ksReadyQueuesL2Bitmap: [0; CONFIG_NUM_DOMAINS * L2_BITMAP_SIZE],
+            ksReadyQueuesL2Bitmap: [[0; L2_BITMAP_SIZE]; CONFIG_NUM_DOMAINS],
             ksCurThread: 0,
             ksIdleThread: 0,
             ksSchedulerAction: 1,
@@ -79,10 +83,10 @@ pub static mut ksReadyQueuesL2Bitmap: [[usize; L2_BITMAP_SIZE]; CONFIG_NUM_DOMAI
 #[no_mangle]
 pub static mut ksReadyQueuesL1Bitmap: [usize; CONFIG_NUM_DOMAINS] = [0; CONFIG_NUM_DOMAINS];
 
-#[no_mangle]
-#[link_section = "._idle_thread"]
-pub static mut ksIdleThreadTCB: [[u8; BIT!(seL4_TCBBits)]; CONFIG_MAX_NUM_NODES] =
-    [[0; BIT!(seL4_TCBBits)]; CONFIG_MAX_NUM_NODES];
+// #[no_mangle]
+// #[link_section = "._idle_thread"]
+// pub static mut ksIdleThreadTCB: [[u8; BIT!(seL4_TCBBits)]; CONFIG_MAX_NUM_NODES] =
+//     [[0; BIT!(seL4_TCBBits)]; CONFIG_MAX_NUM_NODES];
 
 #[no_mangle]
 #[link_section = ".boot.bss"]
@@ -97,63 +101,91 @@ pub static mut ksDomSchedule: [dschedule_t; ksDomScheduleLength] = [dschedule_t 
 type prio_t = usize;
 
 
-#[cfg(not(feature = "ENABLE_SMP"))]
 #[inline]
 pub fn get_idle_thread() -> &'static mut tcb_t {
     unsafe {
-        convert_to_mut_type_ref::<tcb_t>(ksIdleThread as usize)
-    }
-}
-#[cfg(feature = "ENABLE_SMP")]
-#[inline]
-pub fn get_idle_thread() -> &'static mut tcb_t {
-    unsafe {
-        convert_to_mut_type_ref::<tcb_t>(ksSMP[hart_id()].ksIdleThread as usize)
+        #[cfg(feature = "ENABLE_SMP")] {
+            convert_to_mut_type_ref::<tcb_t>(ksSMP[hart_id()].ksIdleThread)
+        }
+        #[cfg(not(feature = "ENABLE_SMP"))] {
+            convert_to_mut_type_ref::<tcb_t>(ksIdleThread)
+        }
     }
 }
 
-#[cfg(not(feature = "ENABLE_SMP"))]
+#[inline]
+pub fn get_ks_scheduler_action() -> usize {
+    unsafe {
+        #[cfg(feature = "ENABLE_SMP")] {
+            ksSMP[hart_id()].ksSchedulerAction
+        }
+        #[cfg(not(feature = "ENABLE_SMP"))] {
+            ksSchedulerAction
+        }
+    }
+}
+
+#[inline]
+pub fn set_ks_scheduler_action(action: usize) {
+    // if hart_id() == 0 {
+    //     debug!("set_ks_scheduler_action: {}", action);
+    // }
+    unsafe {
+        #[cfg(feature = "ENABLE_SMP")] {
+            ksSMP[hart_id()].ksSchedulerAction = action;
+        }
+        #[cfg(not(feature = "ENABLE_SMP"))] {
+            ksSchedulerAction = action
+        }
+    }
+}
+
 #[inline]
 pub fn get_currenct_thread() -> &'static mut tcb_t {
     unsafe {
-        convert_to_mut_type_ref::<tcb_t>(ksCurThread as usize)
+        #[cfg(feature = "ENABLE_SMP")] {
+            convert_to_mut_type_ref::<tcb_t>(ksSMP[hart_id()].ksCurThread)
+        }
+        #[cfg(not(feature = "ENABLE_SMP"))] {
+            convert_to_mut_type_ref::<tcb_t>(ksCurThread)
+        }
     }
 }
 
-#[cfg(feature = "ENABLE_SMP")]
 #[inline]
-pub fn get_currenct_thread() -> &'static mut tcb_t {
+pub fn get_currenct_thread_unsafe() -> &'static mut tcb_t {
     unsafe {
-        convert_to_mut_type_ref::<tcb_t>(ksSMP[hart_id()].ksCurThread as usize)
+        #[cfg(feature = "ENABLE_SMP")] {
+            convert_to_mut_type_ref_unsafe::<tcb_t>(ksSMP[hart_id()].ksCurThread)
+        }
+        #[cfg(not(feature = "ENABLE_SMP"))] {
+            convert_to_mut_type_ref_unsafe::<tcb_t>(ksCurThread)
+        }
     }
 }
 
-#[cfg(not(feature = "ENABLE_SMP"))]
-#[inline]
-pub fn set_current_scheduler_action(action: usize) {
-    unsafe { ksSchedulerAction = action; }
-}
-
-
-#[cfg(not(feature = "ENABLE_SMP"))]
-#[inline]
-pub fn set_current_thread(thread: &tcb_t) {
-    unsafe { ksCurThread = thread.get_ptr() }
-}
-
-#[cfg(feature = "ENABLE_SMP")]
 #[inline]
 pub fn set_current_scheduler_action(action: usize) {
     unsafe {
-        ksSMP[hart_id()].ksSchedulerAction = action;
+        #[cfg(feature = "ENABLE_SMP")] {
+            ksSMP[hart_id()].ksSchedulerAction = action;
+        }
+        #[cfg(not(feature = "ENABLE_SMP"))] {
+            ksSchedulerAction = action;
+        }
     }
 }
 
-#[cfg(feature = "ENABLE_SMP")]
+
 #[inline]
 pub fn set_current_thread(thread: &tcb_t) {
     unsafe {
-        ksSMP[hart_id()].ksCurThread = thread.get_ptr();
+        #[cfg(feature = "ENABLE_SMP")] {
+            ksSMP[hart_id()].ksCurThread = thread.get_ptr();
+        }
+        #[cfg(not(feature = "ENABLE_SMP"))] {
+            ksCurThread = thread.get_ptr()
+        }
     }
 }
 
@@ -184,6 +216,7 @@ fn invert_l1index(l1index: usize) -> usize {
     inverted
 }
 
+#[cfg(not(feature = "ENABLE_SMP"))]
 #[inline]
 fn getHighestPrio(dom: usize) -> prio_t {
     unsafe {
@@ -195,29 +228,60 @@ fn getHighestPrio(dom: usize) -> prio_t {
     }
 }
 
+#[cfg(feature = "ENABLE_SMP")]
 #[inline]
-pub fn isHighestPrio(dom: usize, prio: prio_t) -> bool {
-    unsafe { ksReadyQueuesL1Bitmap[dom] == 0 || prio >= getHighestPrio(dom) }
-}
-
-#[inline]
-pub fn addToBitmap(dom: usize, prio: usize) {
+fn getHighestPrio(dom: usize) -> prio_t {
     unsafe {
-        let l1index = prio_to_l1index(prio);
+        let l1index = wordBits - 1 - ksSMP[hart_id()].ksReadyQueuesL1Bitmap[dom].leading_zeros() as usize;
         let l1index_inverted = invert_l1index(l1index);
-        ksReadyQueuesL1Bitmap[dom] |= BIT!(l1index);
-        ksReadyQueuesL2Bitmap[dom][l1index_inverted] |= BIT!(prio & MASK!(wordRadix));
+        let l2index =
+            wordBits - 1 - (ksSMP[hart_id()].ksReadyQueuesL2Bitmap[dom])[l1index_inverted].leading_zeros() as usize;
+        l1index_to_prio(l1index) | l2index
     }
 }
 
 #[inline]
-pub fn removeFromBitmap(dom: usize, prio: usize) {
+pub fn isHighestPrio(dom: usize, prio: prio_t) -> bool {
+    #[cfg(feature = "ENABLE_SMP")] {
+        unsafe { ksSMP[hart_id()].ksReadyQueuesL1Bitmap[dom] == 0 || prio >= getHighestPrio(dom) }
+    }
+    #[cfg(not(feature = "ENABLE_SMP"))] {
+        unsafe { ksReadyQueuesL1Bitmap[dom] == 0 || prio >= getHighestPrio(dom) }
+    }
+}
+
+#[inline]
+pub fn addToBitmap(_cpu: usize, dom: usize, prio: usize) {
     unsafe {
         let l1index = prio_to_l1index(prio);
         let l1index_inverted = invert_l1index(l1index);
-        ksReadyQueuesL2Bitmap[dom][l1index_inverted] &= !BIT!(prio & MASK!(wordRadix));
-        if unlikely(ksReadyQueuesL2Bitmap[dom][l1index_inverted] == 0) {
-            ksReadyQueuesL1Bitmap[dom] &= !(BIT!((l1index)));
+        #[cfg(feature = "ENABLE_SMP")] {
+            ksSMP[_cpu].ksReadyQueuesL1Bitmap[dom]|= BIT!(l1index);
+            ksSMP[_cpu].ksReadyQueuesL2Bitmap[dom][l1index_inverted] |= BIT!(prio & MASK!(wordRadix));
+        }
+        #[cfg(not(feature = "ENABLE_SMP"))] {
+            ksReadyQueuesL1Bitmap[dom] |= BIT!(l1index);
+            ksReadyQueuesL2Bitmap[dom][l1index_inverted] |= BIT!(prio & MASK!(wordRadix));
+        }
+    }
+}
+
+#[inline]
+pub fn removeFromBitmap(_cpu: usize, dom: usize, prio: usize) {
+    unsafe {
+        let l1index = prio_to_l1index(prio);
+        let l1index_inverted = invert_l1index(l1index);
+        #[cfg(feature = "ENABLE_SMP")] {
+            ksSMP[_cpu].ksReadyQueuesL2Bitmap[dom][l1index_inverted] &= !BIT!(prio & MASK!(wordRadix));
+            if unlikely(ksSMP[_cpu].ksReadyQueuesL2Bitmap[dom][l1index_inverted] == 0) {
+                ksSMP[_cpu].ksReadyQueuesL1Bitmap[dom] &= !(BIT!((l1index)));
+            }
+        }
+        #[cfg(not(feature = "ENABLE_SMP"))] {
+            ksReadyQueuesL2Bitmap[dom][l1index_inverted] &= !BIT!(prio & MASK!(wordRadix));
+            if unlikely(ksReadyQueuesL2Bitmap[dom][l1index_inverted] == 0) {
+                ksReadyQueuesL1Bitmap[dom] &= !(BIT!((l1index)));
+            }
         }
     }
 }
@@ -238,6 +302,10 @@ fn nextDomain() {
 
 
 fn scheduleChooseNewThread() {
+    // if hart_id() == 0 {
+    //     debug!("scheduleChooseNewThread");
+    // }
+
     unsafe {
         if ksDomainTime == 0 {
             nextDomain();
@@ -249,11 +317,26 @@ fn scheduleChooseNewThread() {
 fn chooseThread() {
     unsafe {
         let dom = 0;
-        if likely(ksReadyQueuesL1Bitmap[dom] != 0) {
+        let ks_l1_bit = {
+            #[cfg(feature = "ENABLE_SMP")] {
+                ksSMP[hart_id()].ksReadyQueuesL1Bitmap[dom]
+            }
+            #[cfg(not(feature = "ENABLE_SMP"))] {
+                ksReadyQueuesL1Bitmap[dom]
+            }
+        };
+        if likely(ks_l1_bit != 0) {
             let prio = getHighestPrio(dom);
-            let thread = ksReadyQueues[ready_queues_index(dom, prio)].head;
-            assert!(thread != 0);
-            // (*thread).switch_to_this();
+            let thread = {
+                #[cfg(feature = "ENABLE_SMP")] {
+                    ksSMP[hart_id()].ksReadyQueues[ready_queues_index(dom, prio)].head
+                }
+                #[cfg(not(feature = "ENABLE_SMP"))] {
+                    ksReadyQueues[ready_queues_index(dom, prio)].head
+                }
+
+            };
+            assert_ne!(thread, 0);
             convert_to_mut_type_ref::<tcb_t>(thread).switch_to_this();
         } else {
             get_idle_thread().switch_to_this();
@@ -263,87 +346,114 @@ fn chooseThread() {
 
 #[no_mangle]
 pub fn rescheduleRequired() {
-    unsafe {
-        if ksSchedulerAction as usize != SchedulerAction_ResumeCurrentThread
-            && ksSchedulerAction as usize != SchedulerAction_ChooseNewThread
-        {
-            convert_to_mut_type_ref::<tcb_t>(ksSchedulerAction as usize).sched_enqueue();
-        }
-        ksSchedulerAction = SchedulerAction_ChooseNewThread;
+    if get_ks_scheduler_action() != SchedulerAction_ResumeCurrentThread
+        && get_ks_scheduler_action() != SchedulerAction_ChooseNewThread
+    {
+        convert_to_mut_type_ref::<tcb_t>(get_ks_scheduler_action()).sched_enqueue();
     }
+    // ksSchedulerAction = SchedulerAction_ChooseNewThread;
+    set_ks_scheduler_action(SchedulerAction_ChooseNewThread);
 }
 
 #[no_mangle]
 pub fn schedule() {
-    unsafe {
-        if ksSchedulerAction as usize != SchedulerAction_ResumeCurrentThread {
-            let was_runnable: bool;
-            let current_tcb = get_currenct_thread();
-            if current_tcb.is_runnable() {
-                was_runnable = true;
-                current_tcb.sched_enqueue();
-            } else {
-                was_runnable = false;
-            }
+    if get_ks_scheduler_action() != SchedulerAction_ResumeCurrentThread {
+        let was_runnable: bool;
+        let current_tcb = get_currenct_thread();
+        if current_tcb.is_runnable() {
+            was_runnable = true;
+            current_tcb.sched_enqueue();
+        } else {
+            was_runnable = false;
+        }
 
-            if ksSchedulerAction as usize == SchedulerAction_ChooseNewThread {
+        if get_ks_scheduler_action() == SchedulerAction_ChooseNewThread {
+            scheduleChooseNewThread();
+        } else {
+            // let candidate = ksSchedulerAction as *mut tcb_t;
+            let candidate = convert_to_mut_type_ref::<tcb_t>(get_ks_scheduler_action());
+            let fastfail = get_currenct_thread().get_ptr() == get_idle_thread().get_ptr()
+                || candidate.tcbPriority < get_currenct_thread().tcbPriority;
+            if fastfail && !isHighestPrio(unsafe { ksCurDomain }, candidate.tcbPriority) {
+                candidate.sched_enqueue();
+                // ksSchedulerAction = SchedulerAction_ChooseNewThread;
+                set_ks_scheduler_action(SchedulerAction_ChooseNewThread);
+                scheduleChooseNewThread();
+            } else if was_runnable
+                && candidate.tcbPriority == get_currenct_thread().tcbPriority
+            {
+                candidate.sched_append();
+                set_ks_scheduler_action(SchedulerAction_ChooseNewThread);
                 scheduleChooseNewThread();
             } else {
-                // let candidate = ksSchedulerAction as *mut tcb_t;
-                let candidate = convert_to_mut_type_ref::<tcb_t>(ksSchedulerAction as usize);
-                let fastfail = ksCurThread == ksIdleThread
-                    || (*candidate).tcbPriority < (*(ksCurThread as *const tcb_t)).tcbPriority;
-                if fastfail && !isHighestPrio(ksCurDomain, candidate.tcbPriority) {
-                    candidate.sched_enqueue();
-                    ksSchedulerAction = SchedulerAction_ChooseNewThread;
-                    scheduleChooseNewThread();
-                } else if was_runnable
-                    && candidate.tcbPriority == (*(ksCurThread as *const tcb_t)).tcbPriority
-                {
-                    candidate.sched_append();
-                    ksSchedulerAction = SchedulerAction_ChooseNewThread;
-                    scheduleChooseNewThread();
-                } else {
-                    candidate.switch_to_this();
-                }
+                candidate.switch_to_this();
             }
         }
-        ksSchedulerAction = SchedulerAction_ResumeCurrentThread;
+    }
+    set_ks_scheduler_action(SchedulerAction_ResumeCurrentThread);
+    unsafe {
+        #[cfg(feature = "ENABLE_SMP")] {
+            doMaskReschedule(ksSMP[hart_id()].ipiReschedulePending);
+            ksSMP[hart_id()].ipiReschedulePending = 0;
+        }
+
     }
 }
 
 #[inline]
 pub fn schedule_tcb(tcb_ref: &tcb_t) {
-    unsafe {
-        if tcb_ref.get_ptr() == ksCurThread as usize
-            && ksSchedulerAction as usize == SchedulerAction_ResumeCurrentThread
-            && !tcb_ref.is_runnable()
-        {
-            rescheduleRequired();
-        }
+    if tcb_ref.get_ptr() == get_currenct_thread_unsafe().get_ptr()
+        && get_ks_scheduler_action() == SchedulerAction_ResumeCurrentThread
+        && !tcb_ref.is_runnable()
+    {
+        rescheduleRequired();
     }
 }
 
+#[cfg(feature = "ENABLE_SMP")]
+#[inline]
+pub fn possible_switch_to(target: &mut tcb_t) {
+    if unsafe { ksCurDomain != target.domain || target.tcbAffinity != hart_id() } {
+        target.sched_enqueue();
+    } else if get_ks_scheduler_action() != SchedulerAction_ResumeCurrentThread {
+        rescheduleRequired();
+        target.sched_enqueue();
+    } else {
+        set_ks_scheduler_action(target.get_ptr());
+    }
+}
+
+#[cfg(not(feature = "ENABLE_SMP"))]
 #[inline]
 pub fn possible_switch_to(target: &mut tcb_t) {
     if unsafe { ksCurDomain != target.domain } {
         target.sched_enqueue();
-    } else if unsafe { ksSchedulerAction as usize != SchedulerAction_ResumeCurrentThread } {
+    } else if get_ks_scheduler_action() != SchedulerAction_ResumeCurrentThread {
         rescheduleRequired();
         target.sched_enqueue();
     } else {
-        unsafe { ksSchedulerAction = target.get_ptr(); }
+        set_ks_scheduler_action(target.get_ptr());
     }
 }
 
 #[no_mangle]
 pub fn timerTick() {
     let current = get_currenct_thread();
-    
+    // if hart_id() == 0 {
+    //     debug!("timer tick current: {:#x}", current.get_ptr());
+    // }
+
     if likely(current.get_state() == ThreadState::ThreadStateRunning) {
         if current.tcbTimeSlice > 1 {
+            // if hart_id() == 0 {
+            //     debug!("tcbTimeSlice : {}", current.tcbTimeSlice);
+            // }
             current.tcbTimeSlice -= 1;
         } else {
+            // if hart_id() == 0 {
+            //     debug!("switch");
+            // }
+
             current.tcbTimeSlice = CONFIG_TIME_SLICE;
             current.sched_append();
             rescheduleRequired();
@@ -354,10 +464,9 @@ pub fn timerTick() {
 
 #[no_mangle]
 pub fn activateThread() {
-    unsafe {
-        assert!(ksCurThread as usize != 0 && ksCurThread as usize != 1);
-    }
+
     let thread = get_currenct_thread();
+    // debug!("current: {:#x}", thread.get_ptr());
     match thread.get_state() {
         ThreadState::ThreadStateRunning => {
             return;
@@ -369,7 +478,9 @@ pub fn activateThread() {
             // setThreadState(thread, ThreadStateRunning);
             set_thread_state(thread, ThreadState::ThreadStateRunning);
         }
-        ThreadState::ThreadStateIdleThreadState => return,
+        ThreadState::ThreadStateIdleThreadState => return {
+
+        },
         _ => panic!(
             "current thread is blocked , state id :{}",
             thread.get_state() as usize
@@ -378,20 +489,20 @@ pub fn activateThread() {
 }
 
 
-#[no_mangle]
-pub static mut kernel_stack_alloc: [[u8; BIT!(CONFIG_KERNEL_STACK_BITS)]; CONFIG_MAX_NUM_NODES] =
-    [[0; BIT!(CONFIG_KERNEL_STACK_BITS)]; CONFIG_MAX_NUM_NODES];
+// #[no_mangle]
+// pub static mut kernel_stack_alloc: [[u8; BIT!(CONFIG_KERNEL_STACK_BITS)]; CONFIG_MAX_NUM_NODES] =
+//     [[0; BIT!(CONFIG_KERNEL_STACK_BITS)]; CONFIG_MAX_NUM_NODES];
 
 #[cfg(not(feature = "ENABLE_SMP"))]
 pub fn create_idle_thread() {
     unsafe {
-        let pptr = ksIdleThreadTCB.as_ptr() as *mut usize;
+        let pptr = ksIdleThreadTCB as usize as *mut usize;
         ksIdleThread = pptr.add(TCB_OFFSET) as usize;
         // let tcb = convert_to_mut_type_ref::<tcb_t>(ksIdleThread as usize);
         let tcb = get_idle_thread();
         tcb.set_register(NextIP, idle_thread as usize);
         tcb.set_register(SSTATUS, SSTATUS_SPP | SSTATUS_SPIE);
-        tcb.set_register(sp, kernel_stack_alloc.as_ptr() as usize + BIT!(CONFIG_KERNEL_STACK_BITS));
+        tcb.set_register(sp, kernel_stack_alloc as usize + BIT!(CONFIG_KERNEL_STACK_BITS));
         set_thread_state(tcb, ThreadState::ThreadStateIdleThreadState);
     }
 }
@@ -402,22 +513,31 @@ pub fn create_idle_thread() {
 
     unsafe {
         for i in 0..CONFIG_MAX_NUM_NODES {
-            let pptr = ksIdleThreadTCB[i].as_ptr() as *mut usize;
+            let pptr = (ksIdleThreadTCB as usize + i * BIT!(seL4_TCBBits))as *mut usize;
             ksSMP[i].ksIdleThread = pptr.add(TCB_OFFSET) as usize;
-            debug!("ksIdleThread: {}", ksSMP[i].ksIdleThread);
+            debug!("ksIdleThread: {:#x}", ksSMP[i].ksIdleThread);
             let tcb = convert_to_mut_type_ref::<tcb_t>(ksSMP[i].ksIdleThread);
             tcb.set_register(NextIP, idle_thread as usize);
             tcb.set_register(SSTATUS, SSTATUS_SPP | SSTATUS_SPIE);
-            tcb.set_register(sp, kernel_stack_alloc.as_ptr() as usize + (i + 1) * BIT!(CONFIG_KERNEL_STACK_BITS));
+            tcb.set_register(sp, kernel_stack_alloc as usize + (i + 1) * BIT!(CONFIG_KERNEL_STACK_BITS));
             set_thread_state(tcb, ThreadState::ThreadStateIdleThreadState);
             tcb.tcbAffinity = i;
         }
     }
 }
 
-pub fn idle_thread() {
+#[link(name = "kernel_all.c")]
+extern "C" {
+    fn doMaskReschedule(mask: usize);
+    fn kernel_stack_alloc();
+    fn ksIdleThreadTCB();
+}
+
+
+fn idle_thread() {
     unsafe {
         loop {
+            // debug!("hello idle_thread");
             asm!("wfi");
         }
     }

@@ -10,12 +10,34 @@ use crate::{
 
 use crate::task_manager::*;
 use crate::exception::{handleUserLevelFault, handleVMFaultEvent};
+
 use crate::interrupt::handler::handleInterruptEntry;
+
+#[cfg(feature = "ENABLE_SMP")]
+use crate::common::utils::hart_id;
+#[cfg(feature = "ENABLE_SMP")]
+use crate::interrupt::getActiveIRQ;
 
 #[no_mangle]
 pub fn restore_user_context() {
     unsafe {
-        let cur_thread_reg = (*(ksCurThread as *const tcb_t)).tcbArch.registers.as_ptr() as usize;
+        // debug!("restore_user_context");
+        let cur_thread_reg = get_currenct_thread().tcbArch.registers.as_ptr() as usize;
+        #[cfg(feature = "ENABLE_SMP")]
+        {
+            if clh_is_self_in_queue() {
+                clh_lock_release(hart_id());
+            }
+            // debug!("restore_user_context2");
+            let mut cur_sp: usize = 8;
+            asm!(
+                "csrr {}, sscratch",
+                out(reg) cur_sp,
+            );
+            // debug!("cur_sp: {:#x}", cur_sp);
+            *((cur_sp - 8) as *mut usize) = cur_thread_reg;
+        }
+        // debug!("restore_user_context3");
         asm!("mv t0, {0}      \n",
         "ld  ra, (0*8)(t0)  \n",
         "ld  sp, (1*8)(t0)  \n",
@@ -48,24 +70,54 @@ pub fn restore_user_context() {
         "ld  t1, (3*8)(t0)  \n",
         "add tp, t1, x0  \n",
         "ld  t1, (34*8)(t0)\n",
-        "csrw sepc, t1  \n",
-        "csrw sscratch, t0         \n",
+        "csrw sepc, t1", in(reg) cur_thread_reg);
+
+        #[cfg(not(feature = "ENABLE_SMP"))] {
+            asm!(
+            "csrw sscratch, t0"
+            )
+        }
+        asm!(
         "ld  t1, (32*8)(t0) \n",
         "csrw sstatus, t1\n",
         "ld  t1, (5*8)(t0) \n",
         "ld  t0, (4*8)(t0) \n",
-        "sret",in(reg) cur_thread_reg);
+        "sret");
+        panic!("unreachable")
     }
+}
+
+#[link(name = "kernel_all.c")]
+extern "C" {
+    fn clh_is_self_in_queue() -> bool;
+    fn clh_lock_release(cpu: usize);
 }
 
 #[no_mangle]
 pub fn c_handle_interrupt() {
+    // debug!("c_handle_interrupt");
+    // if hart_id() != 0 {
+    //     debug!("c_handle_interrupt");
+    // }
+    #[cfg(feature = "ENABLE_SMP")] {
+        use crate::config::INTERRUPT_IPI_0;
+        if getActiveIRQ() != INTERRUPT_IPI_0 {
+            unsafe { clh_lock_acquire(hart_id(), true); }
+        }
+    }
+    // debug!("c_handle_interrupt");
     handleInterruptEntry();
     restore_user_context();
 }
 
 #[no_mangle]
 pub fn c_handle_exception() {
+    #[cfg(feature = "ENABLE_SMP")]
+    unsafe { clh_lock_acquire(hart_id(), false); }
+    // if hart_id() == 0 {
+    //     debug!("c_handle_exception");
+    // }
+
     let cause = read_scause();
     match cause {
         RISCVInstructionAccessFault
@@ -85,5 +137,17 @@ pub fn c_handle_exception() {
 
 #[no_mangle]
 pub fn c_handle_syscall(_cptr: usize, _msgInfo: usize, syscall: usize) {
+    #[cfg(feature = "ENABLE_SMP")]
+    unsafe { clh_lock_acquire(hart_id(), false); }
+    // if hart_id() == 0 {
+    //     debug!("c_handle_syscall: syscall: {},", syscall as isize);
+    // }
     slowpath(syscall);
+    // debug!("c_handle_syscall complete");
+}
+
+
+#[link(name = "kernel_all.c")]
+extern "C" {
+    fn clh_lock_acquire(cpu_idx: usize, irq_path: bool);
 }

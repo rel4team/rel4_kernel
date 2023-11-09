@@ -9,6 +9,9 @@ use log::{self, Level, LevelFilter, Log, Metadata, Record};
 use crate::println;
 use super::utils::hart_id;
 
+use spin::Mutex;
+
+static LOG_MUTEX: Mutex<()> = Mutex::new(());
 struct SimpleLogger;
 
 impl Log for SimpleLogger {
@@ -16,6 +19,7 @@ impl Log for SimpleLogger {
         true
     }
     fn log(&self, record: &Record) {
+        let _lock = LOG_MUTEX.lock();
         if !self.enabled(record.metadata()) {
             return;
         }
@@ -34,7 +38,9 @@ impl Log for SimpleLogger {
             record.args(),
         );
     }
-    fn flush(&self) {}
+    fn flush(&self) {
+        let _lock = LOG_MUTEX.lock();
+    }
 }
 
 pub fn init() {

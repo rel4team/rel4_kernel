@@ -11,6 +11,11 @@ use crate::riscv::resetTimer;
 #[no_mangle]
 pub fn handleInterruptEntry() -> exception_t {
     let irq = getActiveIRQ();
+    // if hart_id() == 0 {
+    //     debug!("getActiveIRQ: {}", irq);
+    // }
+
+
     if irq != irqInvalid {
         handleInterrupt(irq);
     } else {
@@ -36,10 +41,12 @@ pub fn handleInterrupt(irq: usize) {
     }
     match get_irq_state(irq) {
         IRQState::IRQInactive => {
+            debug!("IRQInactive");
             mask_interrupt(true, irq);
             debug!("Received disabled IRQ: {}\n", irq);
         }
         IRQState::IRQSignal => {
+            debug!("IRQSignal");
             let handler_slot = get_irq_handler_slot(irq);
             let handler_cap = &handler_slot.cap;
             if handler_cap.get_cap_type() == CapTag::CapNotificationCap
@@ -49,12 +56,27 @@ pub fn handleInterrupt(irq: usize) {
             }
         }
         IRQState::IRQTimer => {
+            // if hart_id() != 0 {
+            //     debug!("IRQTimer");
+            // }
+
             timerTick();
             resetTimer();
+        }
+        #[cfg(feature = "ENABLE_SMP")]
+        IRQState::IRQIPI => {
+            // panic!("unsupported ipi")
+            unsafe { handleIPI(irq, true) };
         }
         IRQState::IRQReserved => {
             debug!("Received unhandled reserved IRQ: {}\n", irq);
         }
     }
     ackInterrupt(irq);
+}
+
+
+#[link(name = "kernel_all.c")]
+extern "C" {
+    fn handleIPI(irq: usize, irq_path: bool);
 }

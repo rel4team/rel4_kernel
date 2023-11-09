@@ -353,6 +353,10 @@ fn init_irqs(root_cnode_cap: &cap_t) {
         }
     }
     setIRQState(IRQState::IRQTimer, KERNEL_TIMER_IRQ);
+    #[cfg(feature = "ENABLE_SMP")] {
+        setIRQState(IRQState::IRQIPI, INTERRUPT_IPI_0);
+        setIRQState(IRQState::IRQIPI, INTERRUPT_IPI_1);
+    }
     unsafe {
         let ptr = root_cnode_cap.get_cap_ptr() as *mut cte_t;
         write_slot(ptr.add(seL4_CapIRQControl), cap_t::new_irq_control_cap());

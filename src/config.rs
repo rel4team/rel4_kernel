@@ -103,9 +103,21 @@ pub const seL4_UserTop: usize = 0x00007fffffffffff;
 pub const USER_TOP: usize = seL4_UserTop;
 
 //IRQConstants
+#[cfg(feature = "ENABLE_SMP")]
 pub const PLIC_IRQ_OFFSET: usize = 0;
 pub const PLIC_MAX_IRQ: usize = 0;
+
+#[cfg(feature = "ENABLE_SMP")]
+pub const INTERRUPT_IPI_0: usize = 1;
+#[cfg(feature = "ENABLE_SMP")]
+pub const INTERRUPT_IPI_1: usize = 2;
+#[cfg(feature = "ENABLE_SMP")]
+pub const KERNEL_TIMER_IRQ: usize = 3;
+
+#[cfg(not(feature = "ENABLE_SMP"))]
 pub const KERNEL_TIMER_IRQ: usize = 1;
+
+
 pub const maxIRQ: usize = KERNEL_TIMER_IRQ;
 
 pub const irqInvalid: usize = 0;

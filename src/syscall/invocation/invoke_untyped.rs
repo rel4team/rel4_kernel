@@ -1,4 +1,3 @@
-
 use crate::common::{object::ObjectType, utils::convert_to_mut_type_ref, sel4_config::*, structures::exception_t};
 use crate::task_manager::{tcb_t, get_current_domain};
 use crate::vspace::{pptr_t, VMReadWrite};
@@ -16,6 +15,7 @@ extern "C" {
 
 fn create_new_objects(obj_type: ObjectType, parent: &mut cte_t, dest_cnode: &mut cte_t, dest_offset: usize,
                         dest_length: usize, region_base: usize, user_size: usize, device_mem: usize) {
+    // debug!("create_new_object: {:?}", obj_type);
     let object_size = obj_type.get_object_size(user_size);
     for i in 0..dest_length {
         let cap = create_object(obj_type, region_base + (i << object_size), user_size, device_mem);

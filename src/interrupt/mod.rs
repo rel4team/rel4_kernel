@@ -1,7 +1,9 @@
 pub mod handler;
 use core::arch::asm;
 
-use crate::common::utils::convert_to_mut_type_ref;
+
+use crate::common::sel4_config::CONFIG_MAX_NUM_NODES;
+use crate::common::utils::{convert_to_mut_type_ref, hart_id};
 use crate::BIT;
 use crate::cspace::interface::cte_t;
 use crate::vspace::pptr_t;
@@ -9,14 +11,25 @@ use crate::vspace::pptr_t;
 use crate::{config::*, riscv::read_sip};
 
 #[no_mangle]
-pub static mut intStateIRQTable: [usize; 2] = [0; 2];
+pub static mut intStateIRQTable: [usize; maxIRQ + 1] = [0; maxIRQ + 1];
 
 pub static mut intStateIRQNode: pptr_t = 0;
 
 #[no_mangle]
 #[link_section = ".boot.bss"]
-pub static mut active_irq: [usize; 1] = [0; 1];
+pub static mut active_irq: [usize; CONFIG_MAX_NUM_NODES] = [0; CONFIG_MAX_NUM_NODES];
 
+#[cfg(feature = "ENABLE_SMP")]
+#[derive(PartialEq, Eq, Clone, Copy)]
+pub enum IRQState {
+    IRQInactive = 0,
+    IRQSignal = 1,
+    IRQTimer = 2,
+    IRQIPI = 3,
+    IRQReserved = 4,
+}
+
+#[cfg(not(feature = "ENABLE_SMP"))]
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum IRQState {
     IRQInactive = 0,
@@ -106,9 +119,17 @@ pub fn isIRQPending() -> bool {
 }
 
 #[no_mangle]
-pub fn ackInterrupt(_irq: usize) {
+pub fn ackInterrupt(irq: usize) {
     unsafe {
-        active_irq[0] = irqInvalid;
+        active_irq[hart_id()] = irqInvalid;
+    }
+    if irq == KERNEL_TIMER_IRQ {
+        return;
+    }
+    #[cfg(feature = "ENABLE_SMP")] {
+        if irq == INTERRUPT_IPI_0 || irq == INTERRUPT_IPI_1 {
+            unsafe { ipi_clear_irq(irq); }
+        }
     }
 }
 
@@ -125,34 +146,49 @@ pub fn isIRQActive(_irq: usize) -> bool {
 #[inline]
 #[no_mangle]
 pub fn getActiveIRQ() -> usize {
-    let mut irq = unsafe { active_irq[0] };
+    let mut irq = unsafe { active_irq[hart_id()] };
     if IS_IRQ_VALID(irq) {
         return irq;
     }
 
     let sip = read_sip();
+    #[cfg(feature = "ENABLE_SMP")] {
+        use crate::common::sbi::clear_ipi;
+        if (sip & BIT!(SIP_SEIP)) != 0 {
+            irq = 0;
+        } else if (sip & BIT!(SIP_SSIP)) != 0 {
+            clear_ipi();
+            irq = unsafe { ipi_get_irq() };
+            // debug!("irq: {}", irq);
+        } else if (sip & BIT!(SIP_STIP)) != 0 {
+            irq = KERNEL_TIMER_IRQ;
+        }
+        else {
+            irq = irqInvalid;
+        }
+    }
+    #[cfg(not(feature = "ENABLE_SMP"))]
     if (sip & BIT!(SIP_SEIP)) != 0 {
         irq = 0;
     } else if (sip & BIT!(SIP_STIP)) != 0 {
         irq = KERNEL_TIMER_IRQ;
-    } else {
+    }
+    else {
         irq = irqInvalid;
     }
     unsafe {
-        active_irq[0] = irq;
+        active_irq[hart_id()] = irq;
     }
     return irq;
 }
 
-#[no_mangle]
-pub fn initIRQController(arr: *mut i32, size: usize) {
-    unsafe {
-        let data = core::slice::from_raw_parts_mut(arr, size);
-        for i in 0..size {
-            data[i] = 0;
-        }
-    }
+
+#[link(name = "kernel_all.c")]
+extern "C" {
+    fn ipi_get_irq() -> usize;
+    fn ipi_clear_irq(irq: usize);
 }
+
 
 pub fn IS_IRQ_VALID(x: usize) -> bool {
     (x <= maxIRQ) && (x != irqInvalid)

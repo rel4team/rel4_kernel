@@ -14,12 +14,7 @@
 
 
 extern crate core;
-
-use core::arch::asm;
-
-
 use common::sbi::shutdown;
-
 mod config;
 // mod console;
 mod lang_items;
@@ -41,14 +36,6 @@ mod cspace;
 // #[cfg(feature = "ENABLE_SMP")]
 // mod sync;
 
-#[no_mangle]
-pub extern "C" fn idle_thread() {
-    while true {
-        unsafe {
-            asm!("wfi");
-        }
-    }
-}
 
 #[no_mangle]
 pub extern "C" fn halt() {

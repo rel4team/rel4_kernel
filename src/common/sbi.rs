@@ -5,8 +5,11 @@ use riscv::register::time;
 const SBI_SET_TIMER: usize = 0;
 const SBI_CONSOLE_PUTCHAR: usize = 1;
 const SBI_CONSOLE_GETCHAR: usize = 2;
+
+const SBI_CLEAR_IPI: usize = 3;
 const SBI_SHUTDOWN: usize = 8;
 const SYSCALL_WRITE:usize =64;
+
 
 #[no_mangle]
 pub fn sbi_call(which: usize, arg0: usize, arg1: usize, arg2: usize) -> usize {
@@ -37,6 +40,9 @@ pub fn console_getchar() -> usize {
     sbi_call(SBI_CONSOLE_GETCHAR, 0, 0, 0)
 }
 
+pub fn clear_ipi() {
+    sbi_call(SBI_CLEAR_IPI, 0, 0, 0);
+}
 pub fn shutdown() -> ! {
     sbi_call(SBI_SHUTDOWN, 0, 0, 0);
     panic!("It should shutdown!");

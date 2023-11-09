@@ -1,6 +1,52 @@
 use super::sel4_config::seL4_MsgMaxLength;
 use crate::plus_define_bitfield;
 
+#[cfg(feature = "ENABLE_SMP")]
+#[derive(Eq, PartialEq, Debug, Clone, Copy, PartialOrd, Ord)]
+pub enum MessageLabel {
+    InvalidInvocation                       = 0,
+    UntypedRetype                           = 1,
+    TCBReadRegisters                        = 2,
+    TCBWriteRegisters                       = 3,
+    TCBCopyRegisters                        = 4,
+    TCBConfigure                            = 5,
+    TCBSetPriority                          = 6,
+    TCBSetMCPriority                        = 7,
+    TCBSetSchedParams                       = 8,
+    TCBSetIPCBuffer                         = 9,
+    TCBSetSpace                             = 10,
+    TCBSuspend                              = 11,
+    TCBResume                               = 12,
+    TCBBindNotification                     = 13,
+    TCBUnbindNotification                   = 14,
+    TCBSetAffinity                          = 15,
+    TCBSetTLSBase                           = 16,
+    CNodeRevoke                             = 17,
+    CNodeDelete                             = 18,
+    CNodeCancelBadgedSends                  = 19,
+    CNodeCopy                               = 20,
+    CNodeMint                               = 21,
+    CNodeMove                               = 22,
+    CNodeMutate                             = 23,
+    CNodeRotate                             = 24,
+    CNodeSaveCaller                         = 25,
+    IRQIssueIRQHandler                      = 26,
+    IRQAckIRQ                               = 27,
+    IRQSetIRQHandler                        = 28,
+    IRQClearIRQHandler                      = 29,
+    DomainSetSet                            = 30,
+    RISCVPageTableMap                       = 31,
+    RISCVPageTableUnmap                     = 32,
+    RISCVPageMap                            = 33,
+    RISCVPageUnmap                          = 34,
+    RISCVPageGetAddress                     = 35,
+    RISCVASIDControlMakePool                = 36,
+    RISCVASIDPoolAssign                     = 37,
+    RISCVIRQIssueIRQHandlerTrigger          = 38,
+    nArchInvocationLabels                   = 39,
+}
+
+#[cfg(not(feature = "ENABLE_SMP"))]
 #[derive(Eq, PartialEq, Debug, Clone, Copy, PartialOrd, Ord)]
 pub enum MessageLabel {
     InvalidInvocation                       = 0,

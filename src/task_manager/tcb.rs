@@ -17,12 +17,10 @@ use super::registers::{
 use super::scheduler::{possible_switch_to, schedule_tcb};
 use super::structures::lookupSlot_raw_ret_t;
 
-use super::{
-    ready_queues_index, ksReadyQueues, addToBitmap, removeFromBitmap, NextIP, FaultIP,
-    ksIdleThread, ksCurThread, rescheduleRequired
-};
+use super::{ready_queues_index, addToBitmap, removeFromBitmap, NextIP, FaultIP, rescheduleRequired, tcb_queue_t, set_current_thread, get_currenct_thread};
 
 use super::thread_state::*;
+
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -107,7 +105,7 @@ impl tcb_t {
 
     #[inline]
     pub fn is_current(&self) -> bool {
-        self.get_ptr() == unsafe {ksCurThread as usize}
+        self.get_ptr() == get_currenct_thread().get_ptr()
     }
 
     #[inline]
@@ -130,7 +128,7 @@ impl tcb_t {
         self.sched_dequeue();
         self.tcbPriority = priority;
         if self.is_runnable() {
-            if self.get_ptr() == unsafe { ksCurThread as usize } {
+            if self.is_current() {
                 rescheduleRequired();
             } else {
                 possible_switch_to(self)
@@ -156,7 +154,7 @@ impl tcb_t {
             self.sched_enqueue();
         }
 
-        if self.get_ptr() == unsafe { ksCurThread as usize } {
+        if self.is_current() {
             rescheduleRequired();
         }
     }
@@ -167,18 +165,49 @@ impl tcb_t {
             let dom = self.domain;
             let prio = self.tcbPriority;
             let idx = ready_queues_index(dom, prio);
-            let mut queue = unsafe { ksReadyQueues[idx] };
-            if queue.tail as usize == 0 {
+            let queue = self.get_sched_queue(idx);
+            if queue.tail == 0 {
                 queue.head = self_ptr as usize;
-                addToBitmap(dom, prio);
+                addToBitmap(self.get_cpu(), dom, prio);
             } else {
-                convert_to_mut_type_ref::<tcb_t>(queue.tail as usize).tcbSchedNext = self_ptr as usize;
+                convert_to_mut_type_ref::<tcb_t>(queue.tail).tcbSchedNext = self_ptr as usize;
             }
-            self.tcbSchedPrev = queue.tail as usize;
+            self.tcbSchedPrev = queue.tail;
             self.tcbSchedNext = 0;
             queue.tail = self_ptr as usize;
-            unsafe { ksReadyQueues[idx] = queue; }
             self.tcbState.set_tcb_queued(1);
+        }
+
+        #[cfg(feature = "ENABLE_SMP")]
+        self.update_queue();
+        // unsafe {
+        //     if ksSMP[hart_id()].ipiReschedulePending != 0 {
+        //         debug!("[sched_enqueue]ipiReschedulePending: {}", ksSMP[hart_id()].ipiReschedulePending);
+        //     }
+        // }
+    }
+
+    #[inline]
+    pub fn get_sched_queue(&mut self, index: usize) ->  &'static mut tcb_queue_t {
+        unsafe {
+            #[cfg(feature = "ENABLE_SMP")] {
+                use super::ksSMP;
+                &mut ksSMP[self.tcbAffinity].ksReadyQueues[index]
+            }
+            #[cfg(not(feature = "ENABLE_SMP"))] {
+                use super::ksReadyQueues;
+                &mut ksReadyQueues[index]
+            }
+        }
+    }
+
+    #[inline]
+    pub fn get_cpu(&self) -> usize {
+        #[cfg(feature = "ENABLE_SMP")] {
+            self.tcbAffinity
+        }
+        #[cfg(not(feature = "ENABLE_SMP"))] {
+            0
         }
     }
 
@@ -187,13 +216,13 @@ impl tcb_t {
             let dom = self.domain;
             let prio = self.tcbPriority;
             let idx = ready_queues_index(dom, prio);
-            let mut queue = unsafe { ksReadyQueues[idx] };
+            let queue = self.get_sched_queue(idx);
             if self.tcbSchedPrev != 0 {
                 convert_to_mut_type_ref::<tcb_t>(self.tcbSchedPrev).tcbSchedNext = self.tcbSchedNext;
             } else {
                 queue.head = self.tcbSchedNext as *mut tcb_t as usize;
                 if likely(self.tcbSchedNext == 0) {
-                    removeFromBitmap(dom, prio);
+                    removeFromBitmap(self.get_cpu(), dom, prio);
                 }
             }
             if self.tcbSchedNext != 0 {
@@ -201,7 +230,7 @@ impl tcb_t {
             } else {
                 queue.tail = self.tcbSchedPrev as *mut tcb_t as usize;
             }
-            unsafe { ksReadyQueues[idx] = queue; }
+            // unsafe { ksReadyQueues[idx] = queue; }
             self.tcbState.set_tcb_queued(0);
         }
     }
@@ -212,24 +241,48 @@ impl tcb_t {
             let dom = self.domain;
             let prio = self.tcbPriority;
             let idx = ready_queues_index(dom, prio);
-            let mut queue = unsafe { ksReadyQueues[idx] };
+            let queue = self.get_sched_queue(idx);
 
-            if queue.head as usize == 0 {
+            if queue.head == 0 {
                 queue.head = self_ptr as usize;
-                addToBitmap(dom, prio);
+                addToBitmap(self.get_cpu(), dom, prio);
             } else {
                 let next = queue.tail;
                 // unsafe { (*next).tcbSchedNext = self_ptr as usize };
                 convert_to_mut_type_ref::<tcb_t>(next).tcbSchedNext = self_ptr as usize;
             }
-            self.tcbSchedPrev = queue.tail as usize;
+            self.tcbSchedPrev = queue.tail;
             self.tcbSchedNext = 0;
             queue.tail = self_ptr as usize;
-            unsafe { ksReadyQueues[idx] = queue; }
+            // unsafe { ksReadyQueues[idx] = queue; }
 
             self.tcbState.set_tcb_queued(1);
         }
+        #[cfg(feature = "ENABLE_SMP")]
+        self.update_queue();
+        // unsafe {
+        //     if ksSMP[hart_id()].ipiReschedulePending != 0 {
+        //         debug!("[sched_append]ipiReschedulePending: {}", ksSMP[hart_id()].ipiReschedulePending);
+        //     }
+        // }
     }
+
+    #[cfg(feature = "ENABLE_SMP")]
+    #[inline]
+    fn update_queue(&self) {
+        use super::{ksSMP, ksCurDomain};
+        use crate::common::utils::{hart_id, convert_to_type_ref};
+        use crate::BIT;
+        unsafe {
+            if self.tcbAffinity != hart_id() && self.domain == ksCurDomain {
+                let target_current = convert_to_type_ref::<tcb_t>(ksSMP[self.tcbAffinity].ksCurThread);
+                if ksSMP[self.tcbAffinity].ksIdleThread == ksSMP[self.tcbAffinity].ksCurThread || self.tcbPriority > target_current.tcbPriority {
+                    ksSMP[hart_id()].ipiReschedulePending |= BIT!(self.tcbAffinity);
+                }
+            }
+        }
+    }
+
 
     pub fn set_vm_root(&self) -> Result<(), lookup_fault_t> {
         // let threadRoot = &(*getCSpace(thread as usize, tcbVTable)).cap;
@@ -239,11 +292,12 @@ impl tcb_t {
 
     #[inline]
     pub fn switch_to_this(&mut self) {
+        // if hart_id() == 0 {
+        //     debug!("switch_to_this: {:#x}", self.get_ptr());
+        // }
         let _ = self.set_vm_root();
         self.sched_dequeue();
-        unsafe {
-            ksCurThread = self.get_ptr();
-        }
+        set_current_thread(self);
     }
 
     #[inline]
@@ -283,7 +337,7 @@ impl tcb_t {
             self.setup_reply_master();
             // setThreadState(self as *mut Self, ThreadStateRestart);
             set_thread_state(self, ThreadState::ThreadStateRestart);
-            self.sched_dequeue();
+            self.sched_enqueue();
             possible_switch_to(self);
         }
     }
@@ -587,7 +641,10 @@ pub fn set_thread_state(tcb: &mut tcb_t, state: ThreadState) {
 
 #[no_mangle]
 pub fn setThreadState(tptr: *mut tcb_t, ts: usize) {
-    panic!("should not be invoked!")
+    // panic!("should not be invoked!")
+    unsafe {
+        set_thread_state(&mut *tptr, core::mem::transmute::<u8, ThreadState>(ts as u8))
+    }
 }
 
 #[no_mangle]

@@ -21,7 +21,7 @@ pub fn handleUserLevelFault(w_a: usize, w_b: usize) -> exception_t {
 pub fn handleVMFaultEvent(vm_faultType: usize) -> exception_t {
     let status = handle_vm_fault(vm_faultType);
     if status != exception_t::EXCEPTION_NONE {
-
+        // debug!("handle_fault: {}", vm_faultType);
         handle_fault(get_currenct_thread());
     }
     schedule();

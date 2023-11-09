@@ -1,4 +1,4 @@
-use crate::task_manager::tcb_t;
+use crate::task_manager::{get_idle_thread, set_current_thread, tcb_t};
 
 use super::{mm::{avail_p_regs_addr, avail_p_regs_size}, try_init_kernel};
 
@@ -35,10 +35,16 @@ pub fn rust_try_init_kernel_secondary_core(hart_id: usize, core_id: usize) -> bo
 
 #[no_mangle]
 pub fn tcbSchedEnqueue(tcb: *mut tcb_t) {
-    panic!("should not be invoke!");
+    // panic!("should not be invoke!");
+    unsafe {
+        (*tcb).sched_enqueue();
+    }
 }
 
 #[no_mangle]
 pub fn switchToIdleThread() {
-    panic!("should not be invoke!");
+    // panic!("should not be invoke!");
+    let _ = get_idle_thread().set_vm_root();
+    set_current_thread(get_idle_thread());
+
 }

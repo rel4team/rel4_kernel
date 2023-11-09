@@ -19,18 +19,16 @@ impl satp_t {
     }
 }
 
-#[inline]
-#[no_mangle]
-pub fn sfence() {
-    unsafe {
-        core::arch::asm!("sfence.vma");
-    }
-}
 
+
+#[link(name = "kernel_all.c")]
+extern "C" {
+    pub fn sfence();
+}
 #[inline]
 #[no_mangle]
 pub fn setVSpaceRoot(addr: paddr_t, asid: usize) {
     let satp = satp_t::new(8usize, asid, addr >> 12);
     satp::write(satp.words);
-    sfence();
+    unsafe { sfence(); }
 }

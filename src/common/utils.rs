@@ -116,6 +116,13 @@ pub fn convert_to_mut_type_ref<T>(addr: usize) -> &'static mut T {
 }
 
 #[inline]
+pub fn convert_to_mut_type_ref_unsafe<T>(addr: usize) -> &'static mut T {
+    unsafe {
+        &mut *(addr as *mut T)
+    }
+}
+
+#[inline]
 pub fn convert_to_option_type_ref<T>(addr: usize) -> Option<&'static T> {
     if addr == 0 {
         return None;
@@ -142,8 +149,21 @@ pub fn pageBitsForSize(page_size: usize) -> usize {
     }
 }
 
+#[link(name = "kernel_all.c")]
+extern "C" {
+    fn getCurrentCPUIndex() -> usize;
+}
+
+
 
 #[inline]
 pub fn hart_id() -> usize {
-    0
+    #[cfg(feature = "ENABLE_SMP")] {
+        unsafe { getCurrentCPUIndex() }
+    }
+    #[cfg(not(feature = "ENABLE_SMP"))] {
+        0
+    }
 }
+
+

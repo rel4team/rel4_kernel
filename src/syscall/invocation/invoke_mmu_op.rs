@@ -34,7 +34,7 @@ pub fn invoke_page_table_map(pt_cap: &mut cap_t, pt_slot: &mut pte_t, asid: usiz
     pt_cap.set_pt_mapped_asid(asid);
     pt_cap.set_pt_mapped_address(vaddr);
     *pt_slot = pte;
-    sfence();
+    unsafe { sfence(); }
     exception_t::EXCEPTION_NONE
 }
 

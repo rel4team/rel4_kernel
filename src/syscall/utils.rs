@@ -40,7 +40,7 @@ pub fn OFFSET_TO_FREE_IDNEX(offset: usize) -> usize {
 pub fn getSyscallArg(i: usize, ipc_buffer: *const usize) -> usize {
     unsafe {
         if i < n_msgRegisters {
-            return getRegister(ksCurThread as *const tcb_t, msgRegister[i]);
+            return getRegister(get_currenct_thread() as *const tcb_t, msgRegister[i]);
         } else {
             assert!(ipc_buffer as usize != 0);
             let ptr = ipc_buffer.add(i + 1);

@@ -24,7 +24,7 @@ pub fn Arch_finaliseCap(cap: &cap_t, final_: bool) -> finaliseCap_ret {
             }
         }
 
-        CapTag::CapPageTableCap => unsafe {
+        CapTag::CapPageTableCap => {
             if final_ && cap.get_pt_is_mapped() != 0 {
                 let asid = cap.get_pt_mapped_asid();
                 let find_ret = find_vspace_for_asid(asid);
@@ -61,6 +61,8 @@ pub fn Arch_finaliseCap(cap: &cap_t, final_: bool) -> finaliseCap_ret {
 extern "C" {
     fn tcbDebugRemove(tcb: *mut tcb_t);
     fn tcbDebugAppend(tcb: *mut tcb_t);
+    #[cfg(feature = "ENABLE_SMP")]
+    fn remoteTCBStall(tcb: *mut tcb_t);
 }
 #[no_mangle]
 pub fn finaliseCap(cap: &cap_t, _final: bool, _exposed: bool) -> finaliseCap_ret {
@@ -120,6 +122,8 @@ pub fn finaliseCap(cap: &cap_t, _final: bool, _exposed: bool) -> finaliseCap_ret
         CapTag::CapThreadCap => {
             if _final {
                 let tcb = convert_to_mut_type_ref::<tcb_t>(cap.get_tcb_ptr());
+                #[cfg(feature = "ENABLE_SMP")]
+                unsafe { remoteTCBStall(tcb) };
                 let cte_ptr = tcb.get_cspace_mut_ref(tcbCTable);
                 safe_unbind_notification(tcb);
                 tcb.cancel_ipc();

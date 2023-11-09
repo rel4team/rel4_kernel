@@ -5,13 +5,10 @@ mod untyped;
 mod utils;
 mod interface;
 
-use core::arch::asm;
 use core::mem::size_of;
-use core::ops::{Add, AddAssign};
 
-use crate::common::utils::hart_id;
 use crate::{BIT, ROUND_UP};
-use crate::common::sel4_config::{PADDR_TOP, KERNEL_ELF_BASE, seL4_PageBits, PAGE_BITS, CONFIG_MAX_NUM_NODES};
+use crate::common::sel4_config::{PADDR_TOP, KERNEL_ELF_BASE, seL4_PageBits, PAGE_BITS};
 use log::debug;
 use spin::Mutex;
 use riscv::register::stvec;
@@ -32,6 +29,10 @@ use crate::task_manager::*;
 pub use root_server::rootserver;
 pub use utils::{write_slot, provide_cap};
 
+#[cfg(feature = "ENABLE_SMP")]
+use crate::common::utils::hart_id;
+#[cfg(feature = "ENABLE_SMP")]
+use core::arch::asm;
 
 pub static ksNumCPUs: Mutex<usize> = Mutex::new(0);
 pub static node_boot_lock: Mutex<usize> = Mutex::new(0);
@@ -62,7 +63,12 @@ fn init_cpu() {
     unsafe {
         stvec::write(trap_entry as usize, TrapMode::Direct);
     }
-    set_sie_mask(BIT!(SIE_SEIE) | BIT!(SIE_STIE));
+    #[cfg(feature = "ENABLE_SMP")] {
+        set_sie_mask(BIT!(SIE_SEIE) | BIT!(SIE_STIE) | BIT!(SIE_SSIE));
+    }
+    #[cfg(not(feature = "ENABLE_SMP"))] {
+        set_sie_mask(BIT!(SIE_SEIE) | BIT!(SIE_STIE));
+    }
     set_timer(get_time() + RESET_CYCLES);
 }
 
@@ -152,11 +158,9 @@ fn bi_finalise(dtb_size: usize, dtb_phys_addr: usize, extra_bi_size: usize,) {
 fn init_core_state(scheduler_action: *mut tcb_t) {
     unsafe {
         #[cfg(feature = "ENABLE_SMP")]
-        debug!("test1: {}, {}", core::mem::size_of::<SmpStateData>(), (*scheduler_action).tcbAffinity);
         if scheduler_action as usize != 0 && scheduler_action as usize != 1 {
             tcbDebugAppend(scheduler_action);
         }
-        debug!("test2");
         let idle_thread = {
             #[cfg(not(feature = "ENABLE_SMP"))] {
                 ksIdleThread as *mut tcb_t
@@ -237,26 +241,21 @@ pub fn try_init_kernel(
         debug!("ERROR: free memory management initialization failed\n");
         return false;
     }
-    debug!("init_freemem complete");
 
     if let Some((initial_thread, root_cnode_cap)) = root_server_init(it_v_reg, extra_bi_size_bits, ipcbuf_vptr,
         bi_frame_vptr, extra_bi_size, extra_bi_frame_vptr, ui_reg, pv_offset, v_entry) {
-            debug!("root_server_init complete");
         create_idle_thread();
-        debug!("create_idle_thread complete");
         init_core_state(initial_thread);
-        debug!("init_core_state complete");
         if !create_untypeds(&root_cnode_cap, boot_mem_reuse_reg) {
             debug!("ERROR: could not create untypteds for kernel image boot memory");
         }
-        debug!("create_untypeds complete");
         unsafe {
             (*ndks_boot.bi_frame).sharedFrames = seL4_SlotRegion { start: 0, end: 0 };
     
             bi_finalise(dtb_size, dtb_phys_addr, extra_bi_size);
     
         }
-        debug!("release_secondary_cores start");
+        // debug!("release_secondary_cores start");
         *ksNumCPUs.lock() = 1;
         #[cfg(feature = "ENABLE_SMP")] {
             unsafe {
@@ -265,6 +264,7 @@ pub fn try_init_kernel(
                 clh_lock_acquire(hart_id(), false);
             }
         }
+
         debug!("Booting all finished, dropped to user space");
         debug!("\n");
     } else {
@@ -276,13 +276,16 @@ pub fn try_init_kernel(
 
 #[cfg(feature = "ENABLE_SMP")]
 pub fn try_init_kernel_secondary_core(hartid: usize, core_id: usize) -> bool {
-    debug!("enter try_init_kernel_secondary_core");
+    use core::ops::AddAssign;
     while node_boot_lock.lock().eq(&0) {}
-    debug!("start try_init_kernel_secondary_core");
+    // debug!("start try_init_kernel_secondary_core");
     init_cpu();
+    debug!("init cpu compl");
     unsafe { clh_lock_acquire(hart_id(), false) }
     ksNumCPUs.lock().add_assign(1);
     init_core_state(SchedulerAction_ResumeCurrentThread as *mut tcb_t);
+    debug!("init_core_state compl");
+
     unsafe {
         asm!("fence.i");
     }
@@ -291,6 +294,7 @@ pub fn try_init_kernel_secondary_core(hartid: usize, core_id: usize) -> bool {
 
 #[cfg(feature = "ENABLE_SMP")]
 fn release_secondary_cores() {
+    use crate::common::sel4_config::CONFIG_MAX_NUM_NODES;
     *node_boot_lock.lock() = 1;
     unsafe {
         asm!("fence rw, rw");

@@ -94,7 +94,7 @@ pub extern "C" fn map_it_pt_cap(_vspace_cap: &cap_t, _pt_cap: &cap_t) {
         pptr_to_paddr(pt) >> seL4_PageBits, 0, 0, 0, 0, 0, 0,
         0, 0, 1
     );
-    sfence();
+    unsafe { sfence(); }
 }
 
 pub fn create_it_pt_cap(vspace_cap: &cap_t, pptr: pptr_t, vptr: vptr_t, asid: usize) -> cap_t {
@@ -115,7 +115,7 @@ pub fn map_it_frame_cap(_vspace_cap: &cap_t, _frame_cap: &cap_t) {
         pptr_to_paddr(frame_pptr) >> seL4_PageBits, 0, 1, 1, 0, 1,
         1, 1, 1, 1
     );
-    sfence();
+    unsafe { sfence(); }
 }
 
 

@@ -72,7 +72,9 @@ pub fn switchToThread_fp(thread: *mut tcb_t, vroot: *mut pte_t, stored_hw_asid: 
     let asid = stored_hw_asid.words[0];
     unsafe {
         setVSpaceRoot(pptr_to_paddr(vroot as usize), asid);
-        ksCurThread = thread as usize;
+        // panic!("switchToThread_fp");
+        // ksCurThread = thread as usize;
+        set_current_thread(&*thread);
     }
 }
 
@@ -113,21 +115,28 @@ pub fn fastpath_copy_mrs(length: usize, src: &mut tcb_t, dest: &mut tcb_t) {
 
 core::arch::global_asm!(include_str!("restore_fp.S"));
 
-#[inline]
-#[no_mangle]
-pub fn fastpath_restore(badge: usize, msgInfo: usize, cur_thread: *mut tcb_t) {
-    let cur_thread_regs = unsafe { (*cur_thread).tcbArch.registers.as_ptr() as usize };
-    extern "C" {
-        pub fn __restore_fp(badge: usize, msgInfo: usize, cur_thread_reg: usize);
-    }
-    unsafe {
-        __restore_fp(badge, msgInfo, cur_thread_regs);
-    }
+// #[inline]
+// #[no_mangle]
+// pub fn fastpath_restore(badge: usize, msgInfo: usize, cur_thread: *mut tcb_t) {
+//     let cur_thread_regs = unsafe { (*cur_thread).tcbArch.registers.as_ptr() as usize };
+//     extern "C" {
+//         pub fn __restore_fp(badge: usize, msgInfo: usize, cur_thread_reg: usize);
+//         fn fastpath_restore(badge: usize, msgInfo: usize, cur_thread: usize);
+//     }
+//     unsafe {
+//         __restore_fp(badge, msgInfo, cur_thread_regs);
+//     }
+// }
+
+#[link(name = "kernel_all.c")]
+extern "C" {
+    fn fastpath_restore(badge: usize, msgInfo: usize, cur_thread: *mut tcb_t);
 }
 
 #[inline]
 #[no_mangle]
 pub fn fastpath_call(cptr: usize, msgInfo: usize) {
+    // debug!("enter fastpath call");
     let current = get_currenct_thread();
     let mut info = seL4_MessageInfo_t::from_word(msgInfo);
     let length = info.get_length();
@@ -169,6 +178,12 @@ pub fn fastpath_call(cptr: usize, msgInfo: usize) {
     ) {
         slowpath(SysCall as usize);
     }
+    #[cfg(feature = "ENABLE_SMP")]
+    if unlikely(get_currenct_thread().tcbAffinity != dest.tcbAffinity) {
+        slowpath(SysCall as usize);
+    }
+
+    // debug!("enter fast path");
 
     ep.set_queue_head(dest.tcbEPNext);
     if unlikely(dest.tcbEPNext != 0) {
@@ -200,16 +215,19 @@ pub fn fastpath_call(cptr: usize, msgInfo: usize) {
     seL4_MessageInfo_ptr_set_capsUnwrapped((&mut info) as *mut seL4_MessageInfo_t, 0);
     let msgInfo1 = info.to_word();
     let badge = ep_cap.get_ep_badge();
-    fastpath_restore(badge, msgInfo1, get_currenct_thread());
+    unsafe {
+        fastpath_restore(badge, msgInfo1, get_currenct_thread());
+    }
 }
 
 #[inline]
 #[no_mangle]
 pub fn fastpath_reply_recv(cptr: usize, msgInfo: usize) {
+    // debug!("enter fastpath_reply_recv");
     let current = get_currenct_thread();
     let mut info = seL4_MessageInfo_t::from_word(msgInfo);
     let length = info.get_length();
-    let mut fault_type = current.tcbFault.get_fault_type();
+    let fault_type = current.tcbFault.get_fault_type();
 
     if fastpath_mi_check(msgInfo) || fault_type != FaultType::NullFault {
         slowpath(SysReplyRecv as usize);
@@ -264,9 +282,6 @@ pub fn fastpath_reply_recv(cptr: usize, msgInfo: usize) {
     );
     current.tcbState.set_blocking_ipc_can_grant(ep_cap.get_ep_can_grant());
 
-    let endpointTail = unsafe {
-        ep.get_queue_tail() as *mut tcb_t
-    };
 
     if let Some(ep_tail_tcb) = convert_to_option_mut_type_ref::<tcb_t>(ep.get_queue_tail()) {
         ep_tail_tcb.tcbEPNext = current.get_ptr();
@@ -277,7 +292,7 @@ pub fn fastpath_reply_recv(cptr: usize, msgInfo: usize) {
         current.tcbEPNext = 0;
         ep.set_queue_head(current.get_ptr());
     }
-    endpoint_ptr_mset_epQueue_tail_state(ep as *mut endpoint_t, unsafe { ksCurThread } as usize, EPState_Recv);
+    endpoint_ptr_mset_epQueue_tail_state(ep as *mut endpoint_t, get_currenct_thread().get_ptr(), EPState_Recv);
 
     unsafe {
         let node = convert_to_mut_type_ref::<cte_t>(caller_slot.cteMDBNode.get_prev());
@@ -292,7 +307,7 @@ pub fn fastpath_reply_recv(cptr: usize, msgInfo: usize) {
         switchToThread_fp(caller, cap_pd, stored_hw_asid);
         info.set_caps_unwrapped(0);
         let msg_info1 = info.to_word();
-        fastpath_restore(0, msg_info1, ksCurThread as *mut tcb_t);
+        fastpath_restore(0, msg_info1, get_currenct_thread() as *mut tcb_t);
     }
 }
  

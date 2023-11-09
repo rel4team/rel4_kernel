@@ -35,6 +35,7 @@ extern "C" {
 
 #[no_mangle]
 pub fn slowpath(syscall: usize) {
+    // debug!("enter slow path: {}", syscall as isize);
     if (syscall as isize) < -8 || (syscall as isize) > -1 {
         unsafe {
             handleUnknownSyscall(syscall);
@@ -49,6 +50,9 @@ pub fn slowpath(syscall: usize) {
 #[no_mangle]
 pub fn handleSyscall(_syscall: usize) -> exception_t {
     let syscall: isize = _syscall as isize;
+    // if hart_id() == 0 {
+    //     debug!("handle syscall: {}", syscall);
+    // }
     match syscall {
         SysSend => {
             let ret = handleInvocation(false, true);
@@ -131,6 +135,7 @@ fn send_fault_ipc(thread: &mut tcb_t) -> exception_t {
 #[inline]
 pub fn handle_fault(thread: &mut tcb_t) {
     if send_fault_ipc(thread) != exception_t::EXCEPTION_NONE {
+        // debug!("send_fault_ipc fail");
         set_thread_state(thread, ThreadState::ThreadStateInactive);
     }
 }
