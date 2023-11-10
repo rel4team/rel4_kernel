@@ -12,7 +12,10 @@ use crate::{
     config::{n_frameRegisters, n_gpRegisters}, syscall::{utils::{get_syscall_arg, check_prio, check_ipc_buffer_vaild}, is_valid_vtable_root}};
 
 use super::super::invoke_tcb::*;
-    
+
+#[cfg(feature = "ENABLE_SMP")]
+use crate::deps::remoteTCBStall;
+
 pub const CopyRegisters_suspendSource: usize = 0;
 pub const CopyRegisters_resumeTarget: usize = 1;
 pub const CopyRegisters_transferFrame: usize = 2;
@@ -500,7 +503,3 @@ fn decode_set_space_args(root_data: usize, root_cap: cap_t, root_slot: &mut cte_
 }
 
 
-#[link(name = "kernel_all.c")]
-extern "C" {
-    fn remoteTCBStall(target: *mut tcb_t);
-}

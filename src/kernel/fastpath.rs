@@ -1,4 +1,4 @@
-use crate::{config::seL4_MsgLengthBits, syscall::{slowpath, SysCall, SysReplyRecv}};
+use crate::{config::seL4_MsgLengthBits, syscall::{slowpath, SysCall, SysReplyRecv}, deps::fastpath_restore};
 use crate::cspace::compatibility::*;
 use crate::task_manager::*;
 use crate::task_manager::ipc::*;
@@ -128,10 +128,6 @@ core::arch::global_asm!(include_str!("restore_fp.S"));
 //     }
 // }
 
-#[link(name = "kernel_all.c")]
-extern "C" {
-    fn fastpath_restore(badge: usize, msgInfo: usize, cur_thread: *mut tcb_t);
-}
 
 #[inline]
 #[no_mangle]

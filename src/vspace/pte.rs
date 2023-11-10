@@ -82,7 +82,7 @@ impl pte_t {
     #[inline]
     pub fn update(&mut self, pte: Self) {
         *self = pte;
-        unsafe { sfence(); }
+        sfence();
     }
 
     pub fn unmap_page_table(&mut self, asid: asid_t, vptr: vptr_t) {
@@ -108,7 +108,7 @@ impl pte_t {
             return;
         }
         *ptSlot = pte_t::new(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-        unsafe { sfence(); }
+        sfence();
     }
 
     #[inline]

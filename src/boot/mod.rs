@@ -7,6 +7,7 @@ mod interface;
 
 use core::mem::size_of;
 
+use crate::deps::{tcbDebugAppend, init_plat};
 use crate::{BIT, ROUND_UP};
 use crate::common::sel4_config::{PADDR_TOP, KERNEL_ELF_BASE, seL4_PageBits, PAGE_BITS};
 use log::debug;
@@ -30,7 +31,11 @@ pub use root_server::rootserver;
 pub use utils::{write_slot, provide_cap};
 
 #[cfg(feature = "ENABLE_SMP")]
-use crate::common::utils::hart_id;
+use crate::{
+    common::utils::cpu_id,
+    deps::{clh_lock_init, clh_lock_acquire}
+};
+
 #[cfg(feature = "ENABLE_SMP")]
 use core::arch::asm;
 
@@ -47,13 +52,6 @@ pub static mut ndks_boot: ndks_boot_t = ndks_boot_t {
     slot_pos_cur: seL4_NumInitialCaps,
 };
 
-#[link(name = "kernel_all.c")]
-extern "C" {
-    fn init_plat();
-    fn tcbDebugAppend(action: *mut tcb_t);
-    fn clh_lock_init();
-    fn clh_lock_acquire(cpu_idx: usize, irq_path: bool);
-}
 
 fn init_cpu() {
     activate_kernel_vspace();
@@ -166,7 +164,7 @@ fn init_core_state(scheduler_action: *mut tcb_t) {
                 ksIdleThread as *mut tcb_t
             }
             #[cfg(feature = "ENABLE_SMP")] {
-                ksSMP[hart_id()].ksIdleThread as *mut tcb_t
+                ksSMP[cpu_id()].ksIdleThread as *mut tcb_t
             }
         };
         
@@ -261,7 +259,7 @@ pub fn try_init_kernel(
             unsafe {
                 clh_lock_init();
                 release_secondary_cores();
-                clh_lock_acquire(hart_id(), false);
+                clh_lock_acquire(cpu_id(), false);
             }
         }
 
@@ -281,7 +279,7 @@ pub fn try_init_kernel_secondary_core(hartid: usize, core_id: usize) -> bool {
     // debug!("start try_init_kernel_secondary_core");
     init_cpu();
     debug!("init cpu compl");
-    unsafe { clh_lock_acquire(hart_id(), false) }
+    unsafe { clh_lock_acquire(cpu_id(), false) }
     ksNumCPUs.lock().add_assign(1);
     init_core_state(SchedulerAction_ResumeCurrentThread as *mut tcb_t);
     debug!("init_core_state compl");

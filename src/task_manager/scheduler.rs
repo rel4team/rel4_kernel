@@ -3,13 +3,16 @@ use crate::common::{sel4_config::*, utils::convert_to_mut_type_ref};
 use core::arch::asm;
 use core::intrinsics::{likely, unlikely};
 
-use crate::common::utils::{convert_to_mut_type_ref_unsafe};
+use crate::common::utils::convert_to_mut_type_ref_unsafe;
 use super::{FaultIP, NextIP, SSTATUS, SSTATUS_SPP, SSTATUS_SPIE, sp, set_thread_state, ThreadState};
 
 use super::{tcb::tcb_t, tcb_queue_t};
 
 #[cfg(feature = "ENABLE_SMP")]
-use crate::common::utils::hart_id;
+use crate::{
+    common::utils::cpu_id,
+    deps::{doMaskReschedule, ksIdleThreadTCB, kernel_stack_alloc}
+};
 
 #[cfg(feature = "ENABLE_SMP")]
 #[derive(Debug, Copy, Clone)]
@@ -105,7 +108,7 @@ type prio_t = usize;
 pub fn get_idle_thread() -> &'static mut tcb_t {
     unsafe {
         #[cfg(feature = "ENABLE_SMP")] {
-            convert_to_mut_type_ref::<tcb_t>(ksSMP[hart_id()].ksIdleThread)
+            convert_to_mut_type_ref::<tcb_t>(ksSMP[cpu_id()].ksIdleThread)
         }
         #[cfg(not(feature = "ENABLE_SMP"))] {
             convert_to_mut_type_ref::<tcb_t>(ksIdleThread)
@@ -117,7 +120,7 @@ pub fn get_idle_thread() -> &'static mut tcb_t {
 pub fn get_ks_scheduler_action() -> usize {
     unsafe {
         #[cfg(feature = "ENABLE_SMP")] {
-            ksSMP[hart_id()].ksSchedulerAction
+            ksSMP[cpu_id()].ksSchedulerAction
         }
         #[cfg(not(feature = "ENABLE_SMP"))] {
             ksSchedulerAction
@@ -132,7 +135,7 @@ pub fn set_ks_scheduler_action(action: usize) {
     // }
     unsafe {
         #[cfg(feature = "ENABLE_SMP")] {
-            ksSMP[hart_id()].ksSchedulerAction = action;
+            ksSMP[cpu_id()].ksSchedulerAction = action;
         }
         #[cfg(not(feature = "ENABLE_SMP"))] {
             ksSchedulerAction = action
@@ -144,7 +147,7 @@ pub fn set_ks_scheduler_action(action: usize) {
 pub fn get_currenct_thread() -> &'static mut tcb_t {
     unsafe {
         #[cfg(feature = "ENABLE_SMP")] {
-            convert_to_mut_type_ref::<tcb_t>(ksSMP[hart_id()].ksCurThread)
+            convert_to_mut_type_ref::<tcb_t>(ksSMP[cpu_id()].ksCurThread)
         }
         #[cfg(not(feature = "ENABLE_SMP"))] {
             convert_to_mut_type_ref::<tcb_t>(ksCurThread)
@@ -156,7 +159,7 @@ pub fn get_currenct_thread() -> &'static mut tcb_t {
 pub fn get_currenct_thread_unsafe() -> &'static mut tcb_t {
     unsafe {
         #[cfg(feature = "ENABLE_SMP")] {
-            convert_to_mut_type_ref_unsafe::<tcb_t>(ksSMP[hart_id()].ksCurThread)
+            convert_to_mut_type_ref_unsafe::<tcb_t>(ksSMP[cpu_id()].ksCurThread)
         }
         #[cfg(not(feature = "ENABLE_SMP"))] {
             convert_to_mut_type_ref_unsafe::<tcb_t>(ksCurThread)
@@ -168,7 +171,7 @@ pub fn get_currenct_thread_unsafe() -> &'static mut tcb_t {
 pub fn set_current_scheduler_action(action: usize) {
     unsafe {
         #[cfg(feature = "ENABLE_SMP")] {
-            ksSMP[hart_id()].ksSchedulerAction = action;
+            ksSMP[cpu_id()].ksSchedulerAction = action;
         }
         #[cfg(not(feature = "ENABLE_SMP"))] {
             ksSchedulerAction = action;
@@ -181,7 +184,7 @@ pub fn set_current_scheduler_action(action: usize) {
 pub fn set_current_thread(thread: &tcb_t) {
     unsafe {
         #[cfg(feature = "ENABLE_SMP")] {
-            ksSMP[hart_id()].ksCurThread = thread.get_ptr();
+            ksSMP[cpu_id()].ksCurThread = thread.get_ptr();
         }
         #[cfg(not(feature = "ENABLE_SMP"))] {
             ksCurThread = thread.get_ptr()
@@ -232,10 +235,10 @@ fn getHighestPrio(dom: usize) -> prio_t {
 #[inline]
 fn getHighestPrio(dom: usize) -> prio_t {
     unsafe {
-        let l1index = wordBits - 1 - ksSMP[hart_id()].ksReadyQueuesL1Bitmap[dom].leading_zeros() as usize;
+        let l1index = wordBits - 1 - ksSMP[cpu_id()].ksReadyQueuesL1Bitmap[dom].leading_zeros() as usize;
         let l1index_inverted = invert_l1index(l1index);
         let l2index =
-            wordBits - 1 - (ksSMP[hart_id()].ksReadyQueuesL2Bitmap[dom])[l1index_inverted].leading_zeros() as usize;
+            wordBits - 1 - (ksSMP[cpu_id()].ksReadyQueuesL2Bitmap[dom])[l1index_inverted].leading_zeros() as usize;
         l1index_to_prio(l1index) | l2index
     }
 }
@@ -243,7 +246,7 @@ fn getHighestPrio(dom: usize) -> prio_t {
 #[inline]
 pub fn isHighestPrio(dom: usize, prio: prio_t) -> bool {
     #[cfg(feature = "ENABLE_SMP")] {
-        unsafe { ksSMP[hart_id()].ksReadyQueuesL1Bitmap[dom] == 0 || prio >= getHighestPrio(dom) }
+        unsafe { ksSMP[cpu_id()].ksReadyQueuesL1Bitmap[dom] == 0 || prio >= getHighestPrio(dom) }
     }
     #[cfg(not(feature = "ENABLE_SMP"))] {
         unsafe { ksReadyQueuesL1Bitmap[dom] == 0 || prio >= getHighestPrio(dom) }
@@ -319,7 +322,7 @@ fn chooseThread() {
         let dom = 0;
         let ks_l1_bit = {
             #[cfg(feature = "ENABLE_SMP")] {
-                ksSMP[hart_id()].ksReadyQueuesL1Bitmap[dom]
+                ksSMP[cpu_id()].ksReadyQueuesL1Bitmap[dom]
             }
             #[cfg(not(feature = "ENABLE_SMP"))] {
                 ksReadyQueuesL1Bitmap[dom]
@@ -329,7 +332,7 @@ fn chooseThread() {
             let prio = getHighestPrio(dom);
             let thread = {
                 #[cfg(feature = "ENABLE_SMP")] {
-                    ksSMP[hart_id()].ksReadyQueues[ready_queues_index(dom, prio)].head
+                    ksSMP[cpu_id()].ksReadyQueues[ready_queues_index(dom, prio)].head
                 }
                 #[cfg(not(feature = "ENABLE_SMP"))] {
                     ksReadyQueues[ready_queues_index(dom, prio)].head
@@ -393,8 +396,8 @@ pub fn schedule() {
     set_ks_scheduler_action(SchedulerAction_ResumeCurrentThread);
     unsafe {
         #[cfg(feature = "ENABLE_SMP")] {
-            doMaskReschedule(ksSMP[hart_id()].ipiReschedulePending);
-            ksSMP[hart_id()].ipiReschedulePending = 0;
+            doMaskReschedule(ksSMP[cpu_id()].ipiReschedulePending);
+            ksSMP[cpu_id()].ipiReschedulePending = 0;
         }
 
     }
@@ -413,7 +416,7 @@ pub fn schedule_tcb(tcb_ref: &tcb_t) {
 #[cfg(feature = "ENABLE_SMP")]
 #[inline]
 pub fn possible_switch_to(target: &mut tcb_t) {
-    if unsafe { ksCurDomain != target.domain || target.tcbAffinity != hart_id() } {
+    if unsafe { ksCurDomain != target.domain || target.tcbAffinity != cpu_id() } {
         target.sched_enqueue();
     } else if get_ks_scheduler_action() != SchedulerAction_ResumeCurrentThread {
         rescheduleRequired();
@@ -495,6 +498,8 @@ pub fn activateThread() {
 
 #[cfg(not(feature = "ENABLE_SMP"))]
 pub fn create_idle_thread() {
+    use crate::deps::{ksIdleThreadTCB, kernel_stack_alloc};
+
     unsafe {
         let pptr = ksIdleThreadTCB as usize as *mut usize;
         ksIdleThread = pptr.add(TCB_OFFSET) as usize;
@@ -526,12 +531,6 @@ pub fn create_idle_thread() {
     }
 }
 
-#[link(name = "kernel_all.c")]
-extern "C" {
-    fn doMaskReschedule(mask: usize);
-    fn kernel_stack_alloc();
-    fn ksIdleThreadTCB();
-}
 
 
 fn idle_thread() {

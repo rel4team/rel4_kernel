@@ -19,16 +19,43 @@ impl satp_t {
     }
 }
 
+#[cfg(feature = "ENABLE_SMP")]
+#[inline]
+pub fn sfence() {
+    use crate::{smp::get_sbi_mask_for_all_remote_harts, common::sbi::remote_sfence_vma};
 
-
-#[link(name = "kernel_all.c")]
-extern "C" {
-    pub fn sfence();
+    unsafe {
+        core::arch::asm!("fence w, rw");
+    }
+    sfence_local();
+    let mask = get_sbi_mask_for_all_remote_harts();
+    remote_sfence_vma(mask, 0, 0);
 }
+
+#[cfg(feature = "ENABLE_SMP")]
+#[inline]
+pub fn sfence_local() {
+    unsafe {
+        core::arch::asm!("sfence.vma");
+    }
+}
+
+#[cfg(not(feature = "ENABLE_SMP"))]
+#[inline]
+pub fn sfence() {
+    unsafe {
+        core::arch::asm!("sfence.vma");
+    }
+}
+
+
 #[inline]
 #[no_mangle]
 pub fn setVSpaceRoot(addr: paddr_t, asid: usize) {
     let satp = satp_t::new(8usize, asid, addr >> 12);
     satp::write(satp.words);
-    unsafe { sfence(); }
+    #[cfg(not(feature = "ENABLE_SMP"))]
+    sfence();
+    #[cfg(feature = "ENABLE_SMP")]
+    sfence_local();
 }

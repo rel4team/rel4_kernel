@@ -180,11 +180,6 @@ impl tcb_t {
 
         #[cfg(feature = "ENABLE_SMP")]
         self.update_queue();
-        // unsafe {
-        //     if ksSMP[hart_id()].ipiReschedulePending != 0 {
-        //         debug!("[sched_enqueue]ipiReschedulePending: {}", ksSMP[hart_id()].ipiReschedulePending);
-        //     }
-        // }
     }
 
     #[inline]
@@ -260,24 +255,19 @@ impl tcb_t {
         }
         #[cfg(feature = "ENABLE_SMP")]
         self.update_queue();
-        // unsafe {
-        //     if ksSMP[hart_id()].ipiReschedulePending != 0 {
-        //         debug!("[sched_append]ipiReschedulePending: {}", ksSMP[hart_id()].ipiReschedulePending);
-        //     }
-        // }
     }
 
     #[cfg(feature = "ENABLE_SMP")]
     #[inline]
     fn update_queue(&self) {
         use super::{ksSMP, ksCurDomain};
-        use crate::common::utils::{hart_id, convert_to_type_ref};
+        use crate::common::utils::{cpu_id, convert_to_type_ref};
         use crate::BIT;
         unsafe {
-            if self.tcbAffinity != hart_id() && self.domain == ksCurDomain {
+            if self.tcbAffinity != cpu_id() && self.domain == ksCurDomain {
                 let target_current = convert_to_type_ref::<tcb_t>(ksSMP[self.tcbAffinity].ksCurThread);
                 if ksSMP[self.tcbAffinity].ksIdleThread == ksSMP[self.tcbAffinity].ksCurThread || self.tcbPriority > target_current.tcbPriority {
-                    ksSMP[hart_id()].ipiReschedulePending |= BIT!(self.tcbAffinity);
+                    ksSMP[cpu_id()].ipiReschedulePending |= BIT!(self.tcbAffinity);
                 }
             }
         }

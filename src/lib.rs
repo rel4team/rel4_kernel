@@ -32,9 +32,12 @@ mod common;
 mod task_manager;
 mod vspace;
 mod cspace;
+mod deps;
+#[cfg(feature = "ENABLE_SMP")]
+mod smp;
 
-// #[cfg(feature = "ENABLE_SMP")]
-// mod sync;
+
+
 
 
 #[no_mangle]

@@ -8,13 +8,10 @@ use crate::config::{irqInvalid, maxIRQ};
 use crate::interrupt::*;
 use crate::riscv::resetTimer;
 
+
 #[no_mangle]
 pub fn handleInterruptEntry() -> exception_t {
     let irq = getActiveIRQ();
-    // if hart_id() == 0 {
-    //     debug!("getActiveIRQ: {}", irq);
-    // }
-
 
     if irq != irqInvalid {
         handleInterrupt(irq);
@@ -56,27 +53,17 @@ pub fn handleInterrupt(irq: usize) {
             }
         }
         IRQState::IRQTimer => {
-            // if hart_id() != 0 {
-            //     debug!("IRQTimer");
-            // }
 
             timerTick();
             resetTimer();
         }
         #[cfg(feature = "ENABLE_SMP")]
         IRQState::IRQIPI => {
-            // panic!("unsupported ipi")
-            unsafe { handleIPI(irq, true) };
+            unsafe { crate::deps::handleIPI(irq, true) };
         }
         IRQState::IRQReserved => {
             debug!("Received unhandled reserved IRQ: {}\n", irq);
         }
     }
     ackInterrupt(irq);
-}
-
-
-#[link(name = "kernel_all.c")]
-extern "C" {
-    fn handleIPI(irq: usize, irq_path: bool);
 }

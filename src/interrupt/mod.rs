@@ -3,12 +3,15 @@ use core::arch::asm;
 
 
 use crate::common::sel4_config::CONFIG_MAX_NUM_NODES;
-use crate::common::utils::{convert_to_mut_type_ref, hart_id};
+use crate::common::utils::{convert_to_mut_type_ref, cpu_id};
 use crate::BIT;
 use crate::cspace::interface::cte_t;
 use crate::vspace::pptr_t;
 
 use crate::{config::*, riscv::read_sip};
+
+#[cfg(feature = "ENABLE_SMP")]
+use crate::deps::{ipi_clear_irq, ipi_get_irq};
 
 #[no_mangle]
 pub static mut intStateIRQTable: [usize; maxIRQ + 1] = [0; maxIRQ + 1];
@@ -121,7 +124,7 @@ pub fn isIRQPending() -> bool {
 #[no_mangle]
 pub fn ackInterrupt(irq: usize) {
     unsafe {
-        active_irq[hart_id()] = irqInvalid;
+        active_irq[cpu_id()] = irqInvalid;
     }
     if irq == KERNEL_TIMER_IRQ {
         return;
@@ -146,7 +149,7 @@ pub fn isIRQActive(_irq: usize) -> bool {
 #[inline]
 #[no_mangle]
 pub fn getActiveIRQ() -> usize {
-    let mut irq = unsafe { active_irq[hart_id()] };
+    let mut irq = unsafe { active_irq[cpu_id()] };
     if IS_IRQ_VALID(irq) {
         return irq;
     }
@@ -177,17 +180,11 @@ pub fn getActiveIRQ() -> usize {
         irq = irqInvalid;
     }
     unsafe {
-        active_irq[hart_id()] = irq;
+        active_irq[cpu_id()] = irq;
     }
     return irq;
 }
 
-
-#[link(name = "kernel_all.c")]
-extern "C" {
-    fn ipi_get_irq() -> usize;
-    fn ipi_clear_irq(irq: usize);
-}
 
 
 pub fn IS_IRQ_VALID(x: usize) -> bool {

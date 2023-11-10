@@ -7,9 +7,9 @@ const SBI_CONSOLE_PUTCHAR: usize = 1;
 const SBI_CONSOLE_GETCHAR: usize = 2;
 
 const SBI_CLEAR_IPI: usize = 3;
+const SBI_REMOTE_SFENCE_VMA: usize = 6;
 const SBI_SHUTDOWN: usize = 8;
 const SYSCALL_WRITE:usize =64;
-
 
 #[no_mangle]
 pub fn sbi_call(which: usize, arg0: usize, arg1: usize, arg2: usize) -> usize {
@@ -48,8 +48,14 @@ pub fn shutdown() -> ! {
     panic!("It should shutdown!");
 }
 
-pub fn sys_write(fd: usize, buffer: &[u8]){
+pub fn sys_write(fd: usize, buffer: &[u8]) {
     sbi_call(SYSCALL_WRITE, fd, buffer.as_ptr() as usize, buffer.len());
+}
+
+
+pub fn remote_sfence_vma(hart_mask: usize, start: usize, size: usize) {
+    let virt_addr_hart_mask = (&hart_mask) as *const usize as usize;
+    sbi_call(SBI_REMOTE_SFENCE_VMA, virt_addr_hart_mask, 0, 0);
 }
 
 pub fn get_time() -> usize {

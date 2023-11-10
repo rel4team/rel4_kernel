@@ -1,4 +1,4 @@
-use crate::common::{structures::exception_t, utils::convert_to_mut_type_ref, sel4_config::{tcbCTable, tcbCNodeEntries, tcbVTable}};
+use crate::{common::{structures::exception_t, utils::convert_to_mut_type_ref, sel4_config::{tcbCTable, tcbCNodeEntries, tcbVTable}}, deps::tcbDebugRemove};
 
 use crate::{task_manager::{ksWorkUnitsCompleted, tcb_t, ipc::{endpoint_t, notification_t}, get_currenct_thread}, interrupt::*, config::CONFIG_MAX_NUM_WORK_UNITS_PER_PREEMPTION,
         vspace::*, kernel::boot::current_lookup_fault, syscall::safe_unbind_notification};
@@ -57,13 +57,6 @@ pub fn Arch_finaliseCap(cap: &cap_t, final_: bool) -> finaliseCap_ret {
     fc_ret
 }
 
-#[link(name = "kernel_all.c")]
-extern "C" {
-    fn tcbDebugRemove(tcb: *mut tcb_t);
-    fn tcbDebugAppend(tcb: *mut tcb_t);
-    #[cfg(feature = "ENABLE_SMP")]
-    fn remoteTCBStall(tcb: *mut tcb_t);
-}
 #[no_mangle]
 pub fn finaliseCap(cap: &cap_t, _final: bool, _exposed: bool) -> finaliseCap_ret {
     let mut fc_ret = finaliseCap_ret::default();
@@ -123,7 +116,9 @@ pub fn finaliseCap(cap: &cap_t, _final: bool, _exposed: bool) -> finaliseCap_ret
             if _final {
                 let tcb = convert_to_mut_type_ref::<tcb_t>(cap.get_tcb_ptr());
                 #[cfg(feature = "ENABLE_SMP")]
-                unsafe { remoteTCBStall(tcb) };
+                unsafe {
+                    crate::deps::remoteTCBStall(tcb)
+                };
                 let cte_ptr = tcb.get_cspace_mut_ref(tcbCTable);
                 safe_unbind_notification(tcb);
                 tcb.cancel_ipc();

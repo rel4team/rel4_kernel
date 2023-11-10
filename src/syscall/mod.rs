@@ -17,6 +17,7 @@ pub const SysNBRecv: isize = -8;
 use crate::common::structures::exception_t;
 use crate::common::utils::convert_to_mut_type_ref;
 use crate::cspace::interface::CapTag;
+use crate::deps::handleUnknownSyscall;
 use crate::task_manager::{schedule, activateThread, tcb_t, set_thread_state, ThreadState, get_currenct_thread, capRegister, rescheduleRequired};
 use crate::task_manager::ipc::{endpoint_t, notification_t};
 pub use utils::*;
@@ -28,10 +29,6 @@ use crate::kernel::boot::{current_fault, current_lookup_fault};
 use self::invocation::handleInvocation;
 
 
-#[link(name = "kernel_all.c")]
-extern "C" {
-    pub fn handleUnknownSyscall(w: usize);
-}
 
 #[no_mangle]
 pub fn slowpath(syscall: usize) {

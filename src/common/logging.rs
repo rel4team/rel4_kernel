@@ -7,7 +7,7 @@
 use log::{self, Level, LevelFilter, Log, Metadata, Record};
 
 use crate::println;
-use super::utils::hart_id;
+use super::utils::cpu_id;
 
 use spin::Mutex;
 
@@ -34,7 +34,7 @@ impl Log for SimpleLogger {
             "\u{1B}[{}m[{:>5} {}] {}\u{1B}[0m",
             color,
             record.level(),
-            hart_id(),
+            cpu_id(),
             record.args(),
         );
     }

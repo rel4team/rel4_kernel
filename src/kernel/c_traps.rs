@@ -5,7 +5,7 @@ use crate::{
         RISCVInstructionAccessFault, RISCVInstructionPageFault, RISCVLoadAccessFault,
         RISCVLoadPageFault, RISCVStoreAccessFault, RISCVStorePageFault,
     },
-    riscv::read_scause, syscall::slowpath,
+    riscv::read_scause, syscall::slowpath
 };
 
 use crate::task_manager::*;
@@ -14,9 +14,10 @@ use crate::exception::{handleUserLevelFault, handleVMFaultEvent};
 use crate::interrupt::handler::handleInterruptEntry;
 
 #[cfg(feature = "ENABLE_SMP")]
-use crate::common::utils::hart_id;
-#[cfg(feature = "ENABLE_SMP")]
-use crate::interrupt::getActiveIRQ;
+use crate::{
+    common::utils::cpu_id, interrupt::getActiveIRQ,
+    deps::{clh_is_self_in_queue, clh_lock_release, clh_lock_acquire}
+};
 
 #[no_mangle]
 pub fn restore_user_context() {
@@ -26,7 +27,7 @@ pub fn restore_user_context() {
         #[cfg(feature = "ENABLE_SMP")]
         {
             if clh_is_self_in_queue() {
-                clh_lock_release(hart_id());
+                clh_lock_release(cpu_id());
             }
             // debug!("restore_user_context2");
             let mut cur_sp: usize = 8;
@@ -87,11 +88,7 @@ pub fn restore_user_context() {
     }
 }
 
-#[link(name = "kernel_all.c")]
-extern "C" {
-    fn clh_is_self_in_queue() -> bool;
-    fn clh_lock_release(cpu: usize);
-}
+
 
 #[no_mangle]
 pub fn c_handle_interrupt() {
@@ -102,7 +99,7 @@ pub fn c_handle_interrupt() {
     #[cfg(feature = "ENABLE_SMP")] {
         use crate::config::INTERRUPT_IPI_0;
         if getActiveIRQ() != INTERRUPT_IPI_0 {
-            unsafe { clh_lock_acquire(hart_id(), true); }
+            unsafe { clh_lock_acquire(cpu_id(), true); }
         }
     }
     // debug!("c_handle_interrupt");
@@ -113,7 +110,7 @@ pub fn c_handle_interrupt() {
 #[no_mangle]
 pub fn c_handle_exception() {
     #[cfg(feature = "ENABLE_SMP")]
-    unsafe { clh_lock_acquire(hart_id(), false); }
+    unsafe { clh_lock_acquire(cpu_id(), false); }
     // if hart_id() == 0 {
     //     debug!("c_handle_exception");
     // }
@@ -138,16 +135,10 @@ pub fn c_handle_exception() {
 #[no_mangle]
 pub fn c_handle_syscall(_cptr: usize, _msgInfo: usize, syscall: usize) {
     #[cfg(feature = "ENABLE_SMP")]
-    unsafe { clh_lock_acquire(hart_id(), false); }
+    unsafe { clh_lock_acquire(cpu_id(), false); }
     // if hart_id() == 0 {
     //     debug!("c_handle_syscall: syscall: {},", syscall as isize);
     // }
     slowpath(syscall);
     // debug!("c_handle_syscall complete");
-}
-
-
-#[link(name = "kernel_all.c")]
-extern "C" {
-    fn clh_lock_acquire(cpu_idx: usize, irq_path: bool);
 }

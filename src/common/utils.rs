@@ -149,17 +149,13 @@ pub fn pageBitsForSize(page_size: usize) -> usize {
     }
 }
 
-#[link(name = "kernel_all.c")]
-extern "C" {
-    fn getCurrentCPUIndex() -> usize;
-}
-
-
 
 #[inline]
-pub fn hart_id() -> usize {
+pub fn cpu_id() -> usize {
     #[cfg(feature = "ENABLE_SMP")] {
-        unsafe { getCurrentCPUIndex() }
+        use crate::smp::get_currenct_cpu_index;
+        // unsafe { getCurrentCPUIndex() }
+        get_currenct_cpu_index()
     }
     #[cfg(not(feature = "ENABLE_SMP"))] {
         0

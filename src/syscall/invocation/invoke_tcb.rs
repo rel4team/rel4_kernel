@@ -195,24 +195,19 @@ pub fn invoke_tcb_set_tls_base(thread: &mut tcb_t, base: usize) -> exception_t {
     exception_t::EXCEPTION_NONE
 }
 
+#[cfg(feature = "ENABLE_SMP")]
 #[inline]
 pub fn invoke_tcb_set_affinity(thread: &mut tcb_t, affinitiy: usize) -> exception_t {
     thread.sched_dequeue();
-    unsafe { migrateTCB(thread, affinitiy); }
+    unsafe { crate::deps::migrateTCB(thread, affinitiy); }
     // debug!("tcb migrate: {}", thread.tcbAffinity);
     if thread.is_runnable() {
         thread.sched_append();
     }
-    // unsafe {
-    //     debug!("ipiReschedulePending: {}", ksSMP[hart_id()].ipiReschedulePending);
-    // }
+
     if thread.is_current() {
         rescheduleRequired();
     }
     exception_t::EXCEPTION_NONE
 }
 
-#[link(name = "kernel_all.c")]
-extern "C" {
-    fn migrateTCB(tcb: *mut tcb_t, new_core: usize);
-}
