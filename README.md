@@ -10,11 +10,20 @@ $ repo sync
 
 # In rel4_kernel dirctory
 $ cd rel4_kernel 
-$ make env && ./build.sh
+$ make env
+# build disable smp version
+$ ./build.py
+# build enable smp version
+$ ./build.py -c 4
+# build baseline version(c impl)
+$ ./build.py -b
 ```
 
 ## How to run test?
 ```shell
 # In build dirctory
 $ ./simulate
+
+# In SMP version
+$ ./simulate --cpu-num 4
 ```
