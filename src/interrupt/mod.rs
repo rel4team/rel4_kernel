@@ -1,5 +1,8 @@
 pub mod handler;
+mod plic;
 use core::arch::asm;
+use core::ops::Deref;
+use log::debug;
 
 
 use crate::common::sel4_config::CONFIG_MAX_NUM_NODES;
@@ -12,6 +15,7 @@ use crate::{config::*, riscv::read_sip};
 
 #[cfg(feature = "ENABLE_SMP")]
 use crate::deps::{ipi_clear_irq, ipi_get_irq};
+use crate::interrupt::plic::{PLIC, PlicTrait};
 
 #[no_mangle]
 pub static mut intStateIRQTable: [usize; maxIRQ + 1] = [0; maxIRQ + 1];
@@ -184,9 +188,14 @@ pub fn getActiveIRQ() -> usize {
     }
     return irq;
 }
-
-
-
 pub fn IS_IRQ_VALID(x: usize) -> bool {
     (x <= maxIRQ) && (x != irqInvalid)
+}
+
+pub fn init_irq_controller() {
+    debug!("Initializing PLIC...");
+    for i in 0..CONFIG_MAX_NUM_NODES {
+        unsafe { active_irq[i] = irqInvalid; }
+    }
+    PLIC.init_controller();
 }

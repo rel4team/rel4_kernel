@@ -68,6 +68,8 @@ pub static mut ksDomScheduleIdx: usize = 0;
 pub static mut ksCurThread: usize = 0;
 
 #[no_mangle]
+pub static mut ksDebugTCBs: usize = 0;
+#[no_mangle]
 pub static mut ksIdleThread: usize = 0;
 
 #[no_mangle]

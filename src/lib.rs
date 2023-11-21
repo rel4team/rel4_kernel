@@ -16,7 +16,7 @@
 extern crate core;
 use common::sbi::shutdown;
 mod config;
-// mod console;
+mod debug;
 mod lang_items;
 mod utils;
 mod kernel;
