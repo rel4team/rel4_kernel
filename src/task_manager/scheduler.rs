@@ -2,6 +2,7 @@ use crate::{BIT, MASK};
 use crate::common::{sel4_config::*, utils::convert_to_mut_type_ref};
 use core::arch::asm;
 use core::intrinsics::{likely, unlikely};
+use log::debug;
 
 use crate::common::utils::convert_to_mut_type_ref_unsafe;
 use super::{FaultIP, NextIP, SSTATUS, SSTATUS_SPP, SSTATUS_SPIE, sp, set_thread_state, ThreadState};

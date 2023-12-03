@@ -11,7 +11,7 @@
 #![feature(panic_info_message)]
 #![feature(stdsimd)]
 #![feature(linkage)]
-
+#![feature(generic_const_exprs)]
 
 extern crate core;
 use common::sbi::shutdown;
@@ -35,6 +35,12 @@ mod cspace;
 mod deps;
 #[cfg(feature = "ENABLE_SMP")]
 mod smp;
+
+#[cfg(feature = "ENABLE_UINTC")]
+mod uintc;
+
+#[cfg(feature = "ENABLE_UINTC")]
+mod uintr;
 
 
 

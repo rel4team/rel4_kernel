@@ -128,10 +128,18 @@ core::arch::global_asm!(include_str!("restore_fp.S"));
 //     }
 // }
 
+#[inline]
+fn fp_restore(badge: usize, msgInfo: usize, cur_thread: *mut tcb_t) {
+    #[cfg(feature = "ENABLE_UINTC")]
+    crate::uintc::uintr_return();
+    unsafe { fastpath_restore(badge, msgInfo, cur_thread) }
+}
 
 #[inline]
 #[no_mangle]
 pub fn fastpath_call(cptr: usize, msgInfo: usize) {
+    #[cfg(feature = "ENABLE_UINTC")]
+    crate::uintc::uintr_save();
     // debug!("enter fastpath call");
     let current = get_currenct_thread();
     let mut info = seL4_MessageInfo_t::from_word(msgInfo);
@@ -212,13 +220,15 @@ pub fn fastpath_call(cptr: usize, msgInfo: usize) {
     let msgInfo1 = info.to_word();
     let badge = ep_cap.get_ep_badge();
     unsafe {
-        fastpath_restore(badge, msgInfo1, get_currenct_thread());
+        fp_restore(badge, msgInfo1, get_currenct_thread());
     }
 }
 
 #[inline]
 #[no_mangle]
 pub fn fastpath_reply_recv(cptr: usize, msgInfo: usize) {
+    #[cfg(feature = "ENABLE_UINTC")]
+    crate::uintc::uintr_save();
     // debug!("enter fastpath_reply_recv");
     let current = get_currenct_thread();
     let mut info = seL4_MessageInfo_t::from_word(msgInfo);
@@ -303,7 +313,7 @@ pub fn fastpath_reply_recv(cptr: usize, msgInfo: usize) {
         switchToThread_fp(caller, cap_pd, stored_hw_asid);
         info.set_caps_unwrapped(0);
         let msg_info1 = info.to_word();
-        fastpath_restore(0, msg_info1, get_currenct_thread() as *mut tcb_t);
+        fp_restore(0, msg_info1, get_currenct_thread() as *mut tcb_t);
     }
 }
  

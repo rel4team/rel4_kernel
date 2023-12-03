@@ -68,6 +68,9 @@ fn init_cpu() {
         set_sie_mask(BIT!(SIE_SEIE) | BIT!(SIE_STIE));
     }
     set_timer(get_time() + RESET_CYCLES);
+
+    #[cfg(feature = "ENABLE_UINTC")]
+    crate::uintc::init();
 }
 
 fn calculate_extra_bi_size_bits(size: usize) -> usize {

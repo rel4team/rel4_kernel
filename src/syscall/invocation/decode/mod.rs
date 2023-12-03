@@ -69,6 +69,12 @@ pub fn decode_invocation(label: MessageLabel, length: usize, slot: &mut cte_t, c
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
             }
             set_thread_state(get_currenct_thread(), ThreadState::ThreadStateRestart);
+            #[cfg(feature = "ENABLE_UINTC")] {
+                if get_currenct_thread().uintr_inner.uist.is_none() {
+                    crate::uintc::regiser_sender(cap);
+                }
+            }
+            #[cfg(not(feature = "ENABLE_UINTC"))]
             convert_to_mut_type_ref::<notification_t>(cap.get_nf_ptr()).send_signal(cap.get_nf_badge());
             exception_t::EXCEPTION_NONE
         }

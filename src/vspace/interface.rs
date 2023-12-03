@@ -1,6 +1,7 @@
 use crate::{common::{sel4_config::*, structures::exception_t, utils::{convert_to_mut_type_ref, pageBitsForSize}, fault::*}, BIT, ROUND_DOWN};
 use crate::cspace::interface::{cap_t, CapTag};
 use core::intrinsics::unlikely;
+use log::debug;
 use super::pte::pte_t;
 use super::utils::{RISCV_GET_PT_INDEX, RISCV_GET_LVL_PGSIZE, RISCV_GET_LVL_PGSIZE_BITS, kpptr_to_paddr};
 
@@ -73,7 +74,7 @@ pub fn copyGlobalMappings(Lvl1pt: usize) {
     }
 }
 
-
+#[no_mangle]
 pub fn set_vm_root(vspace_root: &cap_t) -> Result<(), lookup_fault_t> {
     if vspace_root.get_cap_type() != CapTag::CapPageTableCap {
         unsafe {

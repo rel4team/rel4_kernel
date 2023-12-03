@@ -13,9 +13,11 @@ crate-type = ["staticlib"]
 [dependencies]
 buddy_system_allocator = "0.6"
 riscv = { git = "https://gitee.com/rcore-os/riscv", features = ["inline-asm"] }
+bit_field = "0.10"
 log = "0.4"
 spin = { version = "0.9", features = ["use_ticket_mutex"] }
 lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 
 [features]
 ENABLE_SMP = []
+ENABLE_UINTC = []

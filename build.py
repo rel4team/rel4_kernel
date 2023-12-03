@@ -21,6 +21,10 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-b', '--baseline', dest="baseline", action="store_true",
                         help="baseline switch")
+
+    parser.add_argument('-u', '--uintr', dest="uintr_enable", action="store_true",
+                            help="uintr support")
+
     parser.add_argument('-c', '--cpu', dest="cpu_nums", type=int,
                         help="kernel & qemu cpu nums", default=1)
     args = parser.parse_args()
@@ -48,14 +52,15 @@ if __name__ == "__main__":
             clean_config()
             sys.exit(-1)
     else:
+        shell_command = "cargo build --release --target riscv64imac-unknown-none-elf"
         if args.cpu_nums > 1:
-            if not exec_shell("cargo build --release --target riscv64imac-unknown-none-elf --features ENABLE_SMP"):
-                clean_config()
-                sys.exit(-1)
-        else:
-            if not exec_shell("cargo build --release --target riscv64imac-unknown-none-elf"):
-                clean_config()
-                sys.exit(-1)
+            shell_command += " --features ENABLE_SMP"
+        if args.uintr_enable:
+            shell_command += " --features ENABLE_UINTC"
+        if not exec_shell(shell_command):
+            clean_config()
+            sys.exit(-1)
+
     
     if args.cpu_nums > 1:
         shell_command = "cd ./build && ../../init-build.sh  -DPLATFORM=spike -DSIMULATION=TRUE -DSMP=TRUE && ninja"

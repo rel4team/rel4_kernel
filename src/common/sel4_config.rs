@@ -3,7 +3,7 @@ use crate::{BIT, MASK};
 pub const wordRadix: usize = 6;
 pub const wordBits: usize = BIT!(wordRadix);
 pub const seL4_EndpointBits: usize = 4;
-pub const seL4_NotificationBits: usize = 4;
+pub const seL4_NotificationBits: usize = 6;
 pub const seL4_SlotBits: usize = 5;
 pub const seL4_ReplyBits: usize = 4;
 pub const seL4_MinUntypedBits: usize = 4;
@@ -90,7 +90,7 @@ pub const seL4_NumErrors: usize = 11;
 
 
 // msg info
-pub const seL4_MsgMaxLength: usize = 120;
+pub const seL4_MsgMaxLength: usize = 119;
 pub const seL4_MsgExtraCapBits: usize = 2;
 pub const seL4_MsgMaxExtraCaps: usize = BIT!(seL4_MsgExtraCapBits) - 1;
 pub const

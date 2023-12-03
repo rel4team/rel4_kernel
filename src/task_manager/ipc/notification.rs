@@ -1,3 +1,4 @@
+use log::debug;
 use crate::common::utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref};
 use crate::plus_define_bitfield;
 use super::super::{tcb_t, tcb_queue_t, set_thread_state, possible_switch_to, ThreadState, rescheduleRequired};
@@ -15,13 +16,15 @@ pub const NtfnState_Waiting: usize = NtfnState::Waiting as usize;
 pub const NtfnState_Active: usize = NtfnState::Active as usize;
 
 plus_define_bitfield! {
-    notification_t, 4, 0, 0, 0 => {
+    notification_t, 5, 0, 0, 0 => {
         new, 0 => {
             bound_tcb, get_bound_tcb, set_bound_tcb, 3, 0, 39, 0, true,
             msg_identifier, get_msg_identifier, set_msg_identifier, 2, 0, 64, 0, false,
             queue_head, get_queue_head, set_queue_head, 1, 0, 39, 0, true,
             queue_tail, get_queue_tail, set_queue_tail, 0, 25, 39, 0, true,
-            state, get_usize_state, set_state, 0, 0, 2, 0, false
+            state, get_usize_state, set_state, 0, 0, 2, 0, false,
+            uintr_flag, get_uintr_flag, set_uintr_flag, 4, 9, 1, 0, false,
+            recv_idx, get_recv_idx, set_recv_idx, 4, 0, 9, 0, false
         }
     }
 }
@@ -104,6 +107,7 @@ impl notification_t {
 
     #[inline]
     pub fn send_signal(&mut self, badge: usize) {
+        debug!("send_signal");
         match self.get_state() {
             NtfnState::Idle => {
                 if let Some(tcb) = convert_to_option_mut_type_ref::<tcb_t>(self.get_bound_tcb()) {
@@ -143,6 +147,7 @@ impl notification_t {
     }
 
     pub fn receive_signal(&mut self, recv_thread: &mut tcb_t, is_blocking: bool) {
+        debug!("recv signal");
         match self.get_state() {
             NtfnState::Idle | NtfnState::Waiting => {
                 if is_blocking {

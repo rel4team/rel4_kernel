@@ -37,7 +37,7 @@ impl Default for arch_tcb_t {
 }
 
 #[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct tcb_t {
     pub tcbArch: arch_tcb_t,
     pub tcbState: thread_state_t,
@@ -56,6 +56,17 @@ pub struct tcb_t {
     pub tcbSchedPrev: usize,
     pub tcbEPNext: usize,
     pub tcbEPPrev: usize,
+    #[cfg(feature = "ENABLE_UINTC")]
+    pub uintr_inner: uintr_tcb_inner,
+}
+
+#[cfg(feature = "ENABLE_UINTC")]
+#[derive(Copy, Clone, Debug)]
+pub struct uintr_tcb_inner {
+    pub uepc: usize,
+    pub utvec: usize,
+    pub uscratch: usize,
+    pub uist: Option<usize>,
 }
 
 impl tcb_t {
@@ -285,7 +296,7 @@ impl tcb_t {
         // if hart_id() == 0 {
         //     debug!("switch_to_this: {:#x}", self.get_ptr());
         // }
-        let _ = self.set_vm_root();
+        let _unused = self.set_vm_root();
         self.sched_dequeue();
         set_current_thread(self);
     }

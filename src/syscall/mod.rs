@@ -3,6 +3,7 @@ pub mod invocation;
 pub mod syscall_reply;
 
 use core::intrinsics::unlikely;
+use log::debug;
 use crate::common::fault::{FaultType, lookup_fault_t, seL4_Fault_t};
 use crate::common::sel4_config::tcbCaller;
 
@@ -132,7 +133,7 @@ fn send_fault_ipc(thread: &mut tcb_t) -> exception_t {
 #[inline]
 pub fn handle_fault(thread: &mut tcb_t) {
     if send_fault_ipc(thread) != exception_t::EXCEPTION_NONE {
-        // debug!("send_fault_ipc fail");
+        debug!("send_fault_ipc fail");
         set_thread_state(thread, ThreadState::ThreadStateInactive);
     }
 }

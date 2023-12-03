@@ -1,4 +1,5 @@
 use core::arch::asm;
+use log::debug;
 
 use crate::{
     config::{
@@ -22,6 +23,8 @@ use crate::{
 #[no_mangle]
 pub fn restore_user_context() {
     unsafe {
+        #[cfg(feature = "ENABLE_UINTC")]
+        crate::uintc::uintr_return();
         // debug!("restore_user_context");
         let cur_thread_reg = get_currenct_thread().tcbArch.registers.as_ptr() as usize;
         #[cfg(feature = "ENABLE_SMP")]
@@ -102,6 +105,8 @@ pub fn c_handle_interrupt() {
             unsafe { clh_lock_acquire(cpu_id(), true); }
         }
     }
+    #[cfg(feature = "ENABLE_UINTC")]
+    crate::uintc::uintr_save();
     // debug!("c_handle_interrupt");
     handleInterruptEntry();
     restore_user_context();
@@ -114,8 +119,11 @@ pub fn c_handle_exception() {
     // if hart_id() == 0 {
     //     debug!("c_handle_exception");
     // }
+    #[cfg(feature = "ENABLE_UINTC")]
+    crate::uintc::uintr_save();
 
     let cause = read_scause();
+    // debug!("handle_fault: {}", cause);
     match cause {
         RISCVInstructionAccessFault
         | RISCVLoadAccessFault
@@ -139,6 +147,8 @@ pub fn c_handle_syscall(_cptr: usize, _msgInfo: usize, syscall: usize) {
     // if hart_id() == 0 {
     //     debug!("c_handle_syscall: syscall: {},", syscall as isize);
     // }
+    #[cfg(feature = "ENABLE_UINTC")]
+    crate::uintc::uintr_save();
     slowpath(syscall);
     // debug!("c_handle_syscall complete");
 }
