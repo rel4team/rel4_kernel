@@ -7,7 +7,8 @@ mod interface;
 
 use core::mem::size_of;
 
-use crate::deps::tcbDebugAppend;
+use crate::common::utils::{convert_to_mut_type_ref, convert_to_type_ref};
+use crate::debug::tcb_debug_append;
 use crate::{BIT, ROUND_UP};
 use crate::common::sel4_config::{PADDR_TOP, KERNEL_ELF_BASE, seL4_PageBits, PAGE_BITS};
 use log::debug;
@@ -160,7 +161,8 @@ fn init_core_state(scheduler_action: *mut tcb_t) {
     unsafe {
         #[cfg(feature = "ENABLE_SMP")]
         if scheduler_action as usize != 0 && scheduler_action as usize != 1 {
-            tcbDebugAppend(scheduler_action);
+            // tcbDebugAppend(scheduler_action);
+            tcb_debug_append(convert_to_type_ref::<tcb_t>(scheduler_action as usize));
         }
         let idle_thread = {
             #[cfg(not(feature = "ENABLE_SMP"))] {
@@ -171,7 +173,8 @@ fn init_core_state(scheduler_action: *mut tcb_t) {
             }
         };
         
-        tcbDebugAppend(idle_thread);
+        // tcbDebugAppend(idle_thread);
+        tcb_debug_append(convert_to_type_ref::<tcb_t>(idle_thread as usize));
         set_current_scheduler_action(scheduler_action as usize);
         set_current_thread(get_idle_thread());
     }

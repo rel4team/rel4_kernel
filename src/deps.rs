@@ -1,8 +1,6 @@
 use crate::task_manager::tcb_t;
 
 extern "C" {
-    pub fn tcbDebugAppend(action: *mut tcb_t);
-    pub fn tcbDebugRemove(tcb: *mut tcb_t);
     pub fn handleUnknownSyscall(w: usize);
     pub fn fastpath_restore(badge: usize, msgInfo: usize, cur_thread: *mut tcb_t);
     pub fn ksIdleThreadTCB();

@@ -1,4 +1,4 @@
-use crate::{common::{structures::exception_t, utils::convert_to_mut_type_ref, sel4_config::{tcbCTable, tcbCNodeEntries, tcbVTable}}, deps::tcbDebugRemove};
+use crate::{common::{structures::exception_t, utils::convert_to_mut_type_ref, sel4_config::{tcbCTable, tcbCNodeEntries, tcbVTable}}, debug::tcb_debug_remove};
 
 use crate::{task_manager::{ksWorkUnitsCompleted, tcb_t, ipc::{endpoint_t, notification_t}, get_currenct_thread}, interrupt::*, config::CONFIG_MAX_NUM_WORK_UNITS_PER_PREEMPTION,
         vspace::*, kernel::boot::current_lookup_fault, syscall::safe_unbind_notification};
@@ -124,7 +124,8 @@ pub fn finaliseCap(cap: &cap_t, _final: bool, _exposed: bool) -> finaliseCap_ret
                 tcb.cancel_ipc();
                 tcb.suspend();
                 unsafe {
-                    tcbDebugRemove(tcb as *mut tcb_t);
+                    // tcbDebugRemove(tcb as *mut tcb_t);
+                    tcb_debug_remove(tcb);
                 }
                 fc_ret.remainder =
                     Zombie_new(tcbCNodeEntries, ZombieType_ZombieTCB, cte_ptr.get_ptr());

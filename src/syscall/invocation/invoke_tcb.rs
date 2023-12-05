@@ -177,11 +177,11 @@ pub fn invoke_tcb_set_ipc_buffer(target: &mut tcb_t, slot: &mut cte_t, buffer_ad
 #[inline]
 pub fn invoke_tcb_bind_notification(tcb: &mut tcb_t, ntfn: &mut notification_t) -> exception_t {
     do_bind_notification(tcb, ntfn);
-    #[cfg(feature = "ENABLE_UINTC")]
-    {
-        tcb.uintr_inner.utvec = crate::uintr::utvec::read().bits();
-        tcb.uintr_inner.uscratch = crate::uintr::uscratch::read();
-    }
+    // #[cfg(feature = "ENABLE_UINTC")]
+    // {
+    //     tcb.uintr_inner.utvec = crate::uintr::utvec::read().bits();
+    //     tcb.uintr_inner.uscratch = crate::uintr::uscratch::read();
+    // }
     exception_t::EXCEPTION_NONE
 }
 

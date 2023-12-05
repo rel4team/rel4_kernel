@@ -539,7 +539,6 @@ pub fn create_idle_thread() {
 fn idle_thread() {
     unsafe {
         loop {
-            // debug!("hello idle_thread");
             asm!("wfi");
         }
     }

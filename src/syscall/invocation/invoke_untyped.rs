@@ -1,12 +1,12 @@
 use crate::common::{object::ObjectType, utils::convert_to_mut_type_ref, sel4_config::*, structures::exception_t};
-use crate::deps::tcbDebugAppend;
+use crate::debug::tcb_debug_append;
 use crate::task_manager::{tcb_t, get_current_domain};
 use crate::vspace::{pptr_t, VMReadWrite};
 use crate::cspace::interface::{cap_t, cte_t, insert_new_cap};
 use crate::syscall::{FREE_INDEX_TO_OFFSET, GET_FREE_INDEX, GET_OFFSET_FREE_PTR, OFFSET_TO_FREE_IDNEX};
 
 use crate::{utils::*, ROUND_DOWN, BIT};
-use crate::task_manager::ipc::notification_t;
+
 
 
 fn create_new_objects(obj_type: ObjectType, parent: &mut cte_t, dest_cnode: &mut cte_t, dest_offset: usize,
@@ -26,7 +26,7 @@ fn create_object(obj_type: ObjectType, region_base: pptr_t, user_size: usize, de
             tcb.init();
             tcb.tcbTimeSlice = CONFIG_TIME_SLICE;
             tcb.domain = get_current_domain();
-            unsafe { tcbDebugAppend(tcb as *mut tcb_t); }
+            tcb_debug_append(tcb);
             return cap_t::new_thread_cap(tcb.get_ptr());
         }
 
@@ -35,8 +35,11 @@ fn create_object(obj_type: ObjectType, region_base: pptr_t, user_size: usize, de
         }
 
         ObjectType::NotificationObject => {
-            #[cfg(feature = "ENABLE_UINTC")]
-            crate::uintc::register_receiver(convert_to_mut_type_ref::<notification_t>(region_base));
+            #[cfg(feature = "ENABLE_UINTC")] {
+                use crate::task_manager::ipc::notification_t;
+                crate::uintc::register_receiver(convert_to_mut_type_ref::<notification_t>(region_base));
+            }
+            
             cap_t::new_notification_cap(0, 1, 1, region_base)
         }
 

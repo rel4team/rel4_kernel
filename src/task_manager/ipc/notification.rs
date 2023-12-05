@@ -107,7 +107,6 @@ impl notification_t {
 
     #[inline]
     pub fn send_signal(&mut self, badge: usize) {
-        debug!("send_signal");
         match self.get_state() {
             NtfnState::Idle => {
                 if let Some(tcb) = convert_to_option_mut_type_ref::<tcb_t>(self.get_bound_tcb()) {
@@ -147,7 +146,6 @@ impl notification_t {
     }
 
     pub fn receive_signal(&mut self, recv_thread: &mut tcb_t, is_blocking: bool) {
-        debug!("recv signal");
         match self.get_state() {
             NtfnState::Idle | NtfnState::Waiting => {
                 if is_blocking {

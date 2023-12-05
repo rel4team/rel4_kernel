@@ -1,6 +1,6 @@
 use log::debug;
 use crate::common::sel4_config::tcbCNodeEntries;
-use crate::common::utils::{convert_to_mut_type_ref, convert_to_type_ref};
+use crate::common::utils::{convert_to_mut_type_ref, convert_to_type_ref, convert_to_mut_type_ref_unsafe};
 use crate::task_manager::{FaultIP, ksDebugTCBs, tcb_t, ThreadState};
 
 const MAX_DEBUG_THREAD_NAME: usize = 64;
@@ -14,11 +14,11 @@ impl tcb_t {
     #[inline]
     pub fn get_ks_debug_tcbs_head(&self) -> &Self {
         #[cfg(not(feature = "ENABLE_SMP"))]
-        return convert_to_type_ref::<Self>(unsafe { ksDebugTCBs });
+        return convert_to_mut_type_ref_unsafe::<Self>(unsafe { ksDebugTCBs });
         #[cfg(feature = "ENABLE_SMP")]
         return unsafe {
             use crate::task_manager::ksSMP;
-            convert_to_type_ref::<Self>(ksSMP[self.get_cpu()].ksDebugTCBs)
+            convert_to_mut_type_ref_unsafe::<Self>(ksSMP[self.get_cpu()].ksDebugTCBs)
         }
     }
 
@@ -69,6 +69,7 @@ impl DebugTCB {
     }
 }
 
+#[no_mangle]
 pub fn tcb_debug_remove(tcb: &tcb_t) {
     let debug_tcb = DebugTCB::from_tcb(tcb);
     let ks_debug_tcb = tcb.get_ks_debug_tcbs_head();
@@ -86,6 +87,7 @@ pub fn tcb_debug_remove(tcb: &tcb_t) {
     debug_tcb.prev = 0;
 }
 
+#[no_mangle]
 pub fn tcb_debug_append(tcb: &tcb_t) {
     let debug_tcb = DebugTCB::from_tcb(tcb);
     debug_tcb.prev = 0;
