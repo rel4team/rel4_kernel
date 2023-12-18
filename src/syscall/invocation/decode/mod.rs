@@ -28,6 +28,11 @@ use self::{
 
 pub fn decode_invocation(label: MessageLabel, length: usize, slot: &mut cte_t, cap: &cap_t, cap_index: usize,
                         block: bool, call: bool, buffer: Option<&seL4_IPCBuffer>) -> exception_t {
+    #[cfg(feature = "ENABLE_ASYNC_SYSCALL")]
+    if cap.get_cap_type() == CapTag::CapExecutorCap {
+        use crate::syscall::async_syscall::decode_executor_invocation;
+        return decode_executor_invocation(label, length, slot, cap, cap_index, block, call, buffer);
+    }
     match cap.get_cap_type() {
         CapTag::CapNullCap | CapTag::CapZombieCap  => {
             debug!("Attempted to invoke a null or zombie cap {:#x}, {:?}.", cap_index, cap.get_cap_type());

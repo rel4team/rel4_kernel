@@ -55,7 +55,10 @@ impl tcb_t {
             ThreadState::ThreadStateBlockedOnReply => "blocked on reply",
             ThreadState::ThreadStateBlockedOnNotification => "blocked on ntfn",
             ThreadState::ThreadStateIdleThreadState => "idle",
-            ThreadState::ThreadStateExited => "exit"
+            ThreadState::ThreadStateExited => "exit",
+            _ => {
+                "other"
+            }
         };
         debug!("state: {}, restart_pc: {:#x}, prio: {}, core: {}", state, self.get_register(FaultIP),
                 self.tcbPriority, self.get_cpu());

@@ -27,6 +27,9 @@ def parse_args():
 
     parser.add_argument('-c', '--cpu', dest="cpu_nums", type=int,
                         help="kernel & qemu cpu nums", default=1)
+
+    parser.add_argument('-a', '--async', dest="async_enable", action="store_true",
+                                help="async syscall support")
     args = parser.parse_args()
     return args
 
@@ -57,18 +60,21 @@ if __name__ == "__main__":
             shell_command += " --features ENABLE_SMP"
         if args.uintr_enable:
             shell_command += " --features ENABLE_UINTC"
+        if args.async_enable:
+            shell_command += " --features ENABLE_ASYNC_SYSCALL"
         if not exec_shell(shell_command):
             clean_config()
             sys.exit(-1)
-
+    shell_command = "cd ./build && ../../init-build.sh  -DPLATFORM=spike -DSIMULATION=TRUE"
+    if args.async_enable:
+            shell_command += " -DASYNC=TRUE"
     
     if args.cpu_nums > 1:
-        shell_command = "cd ./build && ../../init-build.sh  -DPLATFORM=spike -DSIMULATION=TRUE -DSMP=TRUE && ninja"
-        if not exec_shell(shell_command):
-            clean_config()
-            sys.exit(-1)
-        sys.exit(0)
-    shell_command = "cd ./build && ../../init-build.sh  -DPLATFORM=spike -DSIMULATION=TRUE && ninja"
+        shell_command += " -DSMP=TRUE"
+
+    shell_command += " && ninja"
+
+
     if not exec_shell(shell_command):
         clean_config()
         sys.exit(-1)

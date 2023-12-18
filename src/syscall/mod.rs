@@ -2,6 +2,9 @@ pub mod utils;
 pub mod invocation;
 pub mod syscall_reply;
 
+#[cfg(feature = "ENABLE_ASYNC_SYSCALL")]
+mod async_syscall;
+
 use core::intrinsics::unlikely;
 use log::debug;
 use crate::common::fault::{FaultType, lookup_fault_t, seL4_Fault_t};

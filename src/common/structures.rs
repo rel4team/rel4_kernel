@@ -15,6 +15,7 @@ pub enum exception_t {
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct seL4_IPCBuffer {
+    pub uintrFlag: usize,
     pub tag: usize,
     pub msg: [usize; seL4_MsgMaxLength],
     pub userData: usize,
@@ -22,7 +23,6 @@ pub struct seL4_IPCBuffer {
     pub receiveCNode: usize,
     pub receiveIndex: usize,
     pub receiveDepth: usize,
-    pub uintrFlag: usize,
 }
 
 impl seL4_IPCBuffer {

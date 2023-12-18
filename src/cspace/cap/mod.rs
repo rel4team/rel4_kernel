@@ -39,6 +39,7 @@ pub enum CapTag {
     CapIrqHandlerCap = 16,
     CapZombieCap = 18,
     CapDomainCap = 20,
+    CapExecutorCap = 22,
     CapFrameCap = 1,
     CapPageTableCap = 3,
     CapASIDControlCap = 11,
@@ -111,9 +112,13 @@ plus_define_bitfield! {
         new_asid_pool_cap, CapTag::CapASIDPoolCap as usize => {
             capASIDBase, get_asid_base, set_asid_base, 0, 43, 16, 0, false,
             capASIDPool, get_asid_pool, set_asid_pool, 0, 0, 37, 2, true
+        },
+        new_executor_cap, CapTag::CapExecutorCap as usize => {
+            capExecutorPtr, get_executor_ptr, set_asid_ptr, 0, 0, 39, 0, true
         }
     }
 }
+
 
 /// cap 的公用方法
 impl cap_t {

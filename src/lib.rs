@@ -14,6 +14,8 @@
 #![feature(generic_const_exprs)]
 
 extern crate core;
+extern crate alloc;
+
 use common::sbi::shutdown;
 mod config;
 mod debug;

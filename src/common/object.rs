@@ -3,14 +3,16 @@ use super::sel4_config::*;
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum ObjectType {
     UnytpedObject = 0,
-    TCBObject = 1,
-    EndpointObject = 2,
-    NotificationObject = 3,
-    CapTableObject = 4,
-    GigaPageObject = 5,
-    NormalPageObject = 6,
-    MegaPageObject = 7,
-    PageTableObject = 8,
+    TCBObject,
+    EndpointObject,
+    NotificationObject,
+    CapTableObject,
+    #[cfg(feature = "ENABLE_ASYNC_SYSCALL")]
+    ExecutorObject,
+    GigaPageObject,
+    NormalPageObject,
+    MegaPageObject ,
+    PageTableObject,
 }
 
 pub const seL4_ObjectTypeCount: usize = ObjectType::PageTableObject as usize + 1;
@@ -18,6 +20,10 @@ pub const seL4_ObjectTypeCount: usize = ObjectType::PageTableObject as usize + 1
 
 impl ObjectType {
     pub fn get_object_size(&self, user_object_size: usize) -> usize {
+        #[cfg(feature = "ENABLE_ASYNC_SYSCALL")]
+        if self.eq(&ObjectType::ExecutorObject) {
+            return user_object_size
+        }
         match self {
             ObjectType::UnytpedObject => user_object_size,
             ObjectType::TCBObject => seL4_TCBBits,
@@ -28,6 +34,9 @@ impl ObjectType {
             ObjectType::NormalPageObject => seL4_PageBits,
             ObjectType::MegaPageObject => seL4_LargePageBits,
             ObjectType::PageTableObject => seL4_PageBits,
+            _ => {
+                panic!("Invalid object: {:?}", self)
+            }
         }
     }
 

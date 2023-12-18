@@ -126,6 +126,16 @@ fn check_object_type(new_type: ObjectType, user_obj_size: usize) -> exception_t 
         }
         return exception_t::EXCEPTION_SYSCALL_ERROR;
     }
+    #[cfg(feature = "ENABLE_ASYNC_SYSCALL")] {
+        if new_type == ObjectType::ExecutorObject && user_obj_size < seL4_MinExecutorBits {
+            debug!("Untyped Retype: Requested Executor size too small.");
+            unsafe {
+                current_syscall_error._type = seL4_InvalidArgument;
+                current_syscall_error.invalidArgumentNumber = 1;
+            }
+        }
+    }
+
     return exception_t::EXCEPTION_NONE;
 }
 

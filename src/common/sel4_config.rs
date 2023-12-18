@@ -9,6 +9,8 @@ pub const seL4_ReplyBits: usize = 4;
 pub const seL4_MinUntypedBits: usize = 4;
 pub const seL4_MaxUntypedBits: usize = 38;
 
+pub const seL4_MinExecutorBits: usize = 14;
+
 // page table relevant
 pub const PT_SIZE_BITS: usize = 12;
 pub const PAGE_BITS: usize = seL4_PageBits;

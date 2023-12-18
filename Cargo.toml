@@ -21,3 +21,4 @@ lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 [features]
 ENABLE_SMP = []
 ENABLE_UINTC = []
+ENABLE_ASYNC_SYSCALL = []

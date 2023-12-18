@@ -2,15 +2,17 @@ use crate::plus_define_bitfield;
 
 #[derive(PartialEq, PartialOrd, Debug)]
 pub enum ThreadState {
-    ThreadStateInactive = 0,
-    ThreadStateRunning = 1,
-    ThreadStateRestart = 2,
-    ThreadStateBlockedOnReceive = 3,
-    ThreadStateBlockedOnSend = 4,
-    ThreadStateBlockedOnReply = 5,
-    ThreadStateBlockedOnNotification = 6,
-    ThreadStateIdleThreadState = 7,
-    ThreadStateExited = 8,
+    ThreadStateInactive,
+    ThreadStateRunning,
+    ThreadStateRestart,
+    ThreadStateBlockedOnReceive,
+    ThreadStateBlockedOnSend,
+    ThreadStateBlockedOnReply,
+    ThreadStateBlockedOnNotification,
+    #[cfg(feature = "ENABLE_ASYNC_SYSCALL")]
+    ThreadStateBlockedOnExecutor,
+    ThreadStateIdleThreadState,
+    ThreadStateExited,
 }
 
 plus_define_bitfield! {

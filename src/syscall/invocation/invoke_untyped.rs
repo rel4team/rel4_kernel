@@ -8,18 +8,26 @@ use crate::syscall::{FREE_INDEX_TO_OFFSET, GET_FREE_INDEX, GET_OFFSET_FREE_PTR, 
 use crate::{utils::*, ROUND_DOWN, BIT};
 
 
-
 fn create_new_objects(obj_type: ObjectType, parent: &mut cte_t, dest_cnode: &mut cte_t, dest_offset: usize,
                         dest_length: usize, region_base: usize, user_size: usize, device_mem: usize) {
     // debug!("create_new_object: {:?}", obj_type);
     let object_size = obj_type.get_object_size(user_size);
     for i in 0..dest_length {
-        let cap = create_object(obj_type, region_base + (i << object_size), user_size, device_mem);
+        let cap = create_object(obj_type, region_base + (i << object_size), object_size, user_size, device_mem);
         insert_new_cap(parent, dest_cnode.get_offset_slot(dest_offset + i), &cap);
     }    
 }
 
-fn create_object(obj_type: ObjectType, region_base: pptr_t, user_size: usize, device_mem: usize) -> cap_t {
+fn create_object(obj_type: ObjectType, region_base: pptr_t, object_size: usize, user_size: usize, device_mem: usize) -> cap_t {
+    #[cfg(feature = "ENABLE_ASYNC_SYSCALL")]
+    if obj_type == ObjectType::ExecutorObject {
+        use crate::syscall::async_syscall::Executor;
+        let executor = convert_to_mut_type_ref::<Executor>(region_base);
+        let heap_ptr = region_base + core::mem::size_of::<Executor>();
+        let heap_end = region_base + (region_base + BIT!(object_size));
+        executor.init(heap_ptr, heap_end);
+        return cap_t::new_executor_cap(region_base);
+    }
     match obj_type {
         ObjectType::TCBObject => {
             let tcb = convert_to_mut_type_ref::<tcb_t>(region_base + TCB_OFFSET);
@@ -58,6 +66,9 @@ fn create_object(obj_type: ObjectType, region_base: pptr_t, user_size: usize, de
         ObjectType::NormalPageObject | ObjectType::GigaPageObject | ObjectType::MegaPageObject => {
             cap_t::new_frame_cap(asidInvalid, region_base, obj_type.get_frame_type(),
                 VMReadWrite, device_mem as usize, 0)
+        }
+        _ => {
+            panic!("Invalid ObjectType: {:?}", obj_type)
         }
     }
 }
