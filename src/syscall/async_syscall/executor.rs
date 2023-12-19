@@ -82,14 +82,30 @@ impl Wake for CWaker {
 }
 
 struct Coroutine {
+    pub cid: CoroutineId,
     pub future: Pin<Box<dyn Future<Output=()> + 'static + Send + Sync>>,
     waker: Arc<CWaker>
 }
 
 impl Coroutine {
-    pub fn execute(&mut self) -> Poll<()> {
-        // self.waker.wake()
-        Ready(())
+    pub fn execute(self: Arc<Self>) -> Poll<()> {
+        let waker = Waker::from(self.waker.clone());
+        let mut context = Context::from_waker(&waker);
+        self.future.as_mut().poll(&mut context)
+    }
+
+    pub fn new(future: Pin<Box<dyn Future<Output=()> + 'static + Send + Sync>>, executor: &Executor) -> Arc<Self> {
+        let cid = CoroutineId::generate();
+        Arc::new(
+            Coroutine{
+                cid,
+                future,
+                waker: Arc::new(CWaker {
+                    cid,
+                    executor: executor as *const Executor as usize
+                })
+            }
+        )
     }
 }
 
@@ -116,15 +132,42 @@ impl Executor {
     }
 
     pub fn execute(&mut self) -> bool {
+        while let Some(cid) = self.ready_queue.pop() {
+            if let Some(task) = self.tasks.get(&cid) {
+                if let Ready(()) = task.execute() {
+                    self.tasks.remove(&cid);
+                }
+            } else {
+                panic!("get invalid task! cid: {:?}", cid);
+            }
+        }
+        if self.tasks.is_empty() {
+            return true;
+        }
         false
     }
 
     pub fn spawn(&mut self, future: Pin<Box<dyn Future<Output=()> + 'static + Send + Sync>>) {
-
+        let task = Coroutine::new(future, self);
+        self.tasks.insert(task.cid, task);
+        self.ready_queue.push(task.cid);
     }
 
     pub fn wake(&mut self, cid: CoroutineId) {
+        self.ready_queue.push(cid);
+    }
+}
 
+struct EndpointFuture {
+
+}
+
+impl Future for EndpointFuture {
+    type Output = ();
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let waker = cx.waker();
+        Pending
     }
 }
 

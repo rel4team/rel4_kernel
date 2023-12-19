@@ -21,20 +21,6 @@ pub struct ResItem {
     pub msg_registers: [usize; MAX_ITEM_LEN],
 }
 
-
-// #[repr(C)]
-// #[derive(Copy, Clone)]
-// pub struct seL4_IPCBuffer {
-//     pub uintrFlag: usize,
-//     pub tag: usize,
-//     pub msg: [usize; seL4_MsgMaxLength],
-//     pub userData: usize,
-//     pub caps_or_badges: [usize; seL4_MsgMaxExtraCaps],
-//     pub receiveCNode: usize,
-//     pub receiveIndex: usize,
-//     pub receiveDepth: usize,
-// }
-
 pub struct ReqBuffer {
     pub uintrFlag: usize,
     pub tag: usize,

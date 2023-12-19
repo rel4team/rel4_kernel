@@ -12,6 +12,7 @@
 #![feature(stdsimd)]
 #![feature(linkage)]
 #![feature(generic_const_exprs)]
+#![feature(waker_getters)]
 
 extern crate core;
 extern crate alloc;
