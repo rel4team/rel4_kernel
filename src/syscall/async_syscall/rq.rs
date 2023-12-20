@@ -1,4 +1,4 @@
-use crate::common::sel4_config::{seL4_MsgMaxExtraCaps, seL4_MsgMaxLength};
+use crate::common::sel4_config::seL4_MsgMaxExtraCaps;
 
 pub const MAX_ITEM_LEN: usize = 16;
 
@@ -22,14 +22,9 @@ pub struct ResItem {
 }
 
 pub struct ReqBuffer {
-    pub uintrFlag: usize,
-    pub tag: usize,
-    pub padding: [usize; MAX_ITEM_LEN - 2],
-    pub req_queue: [usize; 512 / MAX_ITEM_LEN - 1],
+    pub req_queue: [ReqItem; 512 / MAX_ITEM_LEN - 1],
 }
 
 pub struct ResBuffer {
-    pub uintrFlag: usize,
-    pub padding: [usize; MAX_ITEM_LEN - 1],
-    pub res_queue: [usize; 512 / MAX_ITEM_LEN - 1],
+    pub res_queue: [ResItem; 512 / MAX_ITEM_LEN - 1],
 }

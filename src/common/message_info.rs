@@ -1,7 +1,6 @@
 use super::sel4_config::seL4_MsgMaxLength;
 use crate::plus_define_bitfield;
 
-#[cfg(feature = "ENABLE_SMP")]
 #[derive(Eq, PartialEq, Debug, Clone, Copy, PartialOrd, Ord)]
 pub enum MessageLabel {
     InvalidInvocation                       = 0,

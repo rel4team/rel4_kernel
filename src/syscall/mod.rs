@@ -2,7 +2,7 @@ pub mod utils;
 pub mod invocation;
 pub mod syscall_reply;
 
-#[cfg(feature = "ENABLE_ASYNC_SYSCALL")]
+
 mod async_syscall;
 
 use core::intrinsics::unlikely;

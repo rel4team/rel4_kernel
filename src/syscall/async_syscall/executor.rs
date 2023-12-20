@@ -5,6 +5,7 @@ use alloc::collections::{BTreeMap, BTreeSet, VecDeque};
 use alloc::sync::Arc;
 use alloc::task::Wake;
 use alloc::vec::Vec;
+use spin::Mutex;
 use core::alloc::{GlobalAlloc, Layout};
 use core::cell::{Ref, RefCell};
 use core::future::Future;
@@ -83,15 +84,15 @@ impl Wake for CWaker {
 
 struct Coroutine {
     pub cid: CoroutineId,
-    pub future: Pin<Box<dyn Future<Output=()> + 'static + Send + Sync>>,
+    future: Mutex<Pin<Box<dyn Future<Output=()> + 'static + Send + Sync>>>,
     waker: Arc<CWaker>
 }
 
 impl Coroutine {
-    pub fn execute(self: Arc<Self>) -> Poll<()> {
+    pub fn execute(mut self: Arc<Self>) -> Poll<()> {
         let waker = Waker::from(self.waker.clone());
         let mut context = Context::from_waker(&waker);
-        self.future.as_mut().poll(&mut context)
+        self.future.lock().as_mut().poll(&mut context)
     }
 
     pub fn new(future: Pin<Box<dyn Future<Output=()> + 'static + Send + Sync>>, executor: &Executor) -> Arc<Self> {
@@ -99,7 +100,7 @@ impl Coroutine {
         Arc::new(
             Coroutine{
                 cid,
-                future,
+                future: Mutex::new(future),
                 waker: Arc::new(CWaker {
                     cid,
                     executor: executor as *const Executor as usize
@@ -134,7 +135,7 @@ impl Executor {
     pub fn execute(&mut self) -> bool {
         while let Some(cid) = self.ready_queue.pop() {
             if let Some(task) = self.tasks.get(&cid) {
-                if let Ready(()) = task.execute() {
+                if let Ready(()) = task.clone().execute() {
                     self.tasks.remove(&cid);
                 }
             } else {
@@ -149,7 +150,7 @@ impl Executor {
 
     pub fn spawn(&mut self, future: Pin<Box<dyn Future<Output=()> + 'static + Send + Sync>>) {
         let task = Coroutine::new(future, self);
-        self.tasks.insert(task.cid, task);
+        self.tasks.insert(task.cid, task.clone());
         self.ready_queue.push(task.cid);
     }
 
