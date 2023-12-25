@@ -52,7 +52,7 @@ impl endpoint_t {
     #[inline]
     pub fn cancel_ipc(&mut self, tcb: &mut tcb_t) {
         let mut queue = self.get_queue();
-        queue.ep_dequeue(tcb);
+        queue.ep_dequeue_tcb(tcb);
         self.set_queue(&queue);
         if queue.head == 0 {
             self.set_state(EPState::Idle as usize);
@@ -94,7 +94,7 @@ impl endpoint_t {
                     if thread.tcbState.get_blocking_ipc_badge() == badge {
                         set_thread_state(thread, ThreadState::ThreadStateRestart);
                         thread.sched_enqueue();
-                        queue.ep_dequeue(thread);
+                        queue.ep_dequeue_tcb(thread);
                     }
                 }
                 self.set_queue(&queue);
@@ -120,7 +120,7 @@ impl endpoint_t {
                     schedule_tcb(src_thread);
 
                     let mut queue = self.get_queue();
-                    queue.ep_append(src_thread);
+                    queue.ep_append_tcb(src_thread);
                     self.set_state(EPState::Send as usize);
                     self.set_queue(&queue);
                 }
@@ -131,7 +131,7 @@ impl endpoint_t {
                 let op_dest_thread = convert_to_option_mut_type_ref::<tcb_t>(queue.head);
                 assert!(op_dest_thread.is_some());
                 let dest_thread = op_dest_thread.unwrap();
-                queue.ep_dequeue(dest_thread);
+                queue.ep_dequeue_tcb(dest_thread);
                 self.set_queue(&queue);
                 if queue.empty() {
                     self.set_state(EPState::Idle as usize);
@@ -162,7 +162,7 @@ impl endpoint_t {
                     thread.tcbState.set_blocking_ipc_can_grant(grant as usize);
                     set_thread_state(thread, ThreadState::ThreadStateBlockedOnReceive);
                     let mut queue = self.get_queue();
-                    queue.ep_append(thread);
+                    queue.ep_append_tcb(thread);
                     self.set_state(EPState::Recv as usize);
                     self.set_queue(&queue);
                 } else {
@@ -174,7 +174,7 @@ impl endpoint_t {
                 let mut queue = self.get_queue();
                 assert!(!queue.empty());
                 let sender = convert_to_mut_type_ref::<tcb_t>(queue.head);
-                queue.ep_dequeue(sender);
+                queue.ep_dequeue_tcb(sender);
                 self.set_queue(&queue);
                 if queue.empty() {
                     self.set_state(EPState::Idle as usize);

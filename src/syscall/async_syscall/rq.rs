@@ -3,7 +3,7 @@ use crate::common::sel4_config::seL4_MsgMaxExtraCaps;
 pub const MAX_ITEM_LEN: usize = 16;
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct ReqItem {
     pub syscall_id: isize,
     pub dest_cptr: usize,

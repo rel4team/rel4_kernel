@@ -57,7 +57,7 @@ impl notification_t {
     #[inline]
     pub fn cancel_signal(&mut self, tcb: &mut tcb_t) {
         let mut queue = self.get_queue();
-        queue.ep_dequeue(tcb);
+        queue.ep_dequeue_tcb(tcb);
         self.set_queue(&queue);
         if queue.head == 0 {
             self.set_state(NtfnState::Idle as usize);
@@ -125,7 +125,7 @@ impl notification_t {
             NtfnState::Waiting => {
                 let mut queue = self.get_queue();
                 if let Some(dest) = convert_to_option_mut_type_ref::<tcb_t>(queue.head) {
-                    queue.ep_dequeue(dest);
+                    queue.ep_dequeue_tcb(dest);
                     self.set_queue(&queue);
                     if queue.empty() {
                         self.set_state(NtfnState::Idle as usize);
@@ -152,7 +152,7 @@ impl notification_t {
                     recv_thread.tcbState.set_blocking_object(self.get_ptr());
                     set_thread_state(recv_thread, ThreadState::ThreadStateBlockedOnNotification);
                     let mut queue = self.get_queue();
-                    queue.ep_append(recv_thread);
+                    queue.ep_append_tcb(recv_thread);
                     self.set_state(NtfnState::Waiting as usize);
                     self.set_queue(&queue);
                 } else {

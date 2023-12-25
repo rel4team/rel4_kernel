@@ -298,7 +298,7 @@ pub fn fastpath_reply_recv(cptr: usize, msgInfo: usize) {
         current.tcbEPNext = 0;
         ep.set_queue_head(current.get_ptr());
     }
-    endpoint_ptr_mset_epQueue_tail_state(ep as *mut endpoint_t, get_currenct_thread().get_ptr(), EPState_Recv);
+    endpoint_ptr_mset_epQueue_tail_state(ep as *mut endpoint_t, get_currenct_thread().get_ptr(), EPState::Recv as usize);
 
     unsafe {
         let node = convert_to_mut_type_ref::<cte_t>(caller_slot.cteMDBNode.get_prev());

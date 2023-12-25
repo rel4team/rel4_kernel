@@ -15,7 +15,6 @@
 #![feature(waker_getters)]
 
 extern crate core;
-extern crate alloc;
 
 use common::sbi::shutdown;
 mod config;
@@ -45,6 +44,8 @@ mod uintc;
 #[cfg(feature = "ENABLE_UINTC")]
 mod uintr;
 
+#[cfg(feature = "ENABLE_ASYNC_SYSCALL")]
+extern crate alloc;
 
 
 

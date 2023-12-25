@@ -1,5 +1,8 @@
 use crate::common::utils::convert_to_mut_type_ref;
 
+#[cfg(feature = "ENABLE_ASYNC_SYSCALL")]
+use crate::syscall::CWaker;
+
 use super::tcb::tcb_t;
 
 
@@ -11,7 +14,7 @@ pub struct tcb_queue_t {
 }
 
 impl tcb_queue_t {
-    pub fn ep_append(&mut self, tcb: &mut tcb_t) {
+    pub fn ep_append_tcb(&mut self, tcb: &mut tcb_t) {
         if self.head == 0 {
             self.head = tcb.get_ptr();
         } else {
@@ -23,7 +26,7 @@ impl tcb_queue_t {
         self.tail = tcb.get_ptr();
     }
 
-    pub fn ep_dequeue(&mut self, tcb: &mut tcb_t) {
+    pub fn ep_dequeue_tcb(&mut self, tcb: &mut tcb_t) {
         if tcb.tcbEPPrev != 0 {
             convert_to_mut_type_ref::<tcb_t>(tcb.tcbEPPrev).tcbEPNext = tcb.tcbEPNext;
         } else {
@@ -36,6 +39,35 @@ impl tcb_queue_t {
             self.tail = tcb.tcbEPPrev;
         }
     }
+    #[cfg(feature = "ENABLE_ASYNC_SYSCALL")]
+    pub fn ep_append_waker(&mut self, waker: &mut CWaker) {
+        if self.head == 0 {
+            self.head = waker.get_ptr();
+        } else {
+            convert_to_mut_type_ref::<CWaker>(self.tail).next = waker.get_ptr();
+        }
+
+        waker.prev = self.tail;
+        waker.next = 0;
+        self.tail = waker.get_ptr();
+    }
+
+    #[cfg(feature = "ENABLE_ASYNC_SYSCALL")]
+    pub fn ep_dequeue_waker(&mut self, waker: &mut CWaker) {
+        if waker.prev != 0 {
+            convert_to_mut_type_ref::<CWaker>(waker.prev).next = waker.next;
+        } else {
+            self.head = waker.next;
+        }
+
+        if waker.next != 0 {
+            convert_to_mut_type_ref::<CWaker>(waker.next).prev = waker.prev;
+        } else {
+            self.tail = waker.prev;
+        }
+    }
+
+
 
     #[inline]
     pub fn empty(&self) -> bool {

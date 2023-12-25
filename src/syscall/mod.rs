@@ -2,8 +2,11 @@ pub mod utils;
 pub mod invocation;
 pub mod syscall_reply;
 
-
+#[cfg(feature = "ENABLE_ASYNC_SYSCALL")]
 mod async_syscall;
+
+#[cfg(feature = "ENABLE_ASYNC_SYSCALL")]
+pub use async_syscall::CWaker;
 
 use core::intrinsics::unlikely;
 use log::debug;

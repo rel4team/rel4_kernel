@@ -1,13 +1,12 @@
 extern crate alloc;
 
 use alloc::boxed::Box;
-use alloc::collections::{BTreeMap, BTreeSet, VecDeque};
+use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::task::Wake;
 use alloc::vec::Vec;
 use spin::Mutex;
 use core::alloc::{GlobalAlloc, Layout};
-use core::cell::{Ref, RefCell};
 use core::future::Future;
 use core::pin::Pin;
 use core::ptr::NonNull;
@@ -15,9 +14,9 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 use core::task::{Context, Poll, Waker};
 use core::task::Poll::{Pending, Ready};
 use buddy_system_allocator::Heap;
-use crate::common::utils::{convert_to_mut_type_ref, convert_to_type_ref};
+use log::debug;
+use crate::common::utils::convert_to_mut_type_ref;
 use crate::{ROUND_DOWN, ROUND_UP};
-use crate::cspace::interface::cap_t;
 
 
 pub static mut HEAP: usize = 0;
@@ -67,9 +66,31 @@ impl CoroutineId {
 }
 
 
-struct CWaker {
+#[derive(Debug)]
+pub struct CWaker {
     cid: CoroutineId,
-    executor: usize,
+    pub executor: usize,
+    pub next: usize,
+    pub prev: usize,
+}
+
+impl CWaker {
+    #[inline]
+    pub fn get_ptr(&mut self) -> usize {
+        self as *const CWaker as usize
+    }
+}
+
+impl CWaker {
+    pub fn from(value: &Waker) -> &mut Self {
+        unsafe {
+            convert_to_mut_type_ref::<CWaker>(value.as_raw().data() as usize)
+        }
+    }
+
+    pub fn raw_wake(&mut self) {
+        convert_to_mut_type_ref::<Executor>(self.executor).wake(self.cid);
+    }
 }
 
 impl Wake for CWaker {
@@ -85,11 +106,11 @@ impl Wake for CWaker {
 struct Coroutine {
     pub cid: CoroutineId,
     future: Mutex<Pin<Box<dyn Future<Output=()> + 'static + Send + Sync>>>,
-    waker: Arc<CWaker>
+    pub waker: Arc<CWaker>
 }
 
 impl Coroutine {
-    pub fn execute(mut self: Arc<Self>) -> Poll<()> {
+    pub fn execute(self: Arc<Self>) -> Poll<()> {
         let waker = Waker::from(self.waker.clone());
         let mut context = Context::from_waker(&waker);
         self.future.lock().as_mut().poll(&mut context)
@@ -103,7 +124,9 @@ impl Coroutine {
                 future: Mutex::new(future),
                 waker: Arc::new(CWaker {
                     cid,
-                    executor: executor as *const Executor as usize
+                    executor: executor as *const Executor as usize,
+                    next: 0,
+                    prev: 0,
                 })
             }
         )
@@ -112,20 +135,28 @@ impl Coroutine {
 
 pub struct Executor {
     heap_ptr: usize,
+    pub thread: usize,
     tasks: BTreeMap<CoroutineId, Arc<Coroutine>>,
     ready_queue: Vec<CoroutineId>,
 }
 
 impl Executor {
+    fn set_heap(&self) {
+        unsafe {
+            HEAP = self.heap_ptr;
+        }
+    }
     pub fn init(&mut self, heap_ptr: usize, heap_end: usize) -> bool {
+        // debug!("executor init: {:#x}", self as *const Self as usize);
         let heap_start = ROUND_UP!(heap_ptr + core::mem::size_of::<Heap>(), 3);
         let heap_end = ROUND_DOWN!(heap_end, 3);
+        // debug!("{:#x} {:#x}", heap_start, heap_end);
         if heap_end < heap_start {
             return false;
         }
         let local_allocator = convert_to_mut_type_ref::<Heap>(heap_ptr);
 
-        unsafe { local_allocator.init(heap_start, heap_end); }
+        unsafe { local_allocator.init(heap_start, heap_end - heap_start); }
         self.heap_ptr = heap_ptr;
         self.tasks = BTreeMap::new();
         self.ready_queue = Vec::new();
@@ -133,9 +164,11 @@ impl Executor {
     }
 
     pub fn execute(&mut self) -> bool {
+        self.set_heap();
         while let Some(cid) = self.ready_queue.pop() {
             if let Some(task) = self.tasks.get(&cid) {
-                if let Ready(()) = task.clone().execute() {
+                if let Ready(_) = task.clone().execute() {
+                    // todo: bugs need to fix
                     self.tasks.remove(&cid);
                 }
             } else {
@@ -148,27 +181,22 @@ impl Executor {
         false
     }
 
-    pub fn spawn(&mut self, future: Pin<Box<dyn Future<Output=()> + 'static + Send + Sync>>) {
-        let task = Coroutine::new(future, self);
+    pub fn set_block_thread(&mut self, thread: usize) {
+        self.thread = thread;
+    }
+
+    pub fn spawn(&mut self, future: impl Future<Output=()> + 'static + Send + Sync) {
+
+        self.set_heap();
+        let task = Coroutine::new(Box::pin(future), self);
+        // debug!("spawn: self heap: {}, cid: {:?}", self.heap_ptr, task.cid);
+
         self.tasks.insert(task.cid, task.clone());
         self.ready_queue.push(task.cid);
     }
 
     pub fn wake(&mut self, cid: CoroutineId) {
+        self.set_heap();
         self.ready_queue.push(cid);
     }
 }
-
-struct EndpointFuture {
-
-}
-
-impl Future for EndpointFuture {
-    type Output = ();
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let waker = cx.waker();
-        Pending
-    }
-}
-

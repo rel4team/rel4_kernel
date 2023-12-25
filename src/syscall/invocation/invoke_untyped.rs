@@ -1,6 +1,7 @@
+use log::debug;
 use crate::common::{object::ObjectType, utils::convert_to_mut_type_ref, sel4_config::*, structures::exception_t};
 use crate::debug::tcb_debug_append;
-use crate::task_manager::{tcb_t, get_current_domain};
+use crate::task_manager::{tcb_t, get_current_domain, get_currenct_thread};
 use crate::vspace::{pptr_t, VMReadWrite};
 use crate::cspace::interface::{cap_t, cte_t, insert_new_cap};
 use crate::syscall::{FREE_INDEX_TO_OFFSET, GET_FREE_INDEX, GET_OFFSET_FREE_PTR, OFFSET_TO_FREE_IDNEX};
@@ -24,7 +25,8 @@ fn create_object(obj_type: ObjectType, region_base: pptr_t, object_size: usize, 
         use crate::syscall::async_syscall::Executor;
         let executor = convert_to_mut_type_ref::<Executor>(region_base);
         let heap_ptr = region_base + core::mem::size_of::<Executor>();
-        let heap_end = region_base + (region_base + BIT!(object_size));
+        let heap_end = region_base + BIT!(object_size);
+        // debug!("{:#x} {:#x} {:#x}", region_base, heap_ptr, heap_end);
         executor.init(heap_ptr, heap_end);
         return cap_t::new_executor_cap(region_base);
     }
