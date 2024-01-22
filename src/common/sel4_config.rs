@@ -90,7 +90,7 @@ pub const seL4_NumErrors: usize = 11;
 
 
 // msg info
-pub const seL4_MsgMaxLength: usize = 119;
+pub const seL4_MsgMaxLength: usize = 118;
 pub const seL4_MsgExtraCapBits: usize = 2;
 pub const seL4_MsgMaxExtraCaps: usize = BIT!(seL4_MsgExtraCapBits) - 1;
 pub const

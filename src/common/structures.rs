@@ -23,6 +23,7 @@ pub struct seL4_IPCBuffer {
     pub receiveIndex: usize,
     pub receiveDepth: usize,
     pub uintrFlag: usize,
+    pub rt_addr: usize,
 }
 
 impl seL4_IPCBuffer {

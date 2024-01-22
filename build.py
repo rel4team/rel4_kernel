@@ -61,14 +61,12 @@ if __name__ == "__main__":
             clean_config()
             sys.exit(-1)
 
-    
+    shell_command = "cd ./build && ../../init-build.sh  -DPLATFORM=spike -DSIMULATION=TRUE"
     if args.cpu_nums > 1:
-        shell_command = "cd ./build && ../../init-build.sh  -DPLATFORM=spike -DSIMULATION=TRUE -DSMP=TRUE && ninja"
-        if not exec_shell(shell_command):
-            clean_config()
-            sys.exit(-1)
-        sys.exit(0)
-    shell_command = "cd ./build && ../../init-build.sh  -DPLATFORM=spike -DSIMULATION=TRUE && ninja"
+        shell_command += " -DSMP=TRUE"
+    if args.uintr_enable:
+        shell_command += " -DUINTR=TRUE"
+    shell_command += " && ninja"
     if not exec_shell(shell_command):
         clean_config()
         sys.exit(-1)

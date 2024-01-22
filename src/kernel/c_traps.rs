@@ -23,6 +23,7 @@ use crate::{
 #[no_mangle]
 pub fn restore_user_context() {
     unsafe {
+        get_currenct_thread().set_vm_root().unwrap();
         #[cfg(feature = "ENABLE_UINTC")]
         crate::uintc::uintr_return();
         // debug!("restore_user_context");

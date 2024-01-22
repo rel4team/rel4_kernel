@@ -296,7 +296,7 @@ impl tcb_t {
         // if hart_id() == 0 {
         //     debug!("switch_to_this: {:#x}", self.get_ptr());
         // }
-        let _unused = self.set_vm_root();
+        // let _unused = self.set_vm_root();
         self.sched_dequeue();
         set_current_thread(self);
     }

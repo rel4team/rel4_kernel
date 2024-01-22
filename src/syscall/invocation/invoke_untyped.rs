@@ -35,10 +35,10 @@ fn create_object(obj_type: ObjectType, region_base: pptr_t, user_size: usize, de
         }
 
         ObjectType::NotificationObject => {
-            #[cfg(feature = "ENABLE_UINTC")] {
-                use crate::task_manager::ipc::notification_t;
-                crate::uintc::register_receiver(convert_to_mut_type_ref::<notification_t>(region_base));
-            }
+            // #[cfg(feature = "ENABLE_UINTC")] {
+            //     use crate::task_manager::ipc::notification_t;
+            //     crate::uintc::register_receiver(convert_to_mut_type_ref::<notification_t>(region_base));
+            // }
             
             cap_t::new_notification_cap(0, 1, 1, region_base)
         }

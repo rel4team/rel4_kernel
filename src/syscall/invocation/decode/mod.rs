@@ -11,9 +11,10 @@ use crate::common::{structures::{exception_t, seL4_IPCBuffer}, sel4_config::seL4
 use crate::cspace::interface::{cte_t, cap_t, CapTag};
 use crate::task_manager::ipc::{endpoint_t, notification_t};
 use log::debug;
+use crate::common::sel4_config::seL4_TruncatedMessage;
 use crate::task_manager::{set_thread_state, get_currenct_thread, ThreadState, tcb_t};
 
-use crate::kernel::boot::current_syscall_error;
+use crate::kernel::boot::{current_syscall_error, get_extra_cap_by_index};
 use crate::syscall::invocation::decode::decode_irq_invocation::decode_irq_handler_invocation;
 
 use self::{
@@ -57,6 +58,26 @@ pub fn decode_invocation(label: MessageLabel, length: usize, slot: &mut cte_t, c
         }
 
         CapTag::CapNotificationCap => {
+            #[cfg(feature = "ENABLE_UINTC")]
+            {
+                if label == MessageLabel::UintrRegisterReceiver {
+                    use crate::task_manager::ipc::notification_t;
+                    let tcb_slot = get_extra_cap_by_index(0);
+                    if tcb_slot.is_none() {
+                        debug!("UInt RegisterReceiver: Truncated message.");
+                        unsafe { current_syscall_error._type = seL4_TruncatedMessage; }
+                        return exception_t::EXCEPTION_SYSCALL_ERROR;
+                    }
+                    let tcb_cap = tcb_slot.unwrap().cap;
+                    crate::uintc::register_receiver(convert_to_mut_type_ref::<notification_t>(cap.get_nf_ptr()), convert_to_mut_type_ref::<tcb_t>(tcb_cap.get_tcb_ptr()));
+                    set_thread_state(get_currenct_thread(), ThreadState::ThreadStateRestart);
+                    return exception_t::EXCEPTION_NONE;
+                } else if label == MessageLabel::UintrRegisterSender {
+                    crate::uintc::register_sender(cap);
+                    set_thread_state(get_currenct_thread(), ThreadState::ThreadStateRestart);
+                    return exception_t::EXCEPTION_NONE;
+                }
+            }
             if unlikely(cap.get_nf_can_send() == 0) {
                 debug!(
                     "Attempted to invoke a read-only notification cap {}.",
@@ -69,12 +90,12 @@ pub fn decode_invocation(label: MessageLabel, length: usize, slot: &mut cte_t, c
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
             }
             set_thread_state(get_currenct_thread(), ThreadState::ThreadStateRestart);
-            #[cfg(feature = "ENABLE_UINTC")] {
-                if get_currenct_thread().uintr_inner.uist.is_none() {
-                    crate::uintc::regiser_sender(cap);
-                }
-            }
-            #[cfg(not(feature = "ENABLE_UINTC"))]
+            // #[cfg(feature = "ENABLE_UINTC")] {
+            //     if get_currenct_thread().uintr_inner.uist.is_none() {
+            //         crate::uintc::regiser_sender(cap);
+            //     }
+            // }
+            // #[cfg(not(feature = "ENABLE_UINTC"))]
             convert_to_mut_type_ref::<notification_t>(cap.get_nf_ptr()).send_signal(cap.get_nf_badge());
             exception_t::EXCEPTION_NONE
         }

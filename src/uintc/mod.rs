@@ -1,12 +1,13 @@
 mod config;
 mod operations;
 
+use core::intrinsics::offset;
 use bit_field::BitField;
 use lazy_static::lazy_static;
 use log::debug;
 use spin::Mutex;
 use crate::common::utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref, convert_to_type_ref, cpu_id};
-use crate::task_manager::get_currenct_thread;
+use crate::task_manager::{get_currenct_thread, tcb_t};
 use crate::task_manager::ipc::notification_t;
 use crate::uintc::config::{UINTC_BASE, UINTC_ENTRY_NUM};
 use crate::uintc::operations::{uintc_read_high, uintc_read_low, uintc_write_high, uintc_write_low};
@@ -44,6 +45,7 @@ impl<const SIZE: usize> IndexAllocator<SIZE> where
 lazy_static! {
     pub static ref UINTR_RECV_ALLOCATOR: Mutex<IndexAllocator<UINTC_ENTRY_NUM>> = Mutex::new(IndexAllocator::<UINTC_ENTRY_NUM>::new());
     pub static ref UINTR_ST_POOL_ALLOCATOR: Mutex<IndexAllocator<16>> = Mutex::new(IndexAllocator::<16>::new());
+    pub static ref UINTR_ST_ENTRY_ALLOCATOR: Mutex<[IndexAllocator<UINTC_ENTRY_NUM>; 16]> = Mutex::new([IndexAllocator::<UINTC_ENTRY_NUM>::new(); 16]);
 }
 
 #[no_mangle]
@@ -131,19 +133,26 @@ impl UIntrReceiver {
     }
 }
 
-pub fn register_receiver(ntfn: &mut notification_t) {
+pub fn register_receiver(ntfn: &mut notification_t, tcb: &mut tcb_t) {
+    if tcb.tcbBoundNotification != ntfn.get_ptr() {
+        debug!("fail to register uint receiver, need to bind ntfn first");
+        return;
+    }
     if let Some(recv_index) = UINTR_RECV_ALLOCATOR.lock().allocate() {
+        debug!("recv index: {}", recv_index);
         ntfn.set_uintr_flag(1);
         ntfn.set_recv_idx(recv_index);
         let mut uirs = UIntrReceiver::from(recv_index);
         uirs.irq = 0;
         uirs.sync(recv_index);
+        tcb.uintr_inner.utvec = uintr::utvec::read().bits();
+        tcb.uintr_inner.uscratch = uintr::uscratch::read();
     } else {
         debug!("register_receiver fail");
     }
 }
 
-pub fn regiser_sender(ntfn_cap: &cap_t) {
+pub fn register_sender(ntfn_cap: &cap_t) {
     assert_eq!(ntfn_cap.get_cap_type(), CapTag::CapNotificationCap);
     let current = get_currenct_thread();
     if current.uintr_inner.uist.is_none() {
@@ -155,11 +164,18 @@ pub fn regiser_sender(ntfn_cap: &cap_t) {
         }
     }
     let uist_idx = current.uintr_inner.uist.unwrap();
+    let uiste_idx = UINTR_ST_ENTRY_ALLOCATOR.lock().get_mut(uist_idx).unwrap().allocate();
+    if uiste_idx.is_none() {
+        debug!("fail to alloc uiste. {}", uist_idx);
+        return;
+    }
+    let offset = uiste_idx.unwrap();
     let entry = unsafe {
         debug!("UINTR_ST_POOL.as_ptr(): {:#x}", UINTR_ST_POOL.as_ptr() as usize);
-        convert_to_mut_type_ref::<UIntrSTEntry>(UINTR_ST_POOL.as_ptr().offset(((uist_idx * UINTC_ENTRY_NUM + 1) * core::mem::size_of::<UIntrSTEntry>()) as isize) as usize)
+        convert_to_mut_type_ref::<UIntrSTEntry>(UINTR_ST_POOL.as_ptr().offset(((uist_idx * UINTC_ENTRY_NUM + offset) * core::mem::size_of::<UIntrSTEntry>()) as isize) as usize)
     };
-    entry.set_vec(ntfn_cap.get_nf_badge());
+    entry.set_vec(offset);
+    debug!("[register sender] recv_idx: {}", convert_to_type_ref::<notification_t>(ntfn_cap.get_nf_ptr()).get_recv_idx());
     entry.set_index(convert_to_type_ref::<notification_t>(ntfn_cap.get_nf_ptr()).get_recv_idx());
     entry.set_valid(true);
     // entry.set_reserved0(0);
@@ -167,7 +183,8 @@ pub fn regiser_sender(ntfn_cap: &cap_t) {
     debug!("entry: {:?}", entry);
     // debug!("{} {} {} {} {}", entry.get_send_vec(), entry.get_uirs_index(), entry.get_valid(), entry.get_reserved0(), entry.get_reserved1());
     let ipc_buffer = current.lookup_mut_ipc_buffer(true).unwrap();
-    ipc_buffer.uintrFlag = 1;
+    ipc_buffer.uintrFlag = offset;
+    debug!("[register_sender] offset: {}", offset);
 }
 
 pub fn init() {
@@ -208,9 +225,9 @@ unsafe fn uirs_restore() {
 
             // user configurations
             uintr::uepc::write(current.uintr_inner.uepc);
-            uintr::utvec::write(current.uintr_inner.uscratch, uintr::utvec::TrapMode::Direct);
+            uintr::utvec::write(current.uintr_inner.utvec, uintr::utvec::TrapMode::Direct);
             uintr::uscratch::write(current.uintr_inner.uscratch);
-            uintr::uie::clear_usoft();
+            uintr::uie::set_usoft();
 
             // supervisor configurations
             uintr::suirs::write((1 << 63) | (index & 0xffff));
