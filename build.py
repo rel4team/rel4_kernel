@@ -30,6 +30,9 @@ def parse_args():
 
     parser.add_argument('-i', '--install', dest="install", action="store_true",
                             help="install kernel & set env")
+
+    parser.add_argument('-r', '--rt', dest="rust_test", action="store_true",
+                        help="run rust root task demo")
     args = parser.parse_args()
     return args
 
@@ -40,6 +43,10 @@ def exec_shell(shell_command):
 def clean_config():
     shell_command = "cd ../kernel && git checkout master"
     exec_shell(shell_command)
+    base_test_setting_path = os.path.abspath("../projects/sel4test/easy-settings.cmake")
+    shell_command = "cd .. && ln -snf " + base_test_setting_path + " ./easy-settings.cmake"
+    exec_shell(shell_command)
+
 
 def install_kernel():
     shell_command = "cd ../kernel && cmake -DCROSS_COMPILER_PREFIX=riscv64-unknown-linux-gnu-" + \
@@ -53,11 +60,17 @@ if __name__ == "__main__":
     args = parse_args()
     clean_config()
     progname = sys.argv[0]
-    
+
     if not os.path.exists(build_dir):
 #         shutil.rmtree(build_dir)
         os.makedirs(build_dir)
 #     os.makedirs(build_dir)
+    if args.rust_test == True:
+        rt_setting_path = os.path.abspath("../projects/rust-root-task-demo/easy-settings.cmake")
+        shell_command = "cd .. && ln -snf " + rt_setting_path + " ./easy-settings.cmake"
+        if not exec_shell(shell_command):
+            clean_config()
+            sys.exit(-1)
     if args.baseline == True:
         shell_command = "cd ../kernel && git checkout baseline"
         if not exec_shell(shell_command):
