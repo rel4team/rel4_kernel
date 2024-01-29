@@ -27,6 +27,9 @@ def parse_args():
 
     parser.add_argument('-c', '--cpu', dest="cpu_nums", type=int,
                         help="kernel & qemu cpu nums", default=1)
+
+    parser.add_argument('-i', '--install', dest="install", action="store_true",
+                            help="install kernel & set env")
     args = parser.parse_args()
     return args
 
@@ -38,14 +41,23 @@ def clean_config():
     shell_command = "cd ../kernel && git checkout master"
     exec_shell(shell_command)
 
+def install_kernel():
+    shell_command = "cd ../kernel && cmake -DCROSS_COMPILER_PREFIX=riscv64-unknown-linux-gnu-" + \
+                    " -DCMAKE_TOOLCHAIN_FILE=gcc.cmake" + " -DCMAKE_INSTALL_PREFIX=install" + \
+                    " -C ./kernel-settings.cmake" + " -G Ninja" + " -S . -B build" + \
+                    " && ninja -C build all && ninja -C build install"
+    exec_shell(shell_command)
+
+
 if __name__ == "__main__":
     args = parse_args()
     clean_config()
     progname = sys.argv[0]
     
-    if os.path.exists(build_dir):
-        shutil.rmtree(build_dir)
-    os.makedirs(build_dir)
+    if not os.path.exists(build_dir):
+#         shutil.rmtree(build_dir)
+        os.makedirs(build_dir)
+#     os.makedirs(build_dir)
     if args.baseline == True:
         shell_command = "cd ../kernel && git checkout baseline"
         if not exec_shell(shell_command):
@@ -60,14 +72,16 @@ if __name__ == "__main__":
         if not exec_shell(shell_command):
             clean_config()
             sys.exit(-1)
-
-    shell_command = "cd ./build && ../../init-build.sh  -DPLATFORM=spike -DSIMULATION=TRUE"
-    if args.cpu_nums > 1:
-        shell_command += " -DSMP=TRUE"
-    if args.uintr_enable:
-        shell_command += " -DUINTR=TRUE"
-    shell_command += " && ninja"
-    if not exec_shell(shell_command):
+    if args.install:
+        install_kernel()
+    else:
+        shell_command = "cd ./build && ../../init-build.sh  -DPLATFORM=spike -DSIMULATION=TRUE"
+        if args.cpu_nums > 1:
+            shell_command += " -DSMP=TRUE"
+        if args.uintr_enable:
+            shell_command += " -DUINTR=TRUE"
+        shell_command += " && ninja"
+        if not exec_shell(shell_command):
+            clean_config()
+            sys.exit(-1)
         clean_config()
-        sys.exit(-1)
-    clean_config()
