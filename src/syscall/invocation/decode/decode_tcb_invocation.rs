@@ -298,7 +298,7 @@ fn decode_set_mc_priority(cap: &cap_t, length: usize, buffer: Option<&seL4_IPCBu
 }
 
 fn decode_set_sched_params(cap: &cap_t, length: usize, buffer: Option<&seL4_IPCBuffer>) -> exception_t {
-    if length < 2 || get_extra_cap_by_index(0).is_some() {
+    if length < 2 || get_extra_cap_by_index(0).is_none() {
         debug!("TCB SetSchedParams: Truncated message.");
         unsafe { current_syscall_error._type = seL4_TruncatedMessage; }
         return exception_t::EXCEPTION_SYSCALL_ERROR;
