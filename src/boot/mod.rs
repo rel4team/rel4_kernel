@@ -277,7 +277,7 @@ pub fn try_init_kernel(
 }
 
 #[cfg(feature = "ENABLE_SMP")]
-pub fn try_init_kernel_secondary_core(hartid: usize, core_id: usize) -> bool {
+pub fn try_init_kernel_secondary_core(_hart_id: usize, _core_id: usize) -> bool {
     use core::ops::AddAssign;
     while node_boot_lock.lock().eq(&0) {}
     // debug!("start try_init_kernel_secondary_core");

@@ -5,6 +5,7 @@ macro_rules! plus_define_bitfield {
     ($name:ident, $total_words:expr, $type_index:expr, $type_offset:expr, $type_bits:expr =>
         { $($variant:ident, $type_value:expr => { $($field:ident, $get_field:ident, $set_field:ident, $index:expr, $offset:expr, $bits:expr, $shift:expr, $sign_ext: expr),* }),* }) => {
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+        #[repr(C)]
         pub struct $name {
             pub words: [usize; $total_words],
         }

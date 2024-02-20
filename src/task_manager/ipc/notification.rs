@@ -1,4 +1,3 @@
-use log::debug;
 use crate::common::utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref};
 use crate::plus_define_bitfield;
 use super::super::{tcb_t, tcb_queue_t, set_thread_state, possible_switch_to, ThreadState, rescheduleRequired};

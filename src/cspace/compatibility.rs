@@ -3,11 +3,6 @@
 use super::{cap::{CapTag, cap_t}, interface::cte_t, cte::deriveCap_ret};
 
 
-pub use super::cap::zombie::{
-  Zombie_new,
-  ZombieType_ZombieTCB
-};
-
 //cap_tag_t
 pub const cap_endpoint_cap: usize = CapTag::CapEndpointCap as usize;
 pub const cap_cnode_cap: usize = CapTag::CapCNodeCap as usize;

@@ -14,17 +14,14 @@ fn get_core_map_ref() -> &'static [usize; CONFIG_MAX_NUM_NODES] {
 #[inline]
 pub fn cpu_index_to_id(index: usize) -> usize {
     assert!(index < CONFIG_MAX_NUM_NODES);
-    unsafe { get_core_map_ref()[index] }
+    get_core_map_ref()[index]
 }
 
 #[inline]
 pub fn hart_id_to_core_id(hart_id: usize) -> usize {
-    unsafe {
-        match get_core_map_ref().iter().position(|&x| x == hart_id) {
-            Some(core_id) => core_id,
-            _ => 0,
-        }
-
+    match get_core_map_ref().iter().position(|&x| x == hart_id) {
+        Some(core_id) => core_id,
+        _ => 0,
     }
 }
 

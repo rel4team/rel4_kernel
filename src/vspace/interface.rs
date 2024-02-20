@@ -1,7 +1,6 @@
 use crate::{common::{sel4_config::*, structures::exception_t, utils::{convert_to_mut_type_ref, pageBitsForSize}, fault::*}, BIT, ROUND_DOWN};
 use crate::cspace::interface::{cap_t, CapTag};
 use core::intrinsics::unlikely;
-use log::debug;
 use super::pte::pte_t;
 use super::utils::{RISCV_GET_PT_INDEX, RISCV_GET_LVL_PGSIZE, RISCV_GET_LVL_PGSIZE_BITS, kpptr_to_paddr};
 

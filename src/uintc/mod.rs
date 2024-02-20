@@ -1,7 +1,6 @@
 mod config;
 mod operations;
 
-use core::intrinsics::offset;
 use bit_field::BitField;
 use lazy_static::lazy_static;
 use log::debug;
@@ -11,7 +10,7 @@ use crate::task_manager::{get_currenct_thread, tcb_t};
 use crate::task_manager::ipc::notification_t;
 use crate::uintc::config::{UINTC_BASE, UINTC_ENTRY_NUM};
 use crate::uintc::operations::{uintc_read_high, uintc_read_low, uintc_write_high, uintc_write_low};
-use crate::{plus_define_bitfield, uintr};
+use crate::uintr;
 use crate::cspace::interface::{cap_t, CapTag};
 use crate::uintr::sip;
 use crate::vspace::{kpptr_to_paddr, pptr_to_paddr};

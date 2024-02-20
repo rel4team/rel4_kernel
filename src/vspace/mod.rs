@@ -13,6 +13,6 @@ pub use asid::{
     asid_t, asid_pool_t, riscvKSASIDTable, delete_asid_pool, delete_asid,
     find_vspace_for_asid, get_asid_pool_by_index, set_asid_pool_by_index
 };
-pub use utils::{pptr_to_paddr, paddr_to_pptr, kpptr_to_paddr, RISCV_GET_LVL_PGSIZE_BITS, RISCV_GET_LVL_PGSIZE, checkVPAlignment, RISCV_GET_PT_INDEX};
+pub use utils::{pptr_to_paddr, paddr_to_pptr, kpptr_to_paddr, RISCV_GET_LVL_PGSIZE_BITS, RISCV_GET_LVL_PGSIZE, checkVPAlignment};
 pub use pte::pte_t;
 pub use satp::{sfence, setVSpaceRoot};

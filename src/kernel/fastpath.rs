@@ -219,9 +219,7 @@ pub fn fastpath_call(cptr: usize, msgInfo: usize) {
     seL4_MessageInfo_ptr_set_capsUnwrapped((&mut info) as *mut seL4_MessageInfo_t, 0);
     let msgInfo1 = info.to_word();
     let badge = ep_cap.get_ep_badge();
-    unsafe {
-        fp_restore(badge, msgInfo1, get_currenct_thread());
-    }
+    fp_restore(badge, msgInfo1, get_currenct_thread());
 }
 
 #[inline]
@@ -300,20 +298,18 @@ pub fn fastpath_reply_recv(cptr: usize, msgInfo: usize) {
     }
     endpoint_ptr_mset_epQueue_tail_state(ep as *mut endpoint_t, get_currenct_thread().get_ptr(), EPState_Recv);
 
-    unsafe {
-        let node = convert_to_mut_type_ref::<cte_t>(caller_slot.cteMDBNode.get_prev());
-        mdb_node_ptr_mset_mdbNext_mdbRevocable_mdbFirstBadged(&mut node.cteMDBNode, 0, 1, 1);
-        caller_slot.cap = cap_t::new_null_cap();
-        caller_slot.cteMDBNode = mdb_node_t::new(0, 0, 0, 0);
-        fastpath_copy_mrs(length, current, caller);
+    let node = convert_to_mut_type_ref::<cte_t>(caller_slot.cteMDBNode.get_prev());
+    mdb_node_ptr_mset_mdbNext_mdbRevocable_mdbFirstBadged(&mut node.cteMDBNode, 0, 1, 1);
+    caller_slot.cap = cap_t::new_null_cap();
+    caller_slot.cteMDBNode = mdb_node_t::new(0, 0, 0, 0);
+    fastpath_copy_mrs(length, current, caller);
 
-        caller.tcbState.words[0] = ThreadState::ThreadStateRunning as usize;
-        let cap_pd = new_vtable.get_pt_base_ptr() as *mut pte_t;
-        let stored_hw_asid: pte_t = pte_t { words: [new_vtable.get_pt_mapped_asid()] };
-        switchToThread_fp(caller, cap_pd, stored_hw_asid);
-        info.set_caps_unwrapped(0);
-        let msg_info1 = info.to_word();
-        fp_restore(0, msg_info1, get_currenct_thread() as *mut tcb_t);
-    }
+    caller.tcbState.words[0] = ThreadState::ThreadStateRunning as usize;
+    let cap_pd = new_vtable.get_pt_base_ptr() as *mut pte_t;
+    let stored_hw_asid: pte_t = pte_t { words: [new_vtable.get_pt_mapped_asid()] };
+    switchToThread_fp(caller, cap_pd, stored_hw_asid);
+    info.set_caps_unwrapped(0);
+    let msg_info1 = info.to_word();
+    fp_restore(0, msg_info1, get_currenct_thread() as *mut tcb_t);
 }
  

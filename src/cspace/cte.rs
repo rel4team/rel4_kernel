@@ -1,5 +1,6 @@
 use core::intrinsics::{unlikely, likely};
-use crate::common::{structures::exception_t, utils::{convert_to_type_ref, convert_to_mut_type_ref}, sel4_config::wordRadix};
+use core::ptr;
+use crate::common::{structures::exception_t, utils::{convert_to_type_ref, convert_to_mut_type_ref, convert_to_option_mut_type_ref}, sel4_config::wordRadix};
 use crate::common::utils::MAX_FREE_INDEX;
 use crate::MASK;
 use super::{cap::{cap_t, CapTag, same_region_as, same_object_as, is_cap_revocable, zombie::capCyclicZombie}, mdb::mdb_node_t,
@@ -203,7 +204,7 @@ impl cte_t {
         ret
 
     }
-    
+
     pub fn delete_all(&mut self, exposed: bool) -> exception_t {
         let fs_ret = self.finalise(exposed);
         if fs_ret.status != exception_t::EXCEPTION_NONE {
@@ -289,25 +290,31 @@ impl cte_t {
     }
 
     #[inline]
-    pub fn revoke(&mut self) -> exception_t {
-       let mut next_ptr = self.cteMDBNode.get_next();
-        if next_ptr != 0 {
-            let mut next_cte = convert_to_mut_type_ref::<cte_t>(next_ptr);
-            while next_ptr != 0 && self.is_mdb_parent_of(next_cte) {
-                let mut status = next_cte.delete_all(true);
-                if status != exception_t::EXCEPTION_NONE {
-                    return status;
-                }
-                status = preemptionPoint();
-                if status != exception_t::EXCEPTION_NONE {
-                    return status;
-                }
+    fn get_volatile_value(&self) -> usize {
+        unsafe {
+            let raw_value = ptr::read_volatile((self.get_ptr() + 24) as *const usize);
+            let mut value = ((raw_value >> 2) & MASK!(37)) << 2;
+            if (value & (1usize << 38)) != 0 {
+                value |= 0xffffff8000000000;
+            }
+            value
+        }
+    }
 
-                next_ptr = self.cteMDBNode.get_next();
-                if next_ptr == 0 {
-                    break;
-                }
-                next_cte = convert_to_mut_type_ref::<cte_t>(next_ptr);
+    pub fn revoke(&mut self) -> exception_t {
+        while let Some(cte) = convert_to_option_mut_type_ref::<cte_t>(self.get_volatile_value()) {
+            if !self.is_mdb_parent_of(cte) {
+                break;
+            }
+
+            let mut status = cte.delete_all(true);
+            if status != exception_t::EXCEPTION_NONE {
+                return status;
+            }
+
+            status = preemptionPoint();
+            if status != exception_t::EXCEPTION_NONE {
+                return status;
             }
         }
         return exception_t::EXCEPTION_NONE;
@@ -470,7 +477,7 @@ pub fn resolve_address_bits(node_cap: &cap_t, cap_ptr: usize, _n_bits: usize) ->
         let radixBits = nodeCap.get_cnode_radix();
         let guardBits = nodeCap.get_cnode_guard_size();
         let levelBits = radixBits + guardBits;
-        assert!(levelBits != 0);
+        assert_ne!(levelBits, 0);
         let capGuard = nodeCap.get_cnode_guard();
         let guard = (cap_ptr >> ((n_bits - guardBits) & MASK!(wordRadix))) & MASK!(guardBits);
         if unlikely(guardBits > n_bits || guard != capGuard) {
