@@ -14,7 +14,7 @@ pub struct pte_t {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct lookupPTSlot_ret_t {
     pub ptSlot: *mut pte_t,
     pub ptBitsLeft: usize,

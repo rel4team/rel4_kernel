@@ -173,12 +173,11 @@ pub fn register_sender(ntfn_cap: &cap_t) {
         debug!("UINTR_ST_POOL.as_ptr(): {:#x}", UINTR_ST_POOL.as_ptr() as usize);
         convert_to_mut_type_ref::<UIntrSTEntry>(UINTR_ST_POOL.as_ptr().offset(((uist_idx * UINTC_ENTRY_NUM + offset) * core::mem::size_of::<UIntrSTEntry>()) as isize) as usize)
     };
-    entry.set_vec(offset);
+    debug!("entry.as_ptr(): {:#x}", entry as *const UIntrSTEntry as usize);
+    entry.set_valid(true);
+    entry.set_vec(ntfn_cap.get_nf_badge());
     debug!("[register sender] recv_idx: {}", convert_to_type_ref::<notification_t>(ntfn_cap.get_nf_ptr()).get_recv_idx());
     entry.set_index(convert_to_type_ref::<notification_t>(ntfn_cap.get_nf_ptr()).get_recv_idx());
-    entry.set_valid(true);
-    // entry.set_reserved0(0);
-    // entry.set_reserved1(0);
     debug!("entry: {:?}", entry);
     // debug!("{} {} {} {} {}", entry.get_send_vec(), entry.get_uirs_index(), entry.get_valid(), entry.get_reserved0(), entry.get_reserved1());
     let ipc_buffer = current.lookup_mut_ipc_buffer(true).unwrap();

@@ -33,7 +33,7 @@ pub fn create_untypeds(root_cnode_cap: &cap_t, boot_mem_reuse_reg: region_t) -> 
 
         if start < CONFIG_PADDR_USER_DEVICE_TOP {
             let reg = paddr_to_pptr_reg(&p_region_t {
-                start: start,
+                start,
                 end: CONFIG_PADDR_USER_DEVICE_TOP,
             });
             if !create_untypeds_for_region(root_cnode_cap, true, reg.clone(), first_untyped_slot) {
@@ -45,19 +45,19 @@ pub fn create_untypeds(root_cnode_cap: &cap_t, boot_mem_reuse_reg: region_t) -> 
                 return false;
             }
         }
-        if !create_untypeds_for_region(
-            root_cnode_cap,
-            false,
-            boot_mem_reuse_reg,
-            first_untyped_slot,
-        ) {
-            debug!(
-                "ERROR: creation of untypeds for recycled boot memory
-                   [{}..{}] failed\n",
-                boot_mem_reuse_reg.start, boot_mem_reuse_reg.end
-            );
-            return false;
-        }
+        // if !create_untypeds_for_region(
+        //     root_cnode_cap,
+        //     false,
+        //     boot_mem_reuse_reg,
+        //     first_untyped_slot,
+        // ) {
+        //     debug!(
+        //         "ERROR: creation of untypeds for recycled boot memory
+        //            [{}..{}] failed\n",
+        //         boot_mem_reuse_reg.start, boot_mem_reuse_reg.end
+        //     );
+        //     return false;
+        // }
 
         for i in 0..ndks_boot.freemem.len() {
             let reg = ndks_boot.freemem[i];

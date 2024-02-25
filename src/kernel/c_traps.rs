@@ -1,6 +1,6 @@
 use core::arch::asm;
 use log::debug;
-
+use riscv::register::{scause, stvec, sepc};
 use crate::{
     config::{
         RISCVInstructionAccessFault, RISCVInstructionPageFault, RISCVLoadAccessFault,
@@ -19,6 +19,7 @@ use crate::{
     common::utils::cpu_id, interrupt::getActiveIRQ,
     deps::{clh_is_self_in_queue, clh_lock_release, clh_lock_acquire}
 };
+use crate::riscv::read_stval;
 
 #[no_mangle]
 pub fn restore_user_context() {
@@ -124,6 +125,9 @@ pub fn c_handle_exception() {
     crate::uintc::uintr_save();
 
     let cause = read_scause();
+    debug!("{:?}", get_currenct_thread().tcbArch);
+    debug!("c_handle_exception, cause: {}", cause);
+    debug!("[kernel] {:?} in application, bad addr = {:#x}, bad instruction = {:#x}, core dumped.", read_scause(), get_currenct_thread().get_register(FaultIP), read_stval());
     // debug!("handle_fault: {}", cause);
     match cause {
         RISCVInstructionAccessFault
