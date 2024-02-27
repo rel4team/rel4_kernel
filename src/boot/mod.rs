@@ -4,13 +4,14 @@ mod root_server;
 mod untyped;
 mod utils;
 mod interface;
+mod heap;
 
 use core::mem::size_of;
 
 use crate::common::utils::{convert_to_mut_type_ref, convert_to_type_ref};
 use crate::debug::tcb_debug_append;
 use crate::{BIT, ROUND_UP};
-use crate::common::sel4_config::{PADDR_TOP, KERNEL_ELF_BASE, seL4_PageBits, PAGE_BITS};
+use crate::common::sel4_config::{PADDR_TOP, KERNEL_ELF_BASE, seL4_PageBits, PAGE_BITS, CONFIG_MAX_NUM_NODES};
 use log::debug;
 use spin::Mutex;
 use riscv::register::stvec;
@@ -42,6 +43,8 @@ use core::arch::asm;
 
 pub static ksNumCPUs: Mutex<usize> = Mutex::new(0);
 pub static node_boot_lock: Mutex<usize> = Mutex::new(0);
+
+pub static mut cpu_idle: [bool; CONFIG_MAX_NUM_NODES] = [false; CONFIG_MAX_NUM_NODES];
 
 #[no_mangle]
 #[link_section = ".boot.bss"]
@@ -193,9 +196,10 @@ pub fn try_init_kernel(
     crate::common::logging::init();
     debug!("hello logging");
     debug!("hello logging");
+    heap::init_heap();
     let boot_mem_reuse_p_reg = p_region_t {
         start: kpptr_to_paddr(KERNEL_ELF_BASE),
-        end: kpptr_to_paddr(ki_boot_end as usize),
+        end: kpptr_to_paddr(ki_boot_end),
     };
     let boot_mem_reuse_reg = paddr_to_pptr_reg(&boot_mem_reuse_p_reg);
     let ui_reg = paddr_to_pptr_reg(&p_region_t {

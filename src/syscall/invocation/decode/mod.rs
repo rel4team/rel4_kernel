@@ -5,12 +5,14 @@ mod decode_untyped_invocation;
 mod decode_mmu_invocation;
 pub mod decode_irq_invocation;
 
+use alloc::boxed::Box;
 use core::intrinsics::unlikely;
 
 use crate::common::{structures::{exception_t, seL4_IPCBuffer}, sel4_config::seL4_InvalidCapability, utils::convert_to_mut_type_ref, message_info::MessageLabel};
 use crate::cspace::interface::{cte_t, cap_t, CapTag};
 use crate::task_manager::ipc::{endpoint_t, notification_t};
 use log::debug;
+use crate::async_runtime::NewBuffer;
 use crate::common::sel4_config::seL4_TruncatedMessage;
 use crate::task_manager::{set_thread_state, get_currenct_thread, ThreadState, tcb_t};
 
@@ -76,6 +78,26 @@ pub fn decode_invocation(label: MessageLabel, length: usize, slot: &mut cte_t, c
                     crate::uintc::register_sender(cap);
                     set_thread_state(get_currenct_thread(), ThreadState::ThreadStateRestart);
                     return exception_t::EXCEPTION_NONE;
+                } else if label == MessageLabel::UintrRegisterAsyncSyscall {
+                    use crate::async_runtime::async_syscall_handler;
+                    use crate::async_runtime::NEW_BUFFER_MAP;
+                    use crate::async_runtime::{coroutine_spawn, NewBufferMap};
+                    let new_buffer_slot = get_extra_cap_by_index(0);
+                    if new_buffer_slot.is_none() {
+                        debug!("UInt RegisterAsyncSyscall: Truncated message.");
+                        unsafe { current_syscall_error._type = seL4_TruncatedMessage; }
+                        return exception_t::EXCEPTION_SYSCALL_ERROR;
+                    }
+                    let new_buffer_cap = new_buffer_slot.unwrap().cap;
+                    let cid = coroutine_spawn(Box::pin(async_syscall_handler(*cap, new_buffer_cap, get_currenct_thread())));
+                    unsafe {
+                        NEW_BUFFER_MAP.push(NewBufferMap {
+                            buf: &mut *(new_buffer_cap.get_frame_base_ptr() as *mut NewBuffer),
+                            cid,
+                        })
+                    }
+                    set_thread_state(get_currenct_thread(), ThreadState::ThreadStateRestart);
+                    return exception_t::EXCEPTION_NONE;
                 }
             }
             if unlikely(cap.get_nf_can_send() == 0) {
@@ -90,12 +112,6 @@ pub fn decode_invocation(label: MessageLabel, length: usize, slot: &mut cte_t, c
                 return exception_t::EXCEPTION_SYSCALL_ERROR;
             }
             set_thread_state(get_currenct_thread(), ThreadState::ThreadStateRestart);
-            // #[cfg(feature = "ENABLE_UINTC")] {
-            //     if get_currenct_thread().uintr_inner.uist.is_none() {
-            //         crate::uintc::regiser_sender(cap);
-            //     }
-            // }
-            // #[cfg(not(feature = "ENABLE_UINTC"))]
             convert_to_mut_type_ref::<notification_t>(cap.get_nf_ptr()).send_signal(cap.get_nf_badge());
             exception_t::EXCEPTION_NONE
         }

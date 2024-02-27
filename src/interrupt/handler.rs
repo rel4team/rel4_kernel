@@ -2,6 +2,8 @@ use core::intrinsics::unlikely;
 use crate::common::structures::exception_t;
 use crate::cspace::interface::CapTag;
 use log::debug;
+use crate::async_runtime::{coroutine_run_until_blocked, coroutine_wake, NEW_BUFFER_MAP, NewBuffer};
+use crate::boot::cpu_idle;
 use crate::task_manager::{activateThread, schedule, timerTick};
 use crate::task_manager::ipc::notification_t;
 use crate::config::{irqInvalid, maxIRQ};
@@ -27,6 +29,10 @@ pub fn handleInterruptEntry() -> exception_t {
 
 #[no_mangle]
 pub fn handleInterrupt(irq: usize) {
+    unsafe {
+        cpu_idle[cpu_id()] = false;
+    }
+    // debug!("irq: {}", irq);
     if unlikely(irq > maxIRQ) {
         debug!(
             "Received IRQ {}, which is above the platforms maxIRQ of {}\n",
@@ -53,7 +59,17 @@ pub fn handleInterrupt(irq: usize) {
             }
         }
         IRQState::IRQTimer => {
+            // debug!("hello");
+            for item in unsafe { &NEW_BUFFER_MAP } {
 
+                let new_buffer = item.buf;
+                // debug!("new buffer addr: {:#x}", new_buffer as *const NewBuffer as usize);
+                if new_buffer.recv_req_status == true {
+                    debug!("wake cid: {}", item.cid.0);
+                    coroutine_wake(&item.cid);
+                }
+            }
+            coroutine_run_until_blocked();
             timerTick();
             resetTimer();
         }

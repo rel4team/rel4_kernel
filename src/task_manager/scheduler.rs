@@ -14,6 +14,7 @@ use crate::{
     common::utils::cpu_id,
     deps::{doMaskReschedule, ksIdleThreadTCB, kernel_stack_alloc}
 };
+use crate::boot::cpu_idle;
 
 #[cfg(feature = "ENABLE_SMP")]
 #[derive(Debug, Copy, Clone)]
@@ -539,6 +540,7 @@ pub fn create_idle_thread() {
 fn idle_thread() {
     unsafe {
         loop {
+            cpu_idle[cpu_id()] = true;
             asm!("wfi");
         }
     }

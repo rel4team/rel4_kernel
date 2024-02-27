@@ -14,6 +14,7 @@ extern "C" {
     pub fn handleIPI(irq: usize, irq_path: bool);
     pub fn ipi_get_irq() -> usize;
     pub fn ipi_clear_irq(irq: usize);
+    pub fn ipi_send_mask(ipi: usize, mask: usize, is_blocking: bool);
     pub fn coreMap();
     pub fn migrateTCB(tcb: *mut tcb_t, new_core: usize);
     pub fn doMaskReschedule(mask: usize);

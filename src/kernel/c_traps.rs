@@ -102,8 +102,8 @@ pub fn c_handle_interrupt() {
     //     debug!("c_handle_interrupt");
     // }
     #[cfg(feature = "ENABLE_SMP")] {
-        use crate::config::INTERRUPT_IPI_0;
-        if getActiveIRQ() != INTERRUPT_IPI_0 {
+        use crate::config::IRQConst::INTERRUPT_IPI_0;
+        if getActiveIRQ() != INTERRUPT_IPI_0 as usize {
             unsafe { clh_lock_acquire(cpu_id(), true); }
         }
     }

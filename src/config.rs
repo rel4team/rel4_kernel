@@ -107,15 +107,18 @@ pub const USER_TOP: usize = seL4_UserTop;
 pub const PLIC_IRQ_OFFSET: usize = 0;
 pub const PLIC_MAX_IRQ: usize = 0;
 
-#[cfg(feature = "ENABLE_SMP")]
-pub const INTERRUPT_IPI_0: usize = 1;
-#[cfg(feature = "ENABLE_SMP")]
-pub const INTERRUPT_IPI_1: usize = 2;
-#[cfg(feature = "ENABLE_SMP")]
-pub const KERNEL_TIMER_IRQ: usize = 3;
+pub enum IRQConst {
+    PLIC_MAX_IRQ = 0,
+    #[cfg(feature = "ENABLE_SMP")]
+    INTERRUPT_IPI_0,
+    #[cfg(feature = "ENABLE_SMP")]
+    INTERRUPT_IPI_1,
+    #[cfg(feature = "ENABLE_SMP")]
+    INTERRUPT_IPI_2,
+    KERNEL_TIMER_IRQ,
+}
 
-#[cfg(not(feature = "ENABLE_SMP"))]
-pub const KERNEL_TIMER_IRQ: usize = 1;
+pub const KERNEL_TIMER_IRQ: usize = IRQConst::KERNEL_TIMER_IRQ as usize;
 
 
 pub const maxIRQ: usize = KERNEL_TIMER_IRQ;

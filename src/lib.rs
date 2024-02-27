@@ -14,6 +14,7 @@
 #![feature(generic_const_exprs)]
 
 extern crate core;
+extern crate alloc;
 use common::sbi::shutdown;
 mod config;
 mod debug;
@@ -42,8 +43,8 @@ mod uintc;
 #[cfg(feature = "ENABLE_UINTC")]
 mod uintr;
 
-
-
+#[cfg(feature = "ENABLE_UINTC")]
+mod async_runtime;
 
 
 #[no_mangle]

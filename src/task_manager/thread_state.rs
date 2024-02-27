@@ -35,7 +35,6 @@ impl thread_state_t {
     }
 }
 
-
 #[inline]
 pub fn thread_state_get_blockingIPCCanGrant(thread_state_ptr: &thread_state_t) -> usize {
     thread_state_ptr.get_blocking_ipc_can_grant()

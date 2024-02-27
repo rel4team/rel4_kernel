@@ -39,6 +39,8 @@ pub enum MessageLabel {
     UintrRegisterSender,
     #[cfg(feature = "ENABLE_UINTC")]
     UintrRegisterReceiver,
+    #[cfg(feature = "ENABLE_UINTC")]
+    UintrRegisterAsyncSyscall,
     RISCVPageTableMap,
     RISCVPageTableUnmap,
     RISCVPageMap,
