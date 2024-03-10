@@ -305,6 +305,7 @@ fn decode_page_table_map(length: usize, pt_cte: &mut cte_t, buffer: Option<&seL4
     if let Some((lvl1pt, asid)) = get_vspace(&lvl1pt_cap) {
         let lu_ret = lvl1pt.lookup_pt_slot(vaddr);
         let lu_slot = convert_to_mut_type_ref::<pte_t>(lu_ret.ptSlot as usize);
+        // debug!("lu_ret.ptBitsLeft: {}", lu_ret.ptBitsLeft);
         if lu_ret.ptBitsLeft == seL4_PageBits || lu_slot.get_vaild() != 0 {
             debug!("RISCVPageTableMap: All objects mapped at this address");
             unsafe { current_syscall_error._type = seL4_DeleteFirst; }

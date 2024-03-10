@@ -41,9 +41,10 @@ pub fn invoke_page_table_map(pt_cap: &mut cap_t, pt_slot: &mut pte_t, asid: usiz
 
 pub fn invoke_page_get_address(vbase_ptr: usize, call: bool) -> exception_t {
     let thread = get_currenct_thread();
+    let paddr = pptr_to_paddr(vbase_ptr);
     if call {
         thread.set_register(badgeRegister, 0);
-        let length = thread.set_mr(0, vbase_ptr);
+        let length = thread.set_mr(0, paddr);
         thread.set_register(msgInfoRegister, seL4_MessageInfo_t::new(0, 0, 0, length).to_word());
     }
     set_thread_state(thread, ThreadState::ThreadStateRestart);

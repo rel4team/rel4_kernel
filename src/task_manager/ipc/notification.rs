@@ -166,17 +166,3 @@ impl notification_t {
         }
     }
 }
-
-#[inline]
-pub fn notification_ptr_get_ntfnBoundTCB(notification_ptr: *const notification_t) -> usize {
-    unsafe {
-        (*notification_ptr).get_bound_tcb()
-    }
-}
-
-#[inline]
-pub fn notification_ptr_get_state(notification_ptr: *const notification_t) -> usize {
-    unsafe {
-        (*notification_ptr).get_state() as usize
-    }
-}

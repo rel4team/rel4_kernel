@@ -356,7 +356,6 @@ fn init_irqs(root_cnode_cap: &cap_t) {
     #[cfg(feature = "ENABLE_SMP")] {
         setIRQState(IRQState::IRQIPI, IRQConst::INTERRUPT_IPI_0 as usize);
         setIRQState(IRQState::IRQIPI, IRQConst::INTERRUPT_IPI_1 as usize);
-        setIRQState(IRQState::IRQIPI, IRQConst::INTERRUPT_IPI_2 as usize);
     }
     unsafe {
         let ptr = root_cnode_cap.get_cap_ptr() as *mut cte_t;

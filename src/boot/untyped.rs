@@ -20,6 +20,7 @@ pub fn create_untypeds(root_cnode_cap: &cap_t, boot_mem_reuse_reg: region_t) -> 
                 start: start,
                 end: ndks_boot.reserved[i].start,
             });
+            debug!("[create_untypeds] reserved: {:#x} -- {:#x}", reg.start, reg.end);
             if !create_untypeds_for_region(root_cnode_cap, true, reg.clone(), first_untyped_slot) {
                 debug!(
                     "ERROR: creation of untypeds for device region {} at
@@ -30,6 +31,7 @@ pub fn create_untypeds(root_cnode_cap: &cap_t, boot_mem_reuse_reg: region_t) -> 
             }
             start = ndks_boot.reserved[i].end;
         }
+        debug!("[create_untypeds]start: {:#x}", start);
 
         if start < CONFIG_PADDR_USER_DEVICE_TOP {
             let reg = paddr_to_pptr_reg(&p_region_t {

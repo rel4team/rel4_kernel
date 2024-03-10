@@ -4,6 +4,7 @@ use crate::task_manager::*;
 use crate::task_manager::ipc::*;
 use crate::vspace::*;
 use core::intrinsics::{likely, unlikely};
+use log::debug;
 use crate::common::{sel4_config::*, message_info::*, fault::*, utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref}};
 use crate::cspace::interface::*;
 use crate::MASK;
@@ -138,6 +139,7 @@ fn fp_restore(badge: usize, msgInfo: usize, cur_thread: *mut tcb_t) {
 #[inline]
 #[no_mangle]
 pub fn fastpath_call(cptr: usize, msgInfo: usize) {
+    // debug!("hello fastpath call");
     #[cfg(feature = "ENABLE_UINTC")]
     crate::uintc::uintr_save();
     // debug!("enter fastpath call");

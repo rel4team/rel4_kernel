@@ -20,7 +20,7 @@ pub struct region_t {
     pub end: usize,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct p_region_t {
     pub start: usize,
     pub end: usize,

@@ -40,6 +40,7 @@ pub fn decode_untyed_invocation(inv_label: MessageLabel, length: usize, slot: &m
     let node_offset = get_syscall_arg(4, buffer);
     let node_window = get_syscall_arg(5, buffer);
     let obj_size = new_type.get_object_size(user_obj_size);
+    // debug!("decode_untyed_invocation: {:?} {} {} {} {} {} {}", new_type, user_obj_size, node_index, node_depth, node_offset, node_window, obj_size);
     if user_obj_size >= wordBits || obj_size > seL4_MaxUntypedBits {
         debug!("Untyped Retype: Invalid object size. {} : {}", user_obj_size, obj_size);
         unsafe {
@@ -89,8 +90,8 @@ pub fn decode_untyed_invocation(inv_label: MessageLabel, length: usize, slot: &m
         return exception_t::EXCEPTION_SYSCALL_ERROR;
     }
 
-    let device_mem = cap.get_frame_is_device() != 0;
-    if device_mem && new_type.is_arch_type() && new_type != ObjectType::UnytpedObject {
+    let device_mem = cap.get_untyped_is_device() != 0;
+    if device_mem && !new_type.is_arch_type() && new_type != ObjectType::UnytpedObject {
         debug!("Untyped Retype: Creating kernel objects with device untyped");
         unsafe {
             current_syscall_error._type = seL4_InvalidArgument;

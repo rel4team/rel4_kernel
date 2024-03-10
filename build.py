@@ -33,6 +33,9 @@ def parse_args():
 
     parser.add_argument('-r', '--rt', dest="rust_test", action="store_true",
                         help="run rust root task demo")
+
+    parser.add_argument('-f', '--fpga_board', dest="fpga_net_test", action="store_true",
+                        help="run rust root task demo")
     args = parser.parse_args()
     return args
 
@@ -82,6 +85,10 @@ if __name__ == "__main__":
             shell_command += " --features ENABLE_SMP"
         if args.uintr_enable:
             shell_command += " --features ENABLE_UINTC"
+        if args.fpga_net_test:
+            shell_command += " --features board_lrv"
+        else:
+            shell_command += " --features board_qemu"
         if not exec_shell(shell_command):
             clean_config()
             sys.exit(-1)

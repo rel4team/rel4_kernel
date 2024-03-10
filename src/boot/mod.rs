@@ -8,7 +8,7 @@ mod heap;
 
 use core::mem::size_of;
 
-use crate::common::utils::{convert_to_mut_type_ref, convert_to_type_ref};
+use crate::common::utils::convert_to_type_ref;
 use crate::debug::tcb_debug_append;
 use crate::{BIT, ROUND_UP};
 use crate::common::sel4_config::{PADDR_TOP, KERNEL_ELF_BASE, seL4_PageBits, PAGE_BITS, CONFIG_MAX_NUM_NODES};
@@ -22,7 +22,7 @@ use crate::boot::mm::init_freemem;
 use crate::boot::root_server::root_server_init;
 use crate::boot::untyped::create_untypeds;
 use crate::boot::utils::paddr_to_pptr_reg;
-use crate::interrupt::{init_irq_controller, set_sie_mask};
+use crate::interrupt::{init_hart, init_irq_controller, set_sie_mask};
 use crate::common::sbi::{set_timer, get_time};
 use crate::structures::{ndks_boot_t, region_t, p_region_t, seL4_BootInfo, seL4_BootInfoHeader, seL4_SlotRegion, v_region_t};
 use crate::config::*;
@@ -217,13 +217,14 @@ pub fn try_init_kernel(
     let extra_bi_frame_vptr = bi_frame_vptr + BIT!(BI_FRAME_SIZE_BITS);
     rust_map_kernel_window();
     init_cpu();
-
     init_irq_controller();
+    // init_hart();
 
     let dtb_p_reg = init_dtb(dtb_size, dtb_phys_addr, &mut extra_bi_size);
     if dtb_p_reg.is_none() {
         return false;
     }
+    debug!("dtb_p_reg: {:#x} -- {:#x}", dtb_p_reg.unwrap().start, dtb_p_reg.unwrap().end);
 
     let extra_bi_size_bits = calculate_extra_bi_size_bits(extra_bi_size);
 
@@ -286,6 +287,7 @@ pub fn try_init_kernel_secondary_core(_hart_id: usize, _core_id: usize) -> bool 
     while node_boot_lock.lock().eq(&0) {}
     // debug!("start try_init_kernel_secondary_core");
     init_cpu();
+    // init_hart();
     debug!("init cpu compl");
     unsafe { clh_lock_acquire(cpu_id(), false) }
     ksNumCPUs.lock().add_assign(1);

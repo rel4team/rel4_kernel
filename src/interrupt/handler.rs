@@ -2,6 +2,7 @@ use core::intrinsics::unlikely;
 use crate::common::structures::exception_t;
 use crate::cspace::interface::CapTag;
 use log::debug;
+use riscv::register::scause;
 use crate::async_runtime::{coroutine_run_until_blocked, coroutine_wake, NEW_BUFFER_MAP, NewBuffer};
 use crate::boot::cpu_idle;
 use crate::task_manager::{activateThread, schedule, timerTick};
@@ -14,6 +15,18 @@ use crate::riscv::resetTimer;
 #[no_mangle]
 pub fn handleInterruptEntry() -> exception_t {
     let irq = getActiveIRQ();
+    let scause = scause::read();
+    match scause.cause() {
+        scause::Trap::Interrupt(scause::Interrupt::SupervisorExternal) => {
+            debug!("SupervisorExternal");
+        }
+        scause::Trap::Interrupt(scause::Interrupt::UserExternal) => {
+            debug!("UserExternal");
+        }
+        _ => {
+
+        }
+    }
 
     if irq != irqInvalid {
         handleInterrupt(irq);
@@ -56,10 +69,11 @@ pub fn handleInterrupt(irq: usize) {
                 && handler_cap.get_nf_can_send() != 0 {
                 let nf = convert_to_mut_type_ref::<notification_t>(handler_cap.get_nf_ptr());
                 nf.send_signal(handler_cap.get_nf_badge());
+            } else {
+                debug!("no ntfn signal");
             }
         }
         IRQState::IRQTimer => {
-            // debug!("hello");
             for item in unsafe { &NEW_BUFFER_MAP } {
 
                 let new_buffer = item.buf;

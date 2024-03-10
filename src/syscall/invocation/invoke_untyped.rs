@@ -1,3 +1,4 @@
+use log::debug;
 use crate::common::{object::ObjectType, utils::convert_to_mut_type_ref, sel4_config::*, structures::exception_t};
 use crate::debug::tcb_debug_append;
 use crate::task_manager::{tcb_t, get_current_domain};
@@ -6,7 +7,7 @@ use crate::cspace::interface::{cap_t, cte_t, insert_new_cap};
 use crate::syscall::{FREE_INDEX_TO_OFFSET, GET_FREE_INDEX, GET_OFFSET_FREE_PTR, OFFSET_TO_FREE_IDNEX};
 
 use crate::{utils::*, ROUND_DOWN, BIT};
-
+use crate::cspace::deps::preemptionPoint;
 
 
 fn create_new_objects(obj_type: ObjectType, parent: &mut cte_t, dest_cnode: &mut cte_t, dest_offset: usize,
@@ -57,7 +58,7 @@ fn create_object(obj_type: ObjectType, region_base: pptr_t, user_size: usize, de
 
         ObjectType::NormalPageObject | ObjectType::GigaPageObject | ObjectType::MegaPageObject => {
             cap_t::new_frame_cap(asidInvalid, region_base, obj_type.get_frame_type(),
-                VMReadWrite, device_mem as usize, 0)
+                VMReadWrite, device_mem, 0)
         }
     }
 }
@@ -68,13 +69,12 @@ pub fn reset_untyped_cap(srcSlot: &mut cte_t) -> exception_t {
     let region_base = prev_cap.get_untyped_ptr();
     let chunk = CONFIG_RESET_CHUNK_BITS;
     let offset = FREE_INDEX_TO_OFFSET(prev_cap.get_untyped_free_index());
-    let device_mem = prev_cap.get_frame_is_device();
+    let device_mem = prev_cap.get_untyped_is_device();
     if offset == 0 {
         return exception_t::EXCEPTION_NONE;
     }
-
-    if device_mem != 0 && block_size < chunk {
-        if device_mem != 0 {
+    if device_mem != 0 || block_size < chunk {
+        if device_mem == 0 {
             clear_memory(region_base as *mut u8, block_size);
         }
         prev_cap.set_untyped_free_index(0);
@@ -85,6 +85,10 @@ pub fn reset_untyped_cap(srcSlot: &mut cte_t) -> exception_t {
                 GET_OFFSET_FREE_PTR(region_base, offset as usize) as *mut u8,
                 chunk,
             );
+            // let status = preemptionPoint();
+            // if status != exception_t::EXCEPTION_NONE {
+            //     return status;
+            // }
             offset -= BIT!(chunk) as isize;
         }
         prev_cap.set_untyped_free_index(OFFSET_TO_FREE_IDNEX(offset as usize));

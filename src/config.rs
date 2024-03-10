@@ -25,7 +25,7 @@ pub const KERNEL_STACK_ALIGNMENT: usize = 4096;
 pub const tcbCNodeEntries: usize = 5;
 
 //FIXME:this constant is generated , maybe need to transfer from C code
-pub const CONFIG_PADDR_USER_DEVICE_TOP: usize = 549755813888;
+pub const CONFIG_PADDR_USER_DEVICE_TOP: usize = 0x8000000000;
 
 pub const MAX_NUM_FREEMEM_REG: usize = 16;
 pub const NUM_RESERVED_REGIONS: usize = 3;
@@ -108,13 +108,13 @@ pub const PLIC_IRQ_OFFSET: usize = 0;
 pub const PLIC_MAX_IRQ: usize = 0;
 
 pub enum IRQConst {
-    PLIC_MAX_IRQ = 0,
+    PLIC_IRQ_OFFSET = 0,
+    PLIC_NET,
+    PLIC_RESERVE,
     #[cfg(feature = "ENABLE_SMP")]
     INTERRUPT_IPI_0,
     #[cfg(feature = "ENABLE_SMP")]
     INTERRUPT_IPI_1,
-    #[cfg(feature = "ENABLE_SMP")]
-    INTERRUPT_IPI_2,
     KERNEL_TIMER_IRQ,
 }
 

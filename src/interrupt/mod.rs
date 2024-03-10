@@ -15,7 +15,7 @@ use crate::{config::*, riscv::read_sip};
 
 #[cfg(feature = "ENABLE_SMP")]
 use crate::deps::{ipi_clear_irq, ipi_get_irq};
-use crate::interrupt::plic::{PLIC, PlicTrait};
+use crate::interrupt::plic::{RV_PLIC, PlicTrait};
 
 #[no_mangle]
 pub static mut intStateIRQTable: [usize; maxIRQ + 1] = [0; maxIRQ + 1];
@@ -113,6 +113,8 @@ pub fn mask_interrupt(disable: bool, irq: usize) {
         } else {
             set_sie_mask(BIT!(SIE_STIE));
         }
+    } else {
+        RV_PLIC::mask_irq(disable, irq);
     }
 }
 
@@ -134,7 +136,7 @@ pub fn ackInterrupt(irq: usize) {
         return;
     }
     #[cfg(feature = "ENABLE_SMP")] {
-        if irq == IRQConst::INTERRUPT_IPI_0 as usize || irq == IRQConst::INTERRUPT_IPI_1 as usize || irq == IRQConst::INTERRUPT_IPI_2 as usize {
+        if irq == IRQConst::INTERRUPT_IPI_0 as usize || irq == IRQConst::INTERRUPT_IPI_1 as usize {
             unsafe { ipi_clear_irq(irq); }
         }
     }
@@ -142,7 +144,7 @@ pub fn ackInterrupt(irq: usize) {
 
 #[inline]
 pub fn is_irq_active(irq: usize) -> bool {
-    get_irq_state(irq) == IRQState::IRQInactive
+    get_irq_state(irq) != IRQState::IRQInactive
 }
 
 #[no_mangle]
@@ -162,7 +164,8 @@ pub fn getActiveIRQ() -> usize {
     #[cfg(feature = "ENABLE_SMP")] {
         use crate::common::sbi::clear_ipi;
         if (sip & BIT!(SIP_SEIP)) != 0 {
-            irq = 0;
+            // irq = IRQConst::PLIC_NET as usize;
+            irq = RV_PLIC::get_claim();
         } else if (sip & BIT!(SIP_SSIP)) != 0 {
             clear_ipi();
             irq = unsafe { ipi_get_irq() };
@@ -197,5 +200,9 @@ pub fn init_irq_controller() {
     for i in 0..CONFIG_MAX_NUM_NODES {
         unsafe { active_irq[i] = irqInvalid; }
     }
-    PLIC.init_controller();
+    // RV_PLIC::init_controller();
+}
+
+pub fn init_hart() {
+    RV_PLIC::init_hart();
 }
