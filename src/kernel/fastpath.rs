@@ -8,6 +8,7 @@ use log::debug;
 use crate::common::{sel4_config::*, message_info::*, fault::*, utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref}};
 use crate::cspace::interface::*;
 use crate::MASK;
+use crate::riscv::read_time;
 
 #[inline]
 #[no_mangle]
@@ -279,6 +280,11 @@ pub fn fastpath_reply_recv(cptr: usize, msgInfo: usize) {
 
     let dom = 0;
     if unlikely(!isHighestPrio(dom, caller.tcbPriority)) {
+        slowpath(SysReplyRecv as usize);
+    }
+
+    #[cfg(feature = "ENABLE_SMP")]
+    if unlikely(get_currenct_thread().tcbAffinity != caller.tcbAffinity) {
         slowpath(SysReplyRecv as usize);
     }
     thread_state_ptr_mset_blockingObject_tsType(

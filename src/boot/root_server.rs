@@ -121,7 +121,7 @@ unsafe fn create_initial_thread(
     tcb.tcbArch = arch_tcb_t::default();
 
     let cnode = convert_to_mut_type_ref::<cte_t>(root_cnode_cap.get_cap_ptr());
-    let ipc_buf_slot  =cnode.get_offset_slot(seL4_CapInitThreadIPCBuffer);
+    let ipc_buf_slot = cnode.get_offset_slot(seL4_CapInitThreadIPCBuffer);
     let dc_ret = ipc_buf_slot.derive_cap(&ipcbuf_cap.clone());
     if dc_ret.status != exception_t::EXCEPTION_NONE {
         debug!("Failed to derive copy of IPC Buffer\n");

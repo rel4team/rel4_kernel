@@ -1,6 +1,6 @@
 env:
-	rustup install nightly-2024-01-31
-	rustup default nightly-2024-01-31
+	rustup install nightly-2023-05-01
+	rustup default nightly-2023-05-01
 	rustup target add riscv64imac-unknown-none-elf
 	rustup component add rust-src
 run:

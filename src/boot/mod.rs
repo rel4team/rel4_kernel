@@ -218,7 +218,7 @@ pub fn try_init_kernel(
     rust_map_kernel_window();
     init_cpu();
     init_irq_controller();
-    // init_hart();
+    init_hart();
 
     let dtb_p_reg = init_dtb(dtb_size, dtb_phys_addr, &mut extra_bi_size);
     if dtb_p_reg.is_none() {
@@ -287,7 +287,7 @@ pub fn try_init_kernel_secondary_core(_hart_id: usize, _core_id: usize) -> bool 
     while node_boot_lock.lock().eq(&0) {}
     // debug!("start try_init_kernel_secondary_core");
     init_cpu();
-    // init_hart();
+    init_hart();
     debug!("init cpu compl");
     unsafe { clh_lock_acquire(cpu_id(), false) }
     ksNumCPUs.lock().add_assign(1);

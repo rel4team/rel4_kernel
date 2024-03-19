@@ -200,7 +200,7 @@ pub fn init_irq_controller() {
     for i in 0..CONFIG_MAX_NUM_NODES {
         unsafe { active_irq[i] = irqInvalid; }
     }
-    // RV_PLIC::init_controller();
+    RV_PLIC::init_controller();
 }
 
 pub fn init_hart() {
