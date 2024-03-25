@@ -55,13 +55,18 @@ pub fn get_context(hart_id: usize, mode: char) -> usize {
     }
 }
 
+const CPU_IDX: usize = 0;
+
 impl PlicTrait for RVPlic {
     #[cfg(feature = "board_qemu")]
     fn get_claim() -> usize {
-        let hart_id = cpu_index_to_id(cpu_id());
-        let context = get_context(hart_id, 'S');
+        // debug!("get_claim");
         let mut kernel_irq = irqInvalid;
+        let hart_id = cpu_index_to_id(CPU_IDX);
+        let context = get_context(hart_id, 'S');
+
         if let Some(irq) = RVPlic::claim(context) {
+            // debug!("[get_claim] irq: {}", irq);
             kernel_irq = match irq {
                 8 => IRQConst::PLIC_NET as usize,
                 _ => irqInvalid
@@ -74,14 +79,14 @@ impl PlicTrait for RVPlic {
     #[cfg(feature = "board_qemu")]
     fn mask_irq(disable: bool, irq: usize) {
         if irq == IRQConst::PLIC_NET as usize {
-            let hart_id = cpu_index_to_id(cpu_id());
+            let hart_id = cpu_index_to_id(CPU_IDX);
             let context = get_context(hart_id, 'S');
             if disable {
                 RVPlic::disable(context, 8);
-                debug!("disable net interrupt");
+                debug!("disable net interrupt: {}", hart_id);
             } else {
                 RVPlic::enable(context, 8);
-                debug!("enable net interrupt");
+                debug!("enable net interrupt: {}", hart_id);
             }
         }
     }
@@ -91,13 +96,9 @@ impl PlicTrait for RVPlic {
         let hart_id = cpu_index_to_id(cpu_id());
         let context = get_context(hart_id, 'S');
         for irq in 1..=8 {
-            RVPlic::enable(context, irq);
-            RVPlic::claim(context);
-            RVPlic::complete(context, irq);
+            RVPlic::disable(context, irq);
         }
         RVPlic::set_threshold(context, Priority::any());
-        RVPlic::clear_enable(get_context(hart_id, 'U'), 0);
-        RVPlic::set_threshold(get_context(hart_id, 'M'), Priority::never());
     }
 
     #[cfg(feature = "board_qemu")]

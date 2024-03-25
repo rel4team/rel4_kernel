@@ -97,7 +97,7 @@ impl UIntrSTEntry {
 #[derive(Debug)]
 pub struct UIntrReceiver {
     /// Kernel defined architecture mode and valid bit.
-    mode: u16,
+    pub(crate) mode: u16,
 
     /// The integer ID of the hardware thread running the code.
     hartid: u16,
@@ -106,7 +106,7 @@ pub struct UIntrReceiver {
     _reserved: u32,
 
     /// One bit for each user interrupt vector. There is user-interrupt request for a vector if the corresponding bit is 1.
-    irq: u64,
+    pub(crate) irq: u64,
 }
 
 impl UIntrReceiver {

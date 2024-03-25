@@ -10,6 +10,7 @@ use crate::task_manager::ipc::notification_t;
 use crate::config::{irqInvalid, maxIRQ};
 use crate::interrupt::*;
 use crate::riscv::resetTimer;
+use crate::uintc::UIntrReceiver;
 
 
 #[no_mangle]
@@ -18,7 +19,7 @@ pub fn handleInterruptEntry() -> exception_t {
     let scause = scause::read();
     match scause.cause() {
         scause::Trap::Interrupt(scause::Interrupt::SupervisorExternal) => {
-            debug!("SupervisorExternal");
+            // debug!("SupervisorExternal");
         }
         scause::Trap::Interrupt(scause::Interrupt::UserExternal) => {
             debug!("UserExternal");
@@ -62,13 +63,19 @@ pub fn handleInterrupt(irq: usize) {
             debug!("Received disabled IRQ: {}\n", irq);
         }
         IRQState::IRQSignal => {
-            debug!("IRQSignal");
+            // debug!("IRQSignal");
             let handler_slot = get_irq_handler_slot(irq);
             let handler_cap = &handler_slot.cap;
             if handler_cap.get_cap_type() == CapTag::CapNotificationCap
                 && handler_cap.get_nf_can_send() != 0 {
+
                 let nf = convert_to_mut_type_ref::<notification_t>(handler_cap.get_nf_ptr());
-                nf.send_signal(handler_cap.get_nf_badge());
+                let recv_idx = nf.get_recv_idx();
+                // debug!("send uipi, recv_idx: {}", recv_idx);
+                let mut uirs = UIntrReceiver::from(recv_idx);
+                uirs.irq |= 1;
+                uirs.sync(recv_idx);
+                // nf.send_signal(handler_cap.get_nf_badge());
             } else {
                 debug!("no ntfn signal");
             }
