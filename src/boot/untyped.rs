@@ -1,14 +1,14 @@
 use super::{ndks_boot, utils::*};
 use crate::{
     config::*,
-    structures::{region_t, p_region_t, seL4_SlotRegion, seL4_SlotPos, seL4_UntypedDesc}
+    structures::{p_region_t, region_t, seL4_SlotPos, seL4_SlotRegion, seL4_UntypedDesc},
 };
 
+use crate::{BIT, IS_ALIGNED, MASK};
+use log::debug;
 use sel4_common::sel4_config::{seL4_MaxUntypedBits, seL4_MinUntypedBits};
-use crate::{MASK, BIT, IS_ALIGNED};
 use sel4_common::utils::MAX_FREE_INDEX;
 use sel4_cspace::interface::*;
-use log::debug;
 use sel4_vspace::*;
 
 pub fn create_untypeds(root_cnode_cap: &cap_t, boot_mem_reuse_reg: region_t) -> bool {
@@ -77,7 +77,6 @@ pub fn create_untypeds(root_cnode_cap: &cap_t, boot_mem_reuse_reg: region_t) -> 
         true
     }
 }
-
 
 fn create_untypeds_for_region(
     root_cnode_cap: &cap_t,

@@ -5,6 +5,7 @@ use crate::sel4_config::*;
 macro_rules! plus_define_bitfield {
     ($name:ident, $total_words:expr, $type_index:expr, $type_offset:expr, $type_bits:expr =>
         { $($variant:ident, $type_value:expr => { $($field:ident, $get_field:ident, $set_field:ident, $index:expr, $offset:expr, $bits:expr, $shift:expr, $sign_ext: expr),* }),* }) => {
+        #[repr(C)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
         pub struct $name {
             pub words: [usize; $total_words],
@@ -86,7 +87,6 @@ macro_rules! IS_ALIGNED {
     }};
 }
 
-
 #[macro_export]
 /// Calculate 1 << n for given n.
 macro_rules! BIT {
@@ -105,24 +105,18 @@ pub fn MAX_FREE_INDEX(bits: usize) -> usize {
 #[inline]
 pub fn convert_to_type_ref<T>(addr: usize) -> &'static T {
     assert_ne!(addr, 0);
-    unsafe {
-        & *(addr as *mut T)
-    }
+    unsafe { &*(addr as *mut T) }
 }
 
 #[inline]
 pub fn convert_to_mut_type_ref<T>(addr: usize) -> &'static mut T {
     assert_ne!(addr, 0);
-    unsafe {
-        &mut *(addr as *mut T)
-    }
+    unsafe { &mut *(addr as *mut T) }
 }
 
 #[inline]
 pub fn convert_to_mut_type_ref_unsafe<T>(addr: usize) -> &'static mut T {
-    unsafe {
-        &mut *(addr as *mut T)
-    }
+    unsafe { &mut *(addr as *mut T) }
 }
 
 #[inline]
@@ -143,11 +137,13 @@ pub fn convert_to_option_mut_type_ref<T>(addr: usize) -> Option<&'static mut T> 
 
 #[inline]
 pub fn cpu_id() -> usize {
-    #[cfg(feature = "ENABLE_SMP")] {
+    #[cfg(feature = "ENABLE_SMP")]
+    {
         use crate::smp::get_currenct_cpu_index;
         get_currenct_cpu_index()
     }
-    #[cfg(not(feature = "ENABLE_SMP"))] {
+    #[cfg(not(feature = "ENABLE_SMP"))]
+    {
         0
     }
 }

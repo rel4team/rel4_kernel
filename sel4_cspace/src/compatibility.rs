@@ -1,7 +1,1 @@
-
-pub use super::cap::zombie::{
-    Zombie_new,
-    ZombieType_ZombieTCB
-};
-
-
+pub use super::cap::zombie::{ZombieType_ZombieTCB, Zombie_new};

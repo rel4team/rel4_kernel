@@ -1,15 +1,27 @@
 // use crate::{common::{sel4_config::*, structures::exception_t, utils::{convert_to_mut_type_ref, pageBitsForSize}, fault::*}, BIT, ROUND_DOWN};
-use sel4_cspace::interface::{cap_t, CapTag};
+use super::utils::{
+    kpptr_to_paddr, RISCV_GET_LVL_PGSIZE, RISCV_GET_LVL_PGSIZE_BITS, RISCV_GET_PT_INDEX,
+};
+use crate::arch::pte_t;
 use core::intrinsics::unlikely;
-use sel4_common::{BIT, ROUND_DOWN};
 use sel4_common::fault::lookup_fault_t;
-use sel4_common::sel4_config::{KERNEL_ELF_BASE, KERNEL_ELF_PADDR_BASE, PADDR_BASE, PPTR_BASE, PPTR_BASE_OFFSET, PPTR_TOP, PT_INDEX_BITS, seL4_PageBits};
+use sel4_common::sel4_config::{
+    seL4_PageBits, KERNEL_ELF_BASE, KERNEL_ELF_PADDR_BASE, PADDR_BASE, PPTR_BASE, PPTR_BASE_OFFSET,
+    PPTR_TOP, PT_INDEX_BITS,
+};
 use sel4_common::structures::exception_t;
 use sel4_common::utils::{convert_to_mut_type_ref, pageBitsForSize};
-use super::pte::pte_t;
-use super::utils::{RISCV_GET_PT_INDEX, RISCV_GET_LVL_PGSIZE, RISCV_GET_LVL_PGSIZE_BITS, kpptr_to_paddr};
+use sel4_common::{BIT, ROUND_DOWN};
+use sel4_cspace::interface::{cap_t, CapTag};
 
-use super::{satp::{setVSpaceRoot, sfence}, asid::{find_vspace_for_asid, asid_t}, utils::pptr_to_paddr, structures::{vptr_t, pptr_t}};
+#[cfg(target_arch = "riscv64")]
+use crate::arch::satp::{setVSpaceRoot, sfence};
+
+use super::{
+    asid::{asid_t, find_vspace_for_asid},
+    structures::{pptr_t, vptr_t},
+    utils::pptr_to_paddr,
+};
 
 #[no_mangle]
 #[link_section = ".page_table"]
@@ -20,7 +32,6 @@ pub static mut kernel_root_pageTable: [pte_t; BIT!(PT_INDEX_BITS)] =
 #[link_section = ".page_table"]
 pub static mut kernel_image_level2_pt: [pte_t; BIT!(PT_INDEX_BITS)] =
     [pte_t { words: [0] }; BIT!(PT_INDEX_BITS)];
-
 
 #[no_mangle]
 pub fn rust_map_kernel_window() {
@@ -78,7 +89,6 @@ pub fn copyGlobalMappings(Lvl1pt: usize) {
     }
 }
 
-
 pub fn set_vm_root(vspace_root: &cap_t) -> Result<(), lookup_fault_t> {
     if vspace_root.get_cap_type() != CapTag::CapPageTableCap {
         unsafe {
@@ -91,7 +101,9 @@ pub fn set_vm_root(vspace_root: &cap_t) -> Result<(), lookup_fault_t> {
     let find_ret = find_vspace_for_asid(asid);
     let mut ret = Ok(());
     if unlikely(
-        find_ret.status != exception_t::EXCEPTION_NONE || find_ret.vspace_root.is_none() || find_ret.vspace_root.unwrap() != lvl1pt,
+        find_ret.status != exception_t::EXCEPTION_NONE
+            || find_ret.vspace_root.is_none()
+            || find_ret.vspace_root.unwrap() != lvl1pt,
     ) {
         unsafe {
             if let Some(lookup_fault) = find_ret.lookup_fault {
@@ -104,23 +116,30 @@ pub fn set_vm_root(vspace_root: &cap_t) -> Result<(), lookup_fault_t> {
     ret
 }
 
-
 #[no_mangle]
-pub fn unmapPage(page_size: usize, asid: asid_t, vptr: vptr_t, pptr: pptr_t) -> Result<(), lookup_fault_t> {
+pub fn unmapPage(
+    page_size: usize,
+    asid: asid_t,
+    vptr: vptr_t,
+    pptr: pptr_t,
+) -> Result<(), lookup_fault_t> {
     let find_ret = find_vspace_for_asid(asid);
     if find_ret.status != exception_t::EXCEPTION_NONE {
         return Err(find_ret.lookup_fault.unwrap());
     }
 
-    let lu_ret = unsafe {(*find_ret.vspace_root.unwrap()).lookup_pt_slot(vptr)};
+    let lu_ret = unsafe { (*find_ret.vspace_root.unwrap()).lookup_pt_slot(vptr) };
 
     if lu_ret.ptBitsLeft != pageBitsForSize(page_size) {
         return Ok(());
     }
 
-    let slot = unsafe {&(*lu_ret.ptSlot)};
+    let slot = unsafe { &(*lu_ret.ptSlot) };
 
-    if slot.get_vaild() == 0 || slot.is_pte_table() || slot.get_ppn() << seL4_PageBits != pptr_to_paddr(pptr) {
+    if slot.get_vaild() == 0
+        || slot.is_pte_table()
+        || slot.get_ppn() << seL4_PageBits != pptr_to_paddr(pptr)
+    {
         return Ok(());
     }
 

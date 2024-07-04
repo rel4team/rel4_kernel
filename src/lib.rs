@@ -1,40 +1,38 @@
 #![no_std]
 #![crate_type = "staticlib"]
 #![feature(core_intrinsics)]
+#![feature(const_option)]
+#![feature(const_nonnull_new)]
 #![no_main]
 #![allow(dead_code)]
+#![allow(internal_features)]
 #![allow(non_snake_case)]
 #![allow(non_camel_case_types)]
 #![allow(non_upper_case_globals)]
 #![allow(while_true)]
 #![feature(alloc_error_handler)]
 #![feature(panic_info_message)]
-#![feature(stdsimd)]
 #![feature(linkage)]
 
-
 extern crate core;
-use sel4_common::sbi::shutdown;
+use sel4_common::arch::shutdown;
 mod config;
 // mod console;
-mod lang_items;
-mod utils;
-mod kernel;
-mod structures;
-mod object;
-mod riscv;
-mod syscall;
+mod arch;
 mod boot;
 mod interrupt;
-mod exception;
+mod kernel;
+mod lang_items;
+mod object;
+mod structures;
+mod syscall;
+mod utils;
 
-mod deps;
-mod interfaces_impl;
 mod compatibility;
+mod ffi;
+mod interfaces_impl;
 
-pub use sel4_common::{BIT, MASK, plus_define_bitfield, ROUND_UP, ROUND_DOWN, IS_ALIGNED};
-
-
+pub use sel4_common::{plus_define_bitfield, BIT, IS_ALIGNED, MASK, ROUND_DOWN, ROUND_UP};
 
 #[no_mangle]
 pub extern "C" fn halt() {

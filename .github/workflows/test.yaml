@@ -1,0 +1,67 @@
+name: Test Kernel
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  test-build:
+    runs-on: ubuntu-latest
+    container:
+      image: trustworthysystems/sel4
+      volumes:
+        - .:/code
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        path: rel4_kernel
+    - uses: actions/checkout@v4
+      with:
+        ref: 'mi_dev'
+        path: kernel
+        repository: rel4team/seL4_c_impl
+    - name: Install generaic tools
+      run: apt update && apt install -y wget gcc-riscv64-linux-gnu
+    - uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: nightly-2024-02-01
+        components: rust-src
+        rustflags: 
+    - name: Make rel4_kernel
+      run: cd rel4_kernel && make run
+    - name: Build kernel
+      run: cd kernel && cmake cmake -DCROSS_COMPILER_PREFIX=riscv64-linux-gnu- -C kernel-settings-riscv64.cmake -G Ninja -S . -B build
+    - name: Build Kernel
+      run: cd kernel && ninja -C build
+  sel4-test:
+    runs-on: ubuntu-latest
+    container:
+      image: yfblock/rel4-dev:1.0-CI
+      options: --user=root
+    defaults:
+      run:
+        working-directory: ./sel4-test
+    steps:
+    - run: mkdir sel4-test
+      working-directory: .
+    - uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: nightly-2024-02-01
+        components: rust-src
+        rustflags: 
+        target: riscv64imac-unknown-none-elf
+    - name: Install qemu
+      run: apt update && apt -y install qemu-system-misc
+    - name: Clone Menifest && Sync repositories
+      run: repo init -u https://github.com/rel4team/sel4test-manifest.git -b v1.0 && repo sync
+    - run: cd kernel && git checkout mi_dev
+    - run: cd rel4_kernel && git checkout ${{ github.sha }}
+    - name: Build
+      run: cd rel4_kernel && ./build.py
+    - name: simulate
+      run: cd rel4_kernel/build && ./simulate > 1.log
+      timeout-minutes: 2
+      continue-on-error: true
+    - run: cat rel4_kernel/build/1.log
+    - name: Check Result
+      run: cat rel4_kernel/build/1.log | grep "All is well in the universe"

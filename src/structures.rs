@@ -1,11 +1,8 @@
-use sel4_common::structures::{exception_t, seL4_IPCBuffer};
+use crate::config::{CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS, MAX_NUM_FREEMEM_REG, MAX_NUM_RESV_REG};
 use sel4_common::sel4_config::seL4_MsgMaxExtraCaps;
+use sel4_common::structures::{exception_t, seL4_IPCBuffer};
 use sel4_cspace::interface::{cap_t, cte_t};
 use sel4_vspace::pptr_t;
-use crate::config::{
-    CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS,
-    MAX_NUM_FREEMEM_REG, MAX_NUM_RESV_REG,
-};
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -170,4 +167,3 @@ pub struct syscall_error_t {
 pub struct extra_caps_t {
     pub excaprefs: [pptr_t; seL4_MsgMaxExtraCaps],
 }
-

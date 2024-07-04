@@ -31,8 +31,6 @@ plus_define_bitfield! {
 impl thread_state_t {
     /// Get the state of the thread
     pub fn get_state(&self) -> ThreadState {
-        unsafe {
-            core::mem::transmute::<u8, ThreadState>(self.get_ts_type() as u8)
-        }
+        unsafe { core::mem::transmute::<u8, ThreadState>(self.get_ts_type() as u8) }
     }
 }

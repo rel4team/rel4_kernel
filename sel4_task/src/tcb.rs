@@ -1,23 +1,29 @@
 use core::intrinsics::{likely, unlikely};
 
+use sel4_common::arch::{
+    fault_messages, msgInfoRegister, msgRegister, n_contextRegisters, n_exceptionMessage,
+    n_msgRegisters, n_syscallMessage, FaultIP, NextIP, SSTATUS,
+};
 use sel4_common::fault::*;
-use sel4_common::{BIT, MASK};
 use sel4_common::message_info::seL4_MessageInfo_t;
-use sel4_common::registers::{fault_messages, FaultIP, msgInfoRegister, msgRegister, n_contextRegisters, n_exceptionMessage, n_msgRegisters, n_syscallMessage, NextIP, SSTATUS};
-use sel4_common::utils::{pageBitsForSize, convert_to_mut_type_ref};
-use sel4_cspace::interface::{cte_t, resolve_address_bits, CapTag, cap_t, mdb_node_t, cte_insert};
-use sel4_vspace::{set_vm_root, pptr_t, VMReadWrite, VMReadOnly};
+use sel4_common::utils::{convert_to_mut_type_ref, pageBitsForSize};
+#[cfg(feature = "ENABLE_SMP")]
+use sel4_common::BIT;
+use sel4_common::MASK;
+use sel4_cspace::interface::{cap_t, cte_insert, cte_t, mdb_node_t, resolve_address_bits, CapTag};
+use sel4_vspace::{pptr_t, set_vm_root, VMReadOnly, VMReadWrite};
 
-use sel4_common::sel4_config::*;
-use sel4_common::structures::{seL4_IPCBuffer, exception_t};
 use crate::tcb_queue::tcb_queue_t;
+use sel4_common::sel4_config::*;
+use sel4_common::structures::{exception_t, seL4_IPCBuffer};
 
-
-use super::scheduler::{addToBitmap, get_currenct_thread, possible_switch_to, ready_queues_index, removeFromBitmap, rescheduleRequired, schedule_tcb, set_current_thread};
+use super::scheduler::{
+    addToBitmap, get_currenct_thread, possible_switch_to, ready_queues_index, removeFromBitmap,
+    rescheduleRequired, schedule_tcb, set_current_thread,
+};
 use super::structures::lookupSlot_raw_ret_t;
 
 use super::thread_state::*;
-
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -31,7 +37,7 @@ impl Default for arch_tcb_t {
     fn default() -> Self {
         let mut registers = [0; n_contextRegisters];
         registers[SSTATUS] = 0x00040020;
-        Self {registers }
+        Self { registers }
     }
 }
 
@@ -109,10 +115,13 @@ impl tcb_t {
     /// Check if the TCB is stopped by checking the state
     pub fn is_stopped(&self) -> bool {
         match self.get_state() {
-            ThreadState::ThreadStateInactive | ThreadState::ThreadStateBlockedOnNotification | ThreadState::ThreadStateBlockedOnReceive
-            | ThreadState::ThreadStateBlockedOnReply | ThreadState::ThreadStateBlockedOnSend => true,
+            ThreadState::ThreadStateInactive
+            | ThreadState::ThreadStateBlockedOnNotification
+            | ThreadState::ThreadStateBlockedOnReceive
+            | ThreadState::ThreadStateBlockedOnReply
+            | ThreadState::ThreadStateBlockedOnSend => true,
 
-            _ => false
+            _ => false,
         }
     }
 
@@ -120,8 +129,8 @@ impl tcb_t {
     /// Check if the TCB is runnable by checking the state
     pub fn is_runnable(&self) -> bool {
         match self.get_state() {
-            ThreadState::ThreadStateRunning | ThreadState::ThreadStateRestart   => true,
-            _                                                                   => false,
+            ThreadState::ThreadStateRunning | ThreadState::ThreadStateRestart => true,
+            _ => false,
         }
     }
 
@@ -224,13 +233,15 @@ impl tcb_t {
 
     #[inline]
     /// Get the scheduling queue by index from ksReadyQueues
-    pub fn get_sched_queue(&mut self, index: usize) ->  &'static mut tcb_queue_t {
+    pub fn get_sched_queue(&mut self, index: usize) -> &'static mut tcb_queue_t {
         unsafe {
-            #[cfg(feature = "ENABLE_SMP")] {
+            #[cfg(feature = "ENABLE_SMP")]
+            {
                 use super::scheduler::ksSMP;
                 &mut ksSMP[self.tcbAffinity].ksReadyQueues[index]
             }
-            #[cfg(not(feature = "ENABLE_SMP"))] {
+            #[cfg(not(feature = "ENABLE_SMP"))]
+            {
                 use super::ksReadyQueues;
                 &mut ksReadyQueues[index]
             }
@@ -240,10 +251,12 @@ impl tcb_t {
     #[inline]
     /// Get the CPU of the TCB, 0 if not in SMP, tcbAffinity if in SMP
     pub fn get_cpu(&self) -> usize {
-        #[cfg(feature = "ENABLE_SMP")] {
+        #[cfg(feature = "ENABLE_SMP")]
+        {
             self.tcbAffinity
         }
-        #[cfg(not(feature = "ENABLE_SMP"))] {
+        #[cfg(not(feature = "ENABLE_SMP"))]
+        {
             0
         }
     }
@@ -256,7 +269,8 @@ impl tcb_t {
             let idx = ready_queues_index(dom, prio);
             let queue = self.get_sched_queue(idx);
             if self.tcbSchedPrev != 0 {
-                convert_to_mut_type_ref::<tcb_t>(self.tcbSchedPrev).tcbSchedNext = self.tcbSchedNext;
+                convert_to_mut_type_ref::<tcb_t>(self.tcbSchedPrev).tcbSchedNext =
+                    self.tcbSchedNext;
             } else {
                 queue.head = self.tcbSchedNext as *mut tcb_t as usize;
                 if likely(self.tcbSchedNext == 0) {
@@ -264,7 +278,8 @@ impl tcb_t {
                 }
             }
             if self.tcbSchedNext != 0 {
-                convert_to_mut_type_ref::<tcb_t>(self.tcbSchedNext).tcbSchedPrev = self.tcbSchedPrev;
+                convert_to_mut_type_ref::<tcb_t>(self.tcbSchedNext).tcbSchedPrev =
+                    self.tcbSchedPrev;
             } else {
                 queue.tail = self.tcbSchedPrev as *mut tcb_t as usize;
             }
@@ -306,12 +321,15 @@ impl tcb_t {
     #[cfg(feature = "ENABLE_SMP")]
     #[inline]
     fn update_queue(&self) {
-        use super::scheduler::{ksSMP, ksCurDomain};
-        use sel4_common::utils::{cpu_id, convert_to_type_ref};
+        use super::scheduler::{ksCurDomain, ksSMP};
+        use sel4_common::utils::{convert_to_type_ref, cpu_id};
         unsafe {
             if self.tcbAffinity != cpu_id() && self.domain == ksCurDomain {
-                let target_current = convert_to_type_ref::<tcb_t>(ksSMP[self.tcbAffinity].ksCurThread);
-                if ksSMP[self.tcbAffinity].ksIdleThread == ksSMP[self.tcbAffinity].ksCurThread || self.tcbPriority > target_current.tcbPriority {
+                let target_current =
+                    convert_to_type_ref::<tcb_t>(ksSMP[self.tcbAffinity].ksCurThread);
+                if ksSMP[self.tcbAffinity].ksIdleThread == ksSMP[self.tcbAffinity].ksCurThread
+                    || self.tcbPriority > target_current.tcbPriority
+                {
                     ksSMP[cpu_id()].ipiReschedulePending |= BIT!(self.tcbAffinity);
                 }
             }
@@ -353,7 +371,10 @@ impl tcb_t {
     pub fn lookup_slot(&self, cap_ptr: usize) -> lookupSlot_raw_ret_t {
         let thread_root = self.get_cspace(tcbCTable).cap;
         let res_ret = resolve_address_bits(&thread_root, cap_ptr, wordBits);
-        lookupSlot_raw_ret_t { status: res_ret.status, slot: res_ret.slot }
+        lookupSlot_raw_ret_t {
+            status: res_ret.status,
+            slot: res_ret.slot,
+        }
     }
 
     #[inline]
@@ -406,8 +427,11 @@ impl tcb_t {
 
         let caller_slot = self.get_cspace_mut_ref(tcbCaller);
         assert_eq!(caller_slot.cap.get_cap_type(), CapTag::CapNullCap);
-        cte_insert(&cap_t::new_reply_cap(can_grant as usize, 0, sender.get_ptr()),
-                   reply_slot, caller_slot);
+        cte_insert(
+            &cap_t::new_reply_cap(can_grant as usize, 0, sender.get_ptr()),
+            reply_slot,
+            caller_slot,
+        );
     }
 
     #[inline]
@@ -437,7 +461,9 @@ impl tcb_t {
         if likely(vm_rights == VMReadWrite || (!is_receiver && vm_rights == VMReadOnly)) {
             let base_ptr = buffer_cap.get_frame_base_ptr();
             let page_bits = pageBitsForSize(buffer_cap.get_frame_size());
-            return Some(convert_to_mut_type_ref::<seL4_IPCBuffer>(base_ptr + (w_buffer_ptr & MASK!(page_bits))));
+            return Some(convert_to_mut_type_ref::<seL4_IPCBuffer>(
+                base_ptr + (w_buffer_ptr & MASK!(page_bits)),
+            ));
         }
         return None;
     }
@@ -447,7 +473,10 @@ impl tcb_t {
     /// * `res` - The result array to store the extra caps
     /// # Returns
     /// The result of the lookup represented by seL4_Fault_t
-    pub fn lookup_extra_caps(&self, res: &mut [pptr_t; seL4_MsgMaxExtraCaps]) -> Result<(), seL4_Fault_t>{
+    pub fn lookup_extra_caps(
+        &self,
+        res: &mut [pptr_t; seL4_MsgMaxExtraCaps],
+    ) -> Result<(), seL4_Fault_t> {
         let info = seL4_MessageInfo_t::from_word_security(self.get_register(msgInfoRegister));
         if let Some(buffer) = self.lookup_ipc_buffer(false) {
             let length = info.get_extra_caps();
@@ -455,7 +484,7 @@ impl tcb_t {
             while i < length {
                 let cptr = buffer.get_extra_cptr(i);
                 let lu_ret = self.lookup_slot(cptr);
-                if unlikely(lu_ret.status != exception_t::EXCEPTION_NONE)  {
+                if unlikely(lu_ret.status != exception_t::EXCEPTION_NONE) {
                     return Err(seL4_Fault_t::new_cap_fault(cptr, false as usize));
                 }
                 res[i] = lu_ret.slot as usize;
@@ -474,7 +503,11 @@ impl tcb_t {
     /// * `buf` - The IPC buffer to look up
     /// # Returns
     /// The result of the lookup represented by seL4_Fault_t
-    pub fn lookup_extra_caps_with_buf(&self, res: &mut [pptr_t; seL4_MsgMaxExtraCaps], buf: Option<&seL4_IPCBuffer>) -> Result<(), seL4_Fault_t>{
+    pub fn lookup_extra_caps_with_buf(
+        &self,
+        res: &mut [pptr_t; seL4_MsgMaxExtraCaps],
+        buf: Option<&seL4_IPCBuffer>,
+    ) -> Result<(), seL4_Fault_t> {
         let info = seL4_MessageInfo_t::from_word_security(self.get_register(msgInfoRegister));
         if let Some(buffer) = buf {
             let length = info.get_extra_caps();
@@ -482,7 +515,7 @@ impl tcb_t {
             while i < length {
                 let cptr = buffer.get_extra_cptr(i);
                 let lu_ret = self.lookup_slot(cptr);
-                if unlikely(lu_ret.status != exception_t::EXCEPTION_NONE)  {
+                if unlikely(lu_ret.status != exception_t::EXCEPTION_NONE) {
                     return Err(seL4_Fault_t::new_cap_fault(cptr, false as usize));
                 }
                 res[i] = lu_ret.slot as usize;
@@ -496,7 +529,10 @@ impl tcb_t {
     }
 
     /// As same as `lookup_ipc_buffer`, but the result is mutable reference
-    pub fn lookup_mut_ipc_buffer(&mut self, is_receiver: bool) -> Option<&'static mut seL4_IPCBuffer> {
+    pub fn lookup_mut_ipc_buffer(
+        &mut self,
+        is_receiver: bool,
+    ) -> Option<&'static mut seL4_IPCBuffer> {
         let w_buffer_ptr = self.tcbIPCBuffer;
         let buffer_cap = self.get_cspace(tcbBuffer).cap;
         if buffer_cap.get_cap_type() != CapTag::CapFrameCap {
@@ -507,7 +543,9 @@ impl tcb_t {
         if vm_rights == VMReadWrite || (!is_receiver && vm_rights == VMReadOnly) {
             let base_ptr = buffer_cap.get_frame_base_ptr();
             let page_bits = pageBitsForSize(buffer_cap.get_frame_size());
-            return Some(convert_to_mut_type_ref::<seL4_IPCBuffer>(base_ptr + (w_buffer_ptr & MASK!(page_bits))));
+            return Some(convert_to_mut_type_ref::<seL4_IPCBuffer>(
+                base_ptr + (w_buffer_ptr & MASK!(page_bits)),
+            ));
         }
         return None;
     }
@@ -554,11 +592,11 @@ impl tcb_t {
             LookupFaultType::InvaildRoot => i,
             LookupFaultType::MissingCap => {
                 self.set_mr(offset + 1, fault.missing_cap_get_bits_left())
-            },
+            }
             LookupFaultType::DepthMismatch => {
                 self.set_mr(offset + 1, fault.depth_mismatch_get_bits_left());
                 self.set_mr(offset + 2, fault.depth_mismatch_get_bits_found())
-            },
+            }
             LookupFaultType::GuardMismatch => {
                 self.set_mr(offset + 1, fault.guard_mismatch_get_bits_left());
                 self.set_mr(offset + 2, fault.guard_mismatch_get_guard_found());
@@ -572,19 +610,20 @@ impl tcb_t {
     /// The mutable ref of receive slot of the TCB
     pub fn get_receive_slot(&mut self) -> Option<&'static mut cte_t> {
         if let Some(buffer) = self.lookup_ipc_buffer(true) {
-            let cptr= buffer.receiveCNode;
+            let cptr = buffer.receiveCNode;
             let lu_ret = self.lookup_slot(cptr);
             if lu_ret.status != exception_t::EXCEPTION_NONE {
                 return None;
             }
             let cnode_cap = unsafe { &(*lu_ret.slot).cap };
             let lus_ret = resolve_address_bits(cnode_cap, buffer.receiveIndex, buffer.receiveDepth);
-            if unlikely(lus_ret.status != exception_t::EXCEPTION_NONE || lus_ret.bitsRemaining != 0) {
+            if unlikely(lus_ret.status != exception_t::EXCEPTION_NONE || lus_ret.bitsRemaining != 0)
+            {
                 return None;
             }
-            return Some(convert_to_mut_type_ref::<cte_t>(lus_ret.slot as usize))
+            return Some(convert_to_mut_type_ref::<cte_t>(lus_ret.slot as usize));
         }
-        return None
+        return None;
     }
 
     #[inline]
@@ -600,7 +639,10 @@ impl tcb_t {
             receiver.set_register(msgRegister[i], self.get_register(msgRegister[i]));
             i += 1;
         }
-        if let (Some(send_buffer), Some(recv_buffer)) = (self.lookup_ipc_buffer(false), receiver.lookup_mut_ipc_buffer(true)) {
+        if let (Some(send_buffer), Some(recv_buffer)) = (
+            self.lookup_ipc_buffer(false),
+            receiver.lookup_mut_ipc_buffer(true),
+        ) {
             unsafe {
                 let recv_ptr = recv_buffer as *mut seL4_IPCBuffer as *mut usize;
                 let send_ptr = send_buffer as *const seL4_IPCBuffer as *const usize;
@@ -684,30 +726,45 @@ impl tcb_t {
             FaultType::CapFault => {
                 receiver.set_mr(seL4_CapFault_IP, self.get_register(FaultIP));
                 receiver.set_mr(seL4_CapFault_Addr, self.tcbFault.cap_fault_get_address());
-                receiver.set_mr(seL4_CapFault_InRecvPhase, self.tcbFault.cap_fault_get_in_receive_phase());
-                receiver.set_lookup_fault_mrs(seL4_CapFault_LookupFailureType, &self.tcbLookupFailure)
-            },
+                receiver.set_mr(
+                    seL4_CapFault_InRecvPhase,
+                    self.tcbFault.cap_fault_get_in_receive_phase(),
+                );
+                receiver
+                    .set_lookup_fault_mrs(seL4_CapFault_LookupFailureType, &self.tcbLookupFailure)
+            }
             FaultType::UnknownSyscall => {
                 self.copy_syscall_fault_mrs(receiver);
-                receiver.set_mr(n_syscallMessage, self.tcbFault.unknown_syscall_get_syscall_number())
-            },
+                receiver.set_mr(
+                    n_syscallMessage,
+                    self.tcbFault.unknown_syscall_get_syscall_number(),
+                )
+            }
             FaultType::UserException => {
                 self.copy_exeception_fault_mrs(receiver);
-                receiver.set_mr(n_exceptionMessage, self.tcbFault.user_exeception_get_number());
-                receiver.set_mr(n_exceptionMessage + 1, self.tcbFault.user_exeception_get_code())
-            },
+                receiver.set_mr(
+                    n_exceptionMessage,
+                    self.tcbFault.user_exeception_get_number(),
+                );
+                receiver.set_mr(
+                    n_exceptionMessage + 1,
+                    self.tcbFault.user_exeception_get_code(),
+                )
+            }
             FaultType::VMFault => {
                 receiver.set_mr(seL4_VMFault_IP, self.get_register(FaultIP));
                 receiver.set_mr(seL4_VMFault_Addr, self.tcbFault.vm_fault_get_address());
-                receiver.set_mr(seL4_VMFault_PrefetchFault, self.tcbFault.vm_fault_get_instruction_fault());
+                receiver.set_mr(
+                    seL4_VMFault_PrefetchFault,
+                    self.tcbFault.vm_fault_get_instruction_fault(),
+                );
                 receiver.set_mr(seL4_VMFault_FSR, self.tcbFault.vm_fault_get_fsr())
-            },
+            }
             _ => {
                 panic!("invalid fault")
             }
         }
     }
-
 }
 
 #[inline]

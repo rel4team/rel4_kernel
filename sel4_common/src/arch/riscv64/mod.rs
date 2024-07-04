@@ -1,6 +1,8 @@
 //! SBI (RISC-V Supervisor Binary Interface) wrapper
 #![allow(unused)]
 
+mod registers;
+pub use registers::*;
 use riscv::register::time;
 
 const SBI_SET_TIMER: usize = 0;
@@ -10,7 +12,7 @@ const SBI_CONSOLE_GETCHAR: usize = 2;
 const SBI_CLEAR_IPI: usize = 3;
 const SBI_REMOTE_SFENCE_VMA: usize = 6;
 const SBI_SHUTDOWN: usize = 8;
-const SYSCALL_WRITE:usize =64;
+const SYSCALL_WRITE: usize = 64;
 
 #[no_mangle]
 pub fn sbi_call(which: usize, arg0: usize, arg1: usize, arg2: usize) -> usize {
@@ -26,8 +28,6 @@ pub fn sbi_call(which: usize, arg0: usize, arg1: usize, arg2: usize) -> usize {
     }
     ret
 }
-
-
 
 pub fn set_timer(timer: usize) {
     sbi_call(SBI_SET_TIMER, timer, 0, 0);
@@ -52,7 +52,6 @@ pub fn shutdown() -> ! {
 pub fn sys_write(fd: usize, buffer: &[u8]) {
     sbi_call(SYSCALL_WRITE, fd, buffer.as_ptr() as usize, buffer.len());
 }
-
 
 pub fn remote_sfence_vma(hart_mask: usize, start: usize, size: usize) {
     let virt_addr_hart_mask = (&hart_mask) as *const usize as usize;

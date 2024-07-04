@@ -1,8 +1,7 @@
-use sel4_common::structures::exception_t;
 use crate::cte::cte_t;
+use sel4_common::structures::exception_t;
 
 use super::cap::cap_t;
-
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -21,7 +20,6 @@ impl Default for finaliseSlot_ret {
         }
     }
 }
-
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Clone, Copy)]

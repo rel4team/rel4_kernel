@@ -8,8 +8,8 @@
 
 use log::{self, Level, LevelFilter, Log, Metadata, Record};
 
-use crate::println;
 use super::utils::cpu_id;
+use crate::println;
 
 use spin::Mutex;
 

@@ -2,7 +2,6 @@ use sel4_common::utils::convert_to_mut_type_ref;
 
 use super::tcb::tcb_t;
 
-
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 /// Structure for the tcb queue
@@ -45,6 +44,6 @@ impl tcb_queue_t {
     #[inline]
     /// Check if the queue is empty
     pub fn empty(&self) -> bool {
-        return self.head == 0
+        return self.head == 0;
     }
 }

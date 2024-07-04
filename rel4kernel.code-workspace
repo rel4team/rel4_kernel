@@ -1,0 +1,55 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../kernel/"
+		}
+	],
+	"settings": {
+		"rust-analyzer.check.allTargets": false,
+		"rust-analyzer.cargo.extraEnv": {},
+		"rust-analyzer.cargo.cfgs": {
+			"debug_assertions": null,
+			"miri": null
+		},
+		"files.associations": {
+			"*.json.liquid": "json",
+			"*.yaml.liquid": "yaml",
+			"*.md.liquid": "markdown",
+			"*.js.liquid": "liquid-javascript",
+			"*.css.liquid": "liquid-css",
+			"*.scss.liquid": "liquid-scss",
+			"config.h": "c",
+			"types.h": "c",
+			"compound_types.h": "c",
+			"bootinfo.h": "c",
+			"boot.h": "c",
+			"structures.h": "c",
+			"stdint.h": "c",
+			"autoconf.h": "c",
+			"basic_types.h": "c",
+			"thread.h": "c",
+			"registerset.h": "c",
+			"gen_config.h": "c",
+			"structures_gen.h": "c",
+			"hardware.h": "c",
+			"assert.h": "c",
+			"objecttype.h": "c",
+			"invocation.h": "c",
+			"syscall.h": "c",
+			"interrupt.h": "c",
+			"constants.h": "c",
+			"macros.h": "c",
+			"stdint-gcc.h": "c",
+			"lock.h": "c",
+			"failures.h": "c",
+			"shared_types_gen.h": "c",
+			"shared_types.h": "c",
+			"statedata.h": "c",
+			"vspace.h": "c",
+			"cnode.h": "c"
+		}
+	}
+}

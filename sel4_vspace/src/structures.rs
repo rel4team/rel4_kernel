@@ -8,7 +8,6 @@ pub struct vm_attributes_t {
     pub words: [usize; 1],
 }
 
-
 impl vm_attributes_t {
     pub fn new(value: usize) -> Self {
         Self {
@@ -17,9 +16,7 @@ impl vm_attributes_t {
     }
 
     pub fn from_word(w: usize) -> Self {
-        Self {
-            words: [w]
-        }
+        Self { words: [w] }
     }
 
     pub fn get_execute_never(&self) -> usize {

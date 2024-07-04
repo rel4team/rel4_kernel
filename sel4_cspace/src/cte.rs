@@ -1,10 +1,19 @@
-use core::intrinsics::{unlikely, likely};
-use core::ptr;
-use sel4_common::{structures::exception_t, utils::{convert_to_type_ref, convert_to_mut_type_ref}, sel4_config::wordRadix, MASK};
-use sel4_common::utils::{convert_to_option_mut_type_ref, MAX_FREE_INDEX};
+use super::{
+    cap::{cap_t, is_cap_revocable, same_object_as, same_region_as, CapTag},
+    deps::{finaliseCap, post_cap_deletion, preemptionPoint},
+    mdb::mdb_node_t,
+    structures::{finaliseSlot_ret, resolveAddressBits_ret_t},
+};
 use crate::cap::zombie::capCyclicZombie;
-use super::{cap::{cap_t, CapTag, same_region_as, same_object_as, is_cap_revocable}, mdb::mdb_node_t, structures::{finaliseSlot_ret, resolveAddressBits_ret_t},
-            deps::{finaliseCap, preemptionPoint, post_cap_deletion}};
+use core::intrinsics::{likely, unlikely};
+use core::ptr;
+use sel4_common::utils::{convert_to_option_mut_type_ref, MAX_FREE_INDEX};
+use sel4_common::{
+    sel4_config::wordRadix,
+    structures::exception_t,
+    utils::{convert_to_mut_type_ref, convert_to_type_ref},
+    MASK,
+};
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -120,8 +129,8 @@ impl cte_t {
                 if badge == 0 {
                     return true;
                 }
-                return badge == next.cap.get_ep_badge() &&
-                    !(next.cteMDBNode.get_first_badged() != 0);
+                return badge == next.cap.get_ep_badge()
+                    && !(next.cteMDBNode.get_first_badged() != 0);
             }
             CapTag::CapNotificationCap => {
                 assert_eq!(next.cap.get_cap_type(), CapTag::CapNotificationCap);
@@ -129,10 +138,10 @@ impl cte_t {
                 if badge == 0 {
                     return true;
                 }
-                return badge == next.cap.get_nf_badge() &&
-                    !(next.cteMDBNode.get_first_badged() != 0);
+                return badge == next.cap.get_nf_badge()
+                    && !(next.cteMDBNode.get_first_badged() != 0);
             }
-            _ => true
+            _ => true,
         }
     }
 
@@ -201,7 +210,6 @@ impl cte_t {
             }
         }
         ret
-
     }
 
     pub fn delete_all(&mut self, exposed: bool) -> exception_t {
@@ -219,7 +227,8 @@ impl cte_t {
         if self.cap.get_cap_type() != CapTag::CapNullCap {
             let fc_ret = unsafe { finaliseCap(&self.cap, self.is_final_cap(), true) };
             assert!(
-                cap_removable(&fc_ret.remainder, self) && fc_ret.cleanupInfo.get_cap_type() == CapTag::CapNullCap
+                cap_removable(&fc_ret.remainder, self)
+                    && fc_ret.cleanupInfo.get_cap_type() == CapTag::CapNullCap
             );
             self.set_empty(&cap_t::new_null_cap());
         }
@@ -238,7 +247,9 @@ impl cte_t {
             if next_addr != 0 {
                 let next_node = convert_to_mut_type_ref::<cte_t>(next_addr);
                 next_node.cteMDBNode.set_prev(prev_addr);
-                let first_badged = ((next_node.cteMDBNode.get_first_badged() != 0) || (mdb_node.get_first_badged() != 0)) as usize;
+                let first_badged = ((next_node.cteMDBNode.get_first_badged() != 0)
+                    || (mdb_node.get_first_badged() != 0))
+                    as usize;
                 next_node.cteMDBNode.set_first_badged(first_badged);
             }
             self.cap = cap_t::new_null_cap();
@@ -266,11 +277,13 @@ impl cte_t {
                 }
                 CapTag::CapZombieCap => {
                     let ptr2 = self.cap.get_zombie_ptr();
-                    if ptr == ptr2 && self.cap.get_zombie_number() == n && self.cap.get_zombie_type() == zombie_type {
+                    if ptr == ptr2
+                        && self.cap.get_zombie_number() == n
+                        && self.cap.get_zombie_type() == zombie_type
+                    {
                         assert_eq!(end_slot.cap.get_cap_type(), CapTag::CapNullCap);
                         self.cap.set_zombie_number(n - 1);
                     } else {
-
                         assert!(ptr2 == self_ptr && ptr != self_ptr);
                     }
                 }
@@ -342,18 +355,26 @@ pub fn cte_insert(new_cap: &cap_t, src_slot: &mut cte_t, dest_slot: &mut cte_t) 
 
     (*dest_slot).cap = new_cap.clone();
     (*dest_slot).cteMDBNode = newMDB;
-    src_slot.cteMDBNode.set_next(dest_slot as *const cte_t as usize);
+    src_slot
+        .cteMDBNode
+        .set_next(dest_slot as *const cte_t as usize);
     if newMDB.get_next() != 0 {
         let cte_ref = convert_to_mut_type_ref::<cte_t>(newMDB.get_next());
-        cte_ref.cteMDBNode.set_prev(dest_slot as *const cte_t as usize);
+        cte_ref
+            .cteMDBNode
+            .set_prev(dest_slot as *const cte_t as usize);
     }
 }
 
 pub fn insert_new_cap(parent: &mut cte_t, slot: &mut cte_t, cap: &cap_t) {
     let next = parent.cteMDBNode.get_next();
     slot.cap = cap.clone();
-    slot.cteMDBNode = mdb_node_t::new(next as usize, 1usize, 1usize,
-                                      parent as *const cte_t as usize);
+    slot.cteMDBNode = mdb_node_t::new(
+        next as usize,
+        1usize,
+        1usize,
+        parent as *const cte_t as usize,
+    );
     if next != 0 {
         let next_ref = convert_to_mut_type_ref::<cte_t>(next);
         next_ref.cteMDBNode.set_prev(slot as *const cte_t as usize);
@@ -368,10 +389,7 @@ pub fn cte_move(new_cap: &cap_t, src_slot: &mut cte_t, dest_slot: &mut cte_t) {
     /* Haskell error: "cteInsert to non-empty destination" */
     assert_eq!(dest_slot.cap.get_cap_type(), CapTag::CapNullCap);
     /* Haskell error: "cteInsert: mdb entry must be empty" */
-    assert!(
-        dest_slot.cteMDBNode.get_next() == 0
-            && dest_slot.cteMDBNode.get_prev() == 0
-    );
+    assert!(dest_slot.cteMDBNode.get_next() == 0 && dest_slot.cteMDBNode.get_prev() == 0);
     let mdb = src_slot.cteMDBNode;
     dest_slot.cap = new_cap.clone();
     src_slot.cap = cap_t::new_null_cap();
@@ -381,12 +399,16 @@ pub fn cte_move(new_cap: &cap_t, src_slot: &mut cte_t, dest_slot: &mut cte_t) {
     let prev_ptr = mdb.get_prev();
     if prev_ptr != 0 {
         let prev_ref = convert_to_mut_type_ref::<cte_t>(prev_ptr);
-        prev_ref.cteMDBNode.set_next(dest_slot as *const cte_t as usize);
+        prev_ref
+            .cteMDBNode
+            .set_next(dest_slot as *const cte_t as usize);
     }
     let next_ptr = mdb.get_next();
     if next_ptr != 0 {
         let next_ref = convert_to_mut_type_ref::<cte_t>(next_ptr);
-        next_ref.cteMDBNode.set_prev(dest_slot as *const cte_t as usize);
+        next_ref
+            .cteMDBNode
+            .set_prev(dest_slot as *const cte_t as usize);
     }
 }
 
@@ -397,11 +419,15 @@ pub fn cte_swap(cap1: &cap_t, slot1: &mut cte_t, cap2: &cap_t, slot2: &mut cte_t
     {
         let prev_ptr = mdb1.get_prev();
         if prev_ptr != 0 {
-            convert_to_mut_type_ref::<cte_t>(prev_ptr).cteMDBNode.set_next(slot2 as *const cte_t as usize);
+            convert_to_mut_type_ref::<cte_t>(prev_ptr)
+                .cteMDBNode
+                .set_next(slot2 as *const cte_t as usize);
         }
         let next_ptr = mdb1.get_next();
         if next_ptr != 0 {
-            convert_to_mut_type_ref::<cte_t>(next_ptr).cteMDBNode.set_prev(slot2 as *const cte_t as usize);
+            convert_to_mut_type_ref::<cte_t>(next_ptr)
+                .cteMDBNode
+                .set_prev(slot2 as *const cte_t as usize);
         }
     }
 
@@ -414,15 +440,18 @@ pub fn cte_swap(cap1: &cap_t, slot1: &mut cte_t, cap2: &cap_t, slot2: &mut cte_t
     {
         let prev_ptr = mdb2.get_prev();
         if prev_ptr != 0 {
-            convert_to_mut_type_ref::<cte_t>(prev_ptr).cteMDBNode.set_next(slot1 as *const cte_t as usize);
+            convert_to_mut_type_ref::<cte_t>(prev_ptr)
+                .cteMDBNode
+                .set_next(slot1 as *const cte_t as usize);
         }
         let next_ptr = mdb2.get_next();
         if next_ptr != 0 {
-            convert_to_mut_type_ref::<cte_t>(next_ptr).cteMDBNode.set_prev(slot1 as *const cte_t as usize);
+            convert_to_mut_type_ref::<cte_t>(next_ptr)
+                .cteMDBNode
+                .set_prev(slot1 as *const cte_t as usize);
         }
     }
 }
-
 
 #[inline]
 fn cap_removable(cap: &cap_t, slot: *mut cte_t) -> bool {
@@ -442,7 +471,6 @@ fn cap_removable(cap: &cap_t, slot: *mut cte_t) -> bool {
     }
 }
 
-
 fn setUntypedCapAsFull(srcCap: &cap_t, newCap: &cap_t, srcSlot: &mut cte_t) {
     if srcCap.get_cap_type() == CapTag::CapUntypedCap
         && newCap.get_cap_type() == CapTag::CapUntypedCap
@@ -451,9 +479,9 @@ fn setUntypedCapAsFull(srcCap: &cap_t, newCap: &cap_t, srcSlot: &mut cte_t) {
         if srcCap.get_untyped_ptr() == newCap.get_untyped_ptr()
             && srcCap.get_untyped_block_size() == newCap.get_untyped_block_size()
         {
-            srcSlot.cap.set_untyped_free_index(
-                MAX_FREE_INDEX(srcCap.get_untyped_block_size())
-            );
+            srcSlot
+                .cap
+                .set_untyped_free_index(MAX_FREE_INDEX(srcCap.get_untyped_block_size()));
         }
     }
 }
@@ -462,7 +490,11 @@ fn setUntypedCapAsFull(srcCap: &cap_t, newCap: &cap_t, srcSlot: &mut cte_t) {
 ///
 /// 从给定的cnode、cap index、和depth中找到对应cap的slot，成功则返回slot指针，失败返回找到的最深的cnode
 #[allow(unreachable_code)]
-pub fn resolve_address_bits(node_cap: &cap_t, cap_ptr: usize, _n_bits: usize) -> resolveAddressBits_ret_t {
+pub fn resolve_address_bits(
+    node_cap: &cap_t,
+    cap_ptr: usize,
+    _n_bits: usize,
+) -> resolveAddressBits_ret_t {
     let mut ret = resolveAddressBits_ret_t::default();
     let mut n_bits = _n_bits;
     ret.bitsRemaining = n_bits;

@@ -1,13 +1,21 @@
-use crate::{config::seL4_MsgLengthBits, syscall::{slowpath, SysCall, SysReplyRecv}, deps::fastpath_restore};
-use sel4_cspace::compatibility::*;
-use sel4_task::*;
-use sel4_ipc::*;
-use sel4_vspace::*;
-use core::intrinsics::{likely, unlikely};
-use sel4_common::{sel4_config::*, message_info::*, fault::*, utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref}};
-use sel4_common::registers::msgRegister;
-use sel4_cspace::interface::*;
 use crate::MASK;
+use crate::{
+    config::seL4_MsgLengthBits,
+    ffi::fastpath_restore,
+    syscall::{slowpath, SysCall, SysReplyRecv},
+};
+use core::intrinsics::{likely, unlikely};
+use sel4_common::arch::msgRegister;
+use sel4_common::{
+    fault::*,
+    message_info::*,
+    sel4_config::*,
+    utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref},
+};
+use sel4_cspace::interface::*;
+use sel4_ipc::*;
+use sel4_task::*;
+use sel4_vspace::*;
 
 #[inline]
 #[no_mangle]
@@ -47,7 +55,6 @@ pub fn lookup_fp(_cap: &cap_t, cptr: usize) -> cap_t {
     return cap;
 }
 
-
 #[inline]
 #[no_mangle]
 pub fn thread_state_ptr_mset_blockingObject_tsType(
@@ -57,7 +64,6 @@ pub fn thread_state_ptr_mset_blockingObject_tsType(
 ) {
     (*ptr).words[0] = ep | tsType;
 }
-
 
 #[inline]
 #[no_mangle]
@@ -90,7 +96,6 @@ pub fn mdb_node_ptr_mset_mdbNext_mdbRevocable_mdbFirstBadged(
     ptr.words[1] = mdbNext | (mdbRevocable << 1) | mdbFirstBadged;
 }
 
-
 #[inline]
 #[no_mangle]
 pub fn isValidVTableRoot_fp(cap: &cap_t) -> bool {
@@ -104,7 +109,6 @@ pub fn fastpath_mi_check(msgInfo: usize) -> bool {
     (msgInfo & MASK!(seL4_MsgLengthBits + seL4_MsgExtraCapBits)) > 4
 }
 
-
 #[inline]
 #[no_mangle]
 pub fn fastpath_copy_mrs(length: usize, src: &mut tcb_t, dest: &mut tcb_t) {
@@ -114,8 +118,6 @@ pub fn fastpath_copy_mrs(length: usize, src: &mut tcb_t, dest: &mut tcb_t) {
         dest.set_register(reg, src.get_register(reg));
     }
 }
-
-core::arch::global_asm!(include_str!("restore_fp.S"));
 
 // #[inline]
 // #[no_mangle]
@@ -130,7 +132,6 @@ core::arch::global_asm!(include_str!("restore_fp.S"));
 //     }
 // }
 
-
 #[inline]
 #[no_mangle]
 pub fn fastpath_call(cptr: usize, msgInfo: usize) {
@@ -144,8 +145,7 @@ pub fn fastpath_call(cptr: usize, msgInfo: usize) {
     }
     let ep_cap = lookup_fp(&current.get_cspace(tcbCTable).cap, cptr);
     if unlikely(
-        !(ep_cap.get_cap_type() == CapTag::CapEndpointCap)
-            || (ep_cap.get_ep_can_send() == 0),
+        !(ep_cap.get_cap_type() == CapTag::CapEndpointCap) || (ep_cap.get_ep_can_send() == 0),
     ) {
         slowpath(SysCall as usize);
     }
@@ -158,22 +158,15 @@ pub fn fastpath_call(cptr: usize, msgInfo: usize) {
     let dest = convert_to_mut_type_ref::<tcb_t>(ep.get_queue_head());
     let new_vtable = dest.get_cspace(tcbVTable).cap;
 
-
     if unlikely(!isValidVTableRoot_fp(&new_vtable)) {
         slowpath(SysCall as usize);
     }
 
     let dom = 0;
-    if unlikely(
-        dest.tcbPriority < current.tcbPriority
-            && !isHighestPrio(dom, dest.tcbPriority),
-    ) {
+    if unlikely(dest.tcbPriority < current.tcbPriority && !isHighestPrio(dom, dest.tcbPriority)) {
         slowpath(SysCall as usize);
     }
-    if unlikely(
-        (ep_cap.get_ep_can_grant() == 0)
-            && (ep_cap.get_ep_can_grant_reply() == 0),
-    ) {
+    if unlikely((ep_cap.get_ep_can_grant() == 0) && (ep_cap.get_ep_can_grant_reply() == 0)) {
         slowpath(SysCall as usize);
     }
     #[cfg(feature = "ENABLE_SMP")]
@@ -208,7 +201,9 @@ pub fn fastpath_call(cptr: usize, msgInfo: usize) {
     fastpath_copy_mrs(length, current, dest);
     dest.tcbState.words[0] = ThreadState::ThreadStateRunning as usize;
     let cap_pd = new_vtable.get_pt_base_ptr() as *mut pte_t;
-    let stored_hw_asid: pte_t = pte_t { words: [new_vtable.get_pt_mapped_asid()] };
+    let stored_hw_asid: pte_t = pte_t {
+        words: [new_vtable.get_pt_mapped_asid()],
+    };
     switchToThread_fp(dest as *mut tcb_t, cap_pd, stored_hw_asid);
     info.set_caps_unwrapped(0);
     let msgInfo1 = info.to_word();
@@ -233,14 +228,13 @@ pub fn fastpath_reply_recv(cptr: usize, msgInfo: usize) {
 
     let ep_cap = lookup_fp(&current.get_cspace(tcbCTable).cap, cptr);
 
-    if unlikely(
-        ep_cap.get_cap_type() != CapTag::CapEndpointCap
-            || ep_cap.get_ep_can_send() == 0
-    ) {
+    if unlikely(ep_cap.get_cap_type() != CapTag::CapEndpointCap || ep_cap.get_ep_can_send() == 0) {
         slowpath(SysReplyRecv as usize);
     }
 
-    if let Some(ntfn) = convert_to_option_mut_type_ref::<notification_t>(current.tcbBoundNotification) {
+    if let Some(ntfn) =
+        convert_to_option_mut_type_ref::<notification_t>(current.tcbBoundNotification)
+    {
         if ntfn.get_state() == NtfnState::Active {
             slowpath(SysReplyRecv as usize);
         }
@@ -278,8 +272,9 @@ pub fn fastpath_reply_recv(cptr: usize, msgInfo: usize) {
         ep.get_ptr(),
         ThreadState::ThreadStateBlockedOnReceive as usize,
     );
-    current.tcbState.set_blocking_ipc_can_grant(ep_cap.get_ep_can_grant());
-
+    current
+        .tcbState
+        .set_blocking_ipc_can_grant(ep_cap.get_ep_can_grant());
 
     if let Some(ep_tail_tcb) = convert_to_option_mut_type_ref::<tcb_t>(ep.get_queue_tail()) {
         ep_tail_tcb.tcbEPNext = current.get_ptr();
@@ -290,7 +285,11 @@ pub fn fastpath_reply_recv(cptr: usize, msgInfo: usize) {
         current.tcbEPNext = 0;
         ep.set_queue_head(current.get_ptr());
     }
-    endpoint_ptr_mset_epQueue_tail_state(ep as *mut endpoint_t, get_currenct_thread().get_ptr(), EPState_Recv);
+    endpoint_ptr_mset_epQueue_tail_state(
+        ep as *mut endpoint_t,
+        get_currenct_thread().get_ptr(),
+        EPState_Recv,
+    );
 
     unsafe {
         let node = convert_to_mut_type_ref::<cte_t>(caller_slot.cteMDBNode.get_prev());
@@ -301,11 +300,12 @@ pub fn fastpath_reply_recv(cptr: usize, msgInfo: usize) {
 
         caller.tcbState.words[0] = ThreadState::ThreadStateRunning as usize;
         let cap_pd = new_vtable.get_pt_base_ptr() as *mut pte_t;
-        let stored_hw_asid: pte_t = pte_t { words: [new_vtable.get_pt_mapped_asid()] };
+        let stored_hw_asid: pte_t = pte_t {
+            words: [new_vtable.get_pt_mapped_asid()],
+        };
         switchToThread_fp(caller, cap_pd, stored_hw_asid);
         info.set_caps_unwrapped(0);
         let msg_info1 = info.to_word();
         fastpath_restore(0, msg_info1, get_currenct_thread() as *mut tcb_t);
     }
 }
- 

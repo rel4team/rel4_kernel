@@ -1,6 +1,5 @@
 use crate::BIT;
 
-
 #[inline]
 pub fn clear_memory(ptr: *mut u8, bits: usize) {
     unsafe {

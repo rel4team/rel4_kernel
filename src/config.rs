@@ -68,7 +68,7 @@ pub const SIE_SEIE: usize = 9;
 pub const SIE_MEIE: usize = 11;
 
 pub const badgeRegister: usize = 9;
-pub const seL4_MsgLengthBits:usize =7;
+pub const seL4_MsgLengthBits: usize = 7;
 
 pub const RISCVInstructionMisaligned: usize = 0;
 pub const RISCVInstructionAccessFault: usize = 1;
@@ -86,7 +86,6 @@ pub const RISCVSupervisorTimer: usize = 9223372036854775813;
 pub const n_frameRegisters: usize = 16;
 pub const n_gpRegisters: usize = 16;
 
-
 pub const frameRegisters: [usize; n_frameRegisters] =
     [33, 0, 1, 2, 7, 8, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26];
 pub const gpRegisters: [usize; n_gpRegisters] =
@@ -95,7 +94,6 @@ pub const thread_control_update_priority: usize = 0x1;
 pub const thread_control_update_ipc_buffer: usize = 0x2;
 pub const thread_control_update_space: usize = 0x4;
 pub const thread_control_update_mcp: usize = 0x8;
-
 
 pub const seL4_WordBits: usize = 64;
 
@@ -117,7 +115,6 @@ pub const KERNEL_TIMER_IRQ: usize = 3;
 #[cfg(not(feature = "ENABLE_SMP"))]
 pub const KERNEL_TIMER_IRQ: usize = 1;
 
-
 pub const maxIRQ: usize = KERNEL_TIMER_IRQ;
 
 pub const irqInvalid: usize = 0;
@@ -132,11 +129,7 @@ pub const TIMER_CLOCK_HZ: usize = 10000000;
 pub const MS_IN_S: usize = 1000;
 pub const RESET_CYCLES: usize = (TIMER_CLOCK_HZ / MS_IN_S) * 2;
 
-
-
 pub const seL4_MinPrio: usize = 0;
 
 pub const CONFIG_MAX_NUM_WORK_UNITS_PER_PREEMPTION: usize = 100;
 pub const CONFIG_RETYPE_FAN_OUT_LIMIT: usize = 256;
-
-

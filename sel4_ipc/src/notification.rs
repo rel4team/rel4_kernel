@@ -1,9 +1,10 @@
-use sel4_common::plus_define_bitfield;
-use sel4_common::registers::badgeRegister;
-use sel4_common::utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref};
-use sel4_task::{possible_switch_to, rescheduleRequired, set_thread_state, tcb_queue_t, tcb_t, ThreadState};
 use crate::transfer::Transfer;
-
+use sel4_common::arch::badgeRegister;
+use sel4_common::plus_define_bitfield;
+use sel4_common::utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref};
+use sel4_task::{
+    possible_switch_to, rescheduleRequired, set_thread_state, tcb_queue_t, tcb_t, ThreadState,
+};
 
 #[derive(PartialEq, Eq)]
 /// The state of a notification
@@ -30,15 +31,16 @@ impl notification_t {
     #[inline]
     /// Get the state of the notification
     pub fn get_state(&self) -> NtfnState {
-        unsafe {
-            core::mem::transmute::<u8, NtfnState>(self.get_usize_state() as u8)
-        }
+        unsafe { core::mem::transmute::<u8, NtfnState>(self.get_usize_state() as u8) }
     }
 
     #[inline]
     /// Get the tcb queue of the notification
     pub fn get_queue(&self) -> tcb_queue_t {
-        tcb_queue_t { head: self.get_queue_head(), tail: self.get_queue_tail() }
+        tcb_queue_t {
+            head: self.get_queue_head(),
+            tail: self.get_queue_tail(),
+        }
     }
 
     #[inline]
@@ -74,12 +76,12 @@ impl notification_t {
     #[inline]
     /// Cancel all signal in the notification
     pub fn cacncel_all_signal(&mut self) {
-        if self.get_state() ==  NtfnState::Waiting {
+        if self.get_state() == NtfnState::Waiting {
             let mut op_thread = convert_to_option_mut_type_ref::<tcb_t>(self.get_queue_head());
             self.set_state(NtfnState::Idle as usize);
             self.set_queue_head(0);
             self.set_queue_tail(0);
-            while let Some(thread) =  op_thread {
+            while let Some(thread) = op_thread {
                 set_thread_state(thread, ThreadState::ThreadStateRestart);
                 thread.sched_enqueue();
                 op_thread = convert_to_option_mut_type_ref::<tcb_t>(thread.tcbEPNext);
@@ -127,7 +129,7 @@ impl notification_t {
         match self.get_state() {
             NtfnState::Idle => {
                 if let Some(tcb) = convert_to_option_mut_type_ref::<tcb_t>(self.get_bound_tcb()) {
-                    if tcb.get_state() == ThreadState::ThreadStateBlockedOnReceive{
+                    if tcb.get_state() == ThreadState::ThreadStateBlockedOnReceive {
                         tcb.cancel_ipc();
                         set_thread_state(tcb, ThreadState::ThreadStateRunning);
                         tcb.set_register(badgeRegister, badge);

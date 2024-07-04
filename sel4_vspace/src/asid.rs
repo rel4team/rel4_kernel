@@ -1,10 +1,15 @@
+#[cfg(target_arch = "riscv64")]
 use core::arch::asm;
 use core::intrinsics::unlikely;
 
-use sel4_common::{structures::exception_t, sel4_config::*, utils::convert_to_option_mut_type_ref, fault::*, BIT, MASK};
-use sel4_cspace::interface::cap_t;
+use super::interface::set_vm_root;
+use crate::arch::pte_t;
 use crate::structures::pptr_t;
-use super::{pte::pte_t, interface::set_vm_root};
+use sel4_common::{
+    fault::*, sel4_config::*, structures::exception_t, utils::convert_to_option_mut_type_ref, BIT,
+    MASK,
+};
+use sel4_cspace::interface::cap_t;
 
 #[no_mangle]
 pub static mut riscvKSASIDTable: [*mut asid_pool_t; BIT!(asidHighBits)] =
@@ -33,6 +38,7 @@ impl asid_pool_t {
     }
 }
 
+#[allow(non_camel_case_types)]
 pub type asid_t = usize;
 
 #[repr(C)]
@@ -49,7 +55,7 @@ pub fn get_asid_pool_by_index(index: usize) -> Option<&'static mut asid_pool_t> 
         if unlikely(index >= BIT!(asidHighBits)) {
             return None;
         }
-        return convert_to_option_mut_type_ref::<asid_pool_t>(riscvKSASIDTable[index] as usize)
+        return convert_to_option_mut_type_ref::<asid_pool_t>(riscvKSASIDTable[index] as usize);
     }
 }
 
@@ -68,18 +74,14 @@ pub fn find_vspace_for_asid(asid: asid_t) -> findVSpaceForASID_ret {
         lookup_fault: None,
     };
 
-    let poolPtr =  unsafe {
-        riscvKSASIDTable[asid >> asidLowBits]
-    };
+    let poolPtr = unsafe { riscvKSASIDTable[asid >> asidLowBits] };
     if poolPtr as usize == 0 {
         ret.lookup_fault = Some(lookup_fault_t::new_root_invalid());
         ret.vspace_root = None;
         ret.status = exception_t::EXCEPTION_LOOKUP_FAULT;
         return ret;
     }
-    let vspace_root = unsafe {
-        (*poolPtr).array[asid & MASK!(asidLowBits)]
-    };
+    let vspace_root = unsafe { (*poolPtr).array[asid & MASK!(asidLowBits)] };
     if vspace_root as usize == 0 {
         ret.lookup_fault = Some(lookup_fault_t::new_root_invalid());
         ret.vspace_root = None;
@@ -98,13 +100,20 @@ pub fn findVSpaceForASID(_asid: asid_t) -> findVSpaceForASID_ret {
 }
 
 #[inline]
-fn hwASIDFlush(asid: asid_t) {
+fn hwASIDFlush(_asid: asid_t) {
+    #[cfg(target_arch = "aarch64")]
+    todo!("hwASIDFlush");
+    #[cfg(target_arch = "riscv64")]
     unsafe {
-        asm!("sfence.vma x0, {0}",in(reg) asid);
+        asm!("sfence.vma x0, {0}",in(reg) _asid);
     }
 }
 
-pub fn delete_asid_pool(asid_base: asid_t, pool: *mut asid_pool_t, default_vspace_cap: &cap_t) -> Result<(), lookup_fault_t> {
+pub fn delete_asid_pool(
+    asid_base: asid_t,
+    pool: *mut asid_pool_t,
+    default_vspace_cap: &cap_t,
+) -> Result<(), lookup_fault_t> {
     unsafe {
         if riscvKSASIDTable[asid_base >> asidLowBits] == pool {
             riscvKSASIDTable[asid_base >> asidLowBits] = 0 as *mut asid_pool_t;
@@ -115,7 +124,11 @@ pub fn delete_asid_pool(asid_base: asid_t, pool: *mut asid_pool_t, default_vspac
     }
 }
 
-pub fn delete_asid(asid: asid_t, vspace: *mut pte_t, default_vspace_cap: &cap_t) -> Result<(), lookup_fault_t> {
+pub fn delete_asid(
+    asid: asid_t,
+    vspace: *mut pte_t,
+    default_vspace_cap: &cap_t,
+) -> Result<(), lookup_fault_t> {
     unsafe {
         let poolPtr = riscvKSASIDTable[asid >> asidLowBits];
         if poolPtr as usize != 0 && (*poolPtr).array[asid & MASK!(asidLowBits)] == vspace {
@@ -127,4 +140,3 @@ pub fn delete_asid(asid: asid_t, vspace: *mut pte_t, default_vspace_cap: &cap_t)
         }
     }
 }
-

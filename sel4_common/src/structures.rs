@@ -15,7 +15,6 @@ pub enum exception_t {
     padding = isize::MAX - 1,
 }
 
-
 #[repr(C)]
 #[derive(Copy, Clone)]
 /// Represents the IPC buffer used for inter-process communication in seL4.

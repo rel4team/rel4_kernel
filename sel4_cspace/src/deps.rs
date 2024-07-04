@@ -1,6 +1,6 @@
-use sel4_common::structures::exception_t;
 use crate::cap::cap_t;
 use crate::structures::finaliseCap_ret;
+use sel4_common::structures::exception_t;
 
 extern "C" {
     pub fn Arch_finaliseCap(cap: &cap_t, final_: bool) -> finaliseCap_ret;

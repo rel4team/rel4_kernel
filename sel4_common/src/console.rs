@@ -1,6 +1,6 @@
 //! SBI console driver, for text output
 
-use super::sbi::console_putchar;
+use super::arch::console_putchar;
 use core::fmt::{self, Write};
 
 struct Stdout;

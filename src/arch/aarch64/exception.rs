@@ -1,10 +1,10 @@
+use super::read_stval;
+use crate::config::*;
+use crate::kernel::boot::current_fault;
+use crate::syscall::handle_fault;
 use sel4_common::fault::seL4_Fault_t;
 use sel4_common::structures::exception_t;
 use sel4_task::{activateThread, get_currenct_thread, schedule};
-use crate::kernel::boot::current_fault;
-use crate::config::*;
-use crate::riscv::read_stval;
-use crate::syscall::handle_fault;
 
 #[no_mangle]
 pub fn handleUserLevelFault(w_a: usize, w_b: usize) -> exception_t {

@@ -1,0 +1,21 @@
+#
+# Copyright 2023, Colias Group, LLC
+#
+# SPDX-License-Identifier: BSD-2-Clause
+#
+
+[build]
+target = "riscv64imac-unknown-none-elf"
+# target = "riscv64imac-sel4"
+# target = "aarch64-unknown-none-softfloat"
+
+[unstable]
+unstable-options = true
+
+[target.riscv64imac-unknown-none-elf]
+rustflags = [
+    "-Ztls-model=local-exec"
+]
+
+[env]
+RUST_TARGET_PATH = { value = "support/targets", relative = true }

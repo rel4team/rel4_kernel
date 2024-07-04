@@ -1,18 +1,29 @@
 use core::intrinsics::unlikely;
 
-use crate::{config::seL4_MinPrio, kernel::boot::{current_syscall_error, current_lookup_fault}, MASK, BIT, IS_ALIGNED};
-use sel4_common::{sel4_config::{seL4_IPCBufferSizeBits, seL4_AlignmentError, seL4_FailedLookup, wordBits, seL4_DeleteFirst}, utils::convert_to_mut_type_ref};
-use sel4_common::{structures::{seL4_IPCBuffer, exception_t}, sel4_config::*};
+use crate::kernel::boot::{current_extra_caps, current_fault};
+use crate::{
+    config::seL4_MinPrio,
+    kernel::boot::{current_lookup_fault, current_syscall_error},
+    BIT, IS_ALIGNED, MASK,
+};
+use log::debug;
+use sel4_common::arch::{msgRegister, n_msgRegisters};
 use sel4_common::fault::*;
 use sel4_common::sel4_config::seL4_MinUntypedBits;
-use sel4_cspace::interface::{cap_t, CapTag, resolve_address_bits, cte_t, seL4_CapRights_t};
+use sel4_common::{
+    sel4_config::*,
+    structures::{exception_t, seL4_IPCBuffer},
+};
+use sel4_common::{
+    sel4_config::{
+        seL4_AlignmentError, seL4_DeleteFirst, seL4_FailedLookup, seL4_IPCBufferSizeBits, wordBits,
+    },
+    utils::convert_to_mut_type_ref,
+};
+use sel4_cspace::interface::{cap_t, cte_t, resolve_address_bits, seL4_CapRights_t, CapTag};
 use sel4_ipc::notification_t;
-use log::debug;
-use sel4_common::registers::{msgRegister, n_msgRegisters};
 use sel4_task::{get_currenct_thread, lookupSlot_ret_t, tcb_t};
 use sel4_vspace::maskVMRights;
-use crate::kernel::boot::{current_extra_caps, current_fault};
-
 
 pub fn alignUp(baseValue: usize, alignment: usize) -> usize {
     (baseValue + BIT!(alignment) - 1) & !MASK!(alignment)
@@ -34,8 +45,6 @@ pub fn OFFSET_TO_FREE_IDNEX(offset: usize) -> usize {
     offset >> seL4_MinUntypedBits
 }
 
-
-
 #[inline]
 #[no_mangle]
 pub fn getSyscallArg(i: usize, ipc_buffer: *const usize) -> usize {
@@ -47,7 +56,7 @@ pub fn getSyscallArg(i: usize, ipc_buffer: *const usize) -> usize {
             assert_ne!(ipc_buffer as usize, 0);
             let ptr = ipc_buffer.add(i + 1);
             *ptr
-        }
+        };
     }
 }
 
@@ -55,11 +64,11 @@ pub fn getSyscallArg(i: usize, ipc_buffer: *const usize) -> usize {
 pub fn lookup_extra_caps_with_buf(thread: &tcb_t, buf: Option<&seL4_IPCBuffer>) -> exception_t {
     unsafe {
         match thread.lookup_extra_caps_with_buf(&mut current_extra_caps.excaprefs, buf) {
-            Ok(()) =>{},
+            Ok(()) => {}
             Err(fault) => {
                 current_fault = fault;
                 return exception_t::EXCEPTION_LOOKUP_FAULT;
-            },
+            }
         }
     }
     return exception_t::EXCEPTION_NONE;
@@ -90,19 +99,25 @@ pub fn check_prio(prio: usize, auth_tcb: &tcb_t) -> exception_t {
 pub fn check_ipc_buffer_vaild(vptr: usize, cap: &cap_t) -> exception_t {
     if cap.get_cap_type() != CapTag::CapFrameCap {
         debug!("Requested IPC Buffer is not a frame cap.");
-        unsafe { current_syscall_error._type = seL4_IllegalOperation; }
+        unsafe {
+            current_syscall_error._type = seL4_IllegalOperation;
+        }
         return exception_t::EXCEPTION_SYSCALL_ERROR;
     }
 
     if cap.get_frame_is_device() != 0 {
         debug!("Specifying a device frame as an IPC buffer is not permitted.");
-        unsafe { current_syscall_error._type = seL4_IllegalOperation; }
+        unsafe {
+            current_syscall_error._type = seL4_IllegalOperation;
+        }
         return exception_t::EXCEPTION_SYSCALL_ERROR;
     }
 
     if !IS_ALIGNED!(vptr, seL4_IPCBufferSizeBits) {
         debug!("Requested IPC Buffer location 0x%x is not aligned.");
-        unsafe { current_syscall_error._type = seL4_AlignmentError; }
+        unsafe {
+            current_syscall_error._type = seL4_AlignmentError;
+        }
         return exception_t::EXCEPTION_SYSCALL_ERROR;
     }
     exception_t::EXCEPTION_NONE
@@ -133,13 +148,17 @@ pub fn is_valid_vtable_root(cap: &cap_t) -> bool {
     cap.get_cap_type() == CapTag::CapPageTableCap && cap.get_pt_is_mapped() != 0
 }
 
-
 #[no_mangle]
 pub fn isValidVTableRoot(_cap: &cap_t) -> bool {
     panic!("should not be invoked!")
 }
 
-pub fn lookup_slot_for_cnode_op(is_source: bool, root: &cap_t, cap_ptr: usize, depth: usize) -> lookupSlot_ret_t {
+pub fn lookup_slot_for_cnode_op(
+    is_source: bool,
+    root: &cap_t,
+    cap_ptr: usize,
+    depth: usize,
+) -> lookupSlot_ret_t {
     let mut ret: lookupSlot_ret_t = lookupSlot_ret_t::default();
     if unlikely(root.get_cap_type() != CapTag::CapCNodeCap) {
         unsafe {
@@ -186,7 +205,7 @@ pub fn lookup_slot_for_cnode_op(is_source: bool, root: &cap_t, cap_ptr: usize, d
 }
 
 pub fn lookupSlotForCNodeOp(
-isSource: bool,
+    isSource: bool,
     root: &cap_t,
     capptr: usize,
     depth: usize,
@@ -197,7 +216,9 @@ isSource: bool,
 #[inline]
 pub fn ensure_empty_slot(slot: &cte_t) -> exception_t {
     if slot.cap.get_cap_type() != CapTag::CapNullCap {
-        unsafe { current_syscall_error._type = seL4_DeleteFirst; }
+        unsafe {
+            current_syscall_error._type = seL4_DeleteFirst;
+        }
         return exception_t::EXCEPTION_SYSCALL_ERROR;
     }
     exception_t::EXCEPTION_NONE
@@ -205,9 +226,7 @@ pub fn ensure_empty_slot(slot: &cte_t) -> exception_t {
 
 #[no_mangle]
 pub fn ensureEmptySlot(slot: *mut cte_t) -> exception_t {
-    unsafe {
-        ensure_empty_slot(&*slot)
-    }
+    unsafe { ensure_empty_slot(&*slot) }
 }
 
 pub fn mask_cap_rights(rights: seL4_CapRights_t, cap: &cap_t) -> cap_t {
@@ -217,7 +236,9 @@ pub fn mask_cap_rights(rights: seL4_CapRights_t, cap: &cap_t) -> cap_t {
             new_cap.set_ep_can_send(cap.get_ep_can_send() & rights.get_allow_write());
             new_cap.set_ep_can_receive(cap.get_ep_can_receive() & rights.get_allow_read());
             new_cap.set_ep_can_grant(cap.get_ep_can_grant() & rights.get_allow_grant());
-            new_cap.set_ep_can_grant_reply(cap.get_ep_can_grant_reply() & rights.get_allow_grant_reply());
+            new_cap.set_ep_can_grant_reply(
+                cap.get_ep_can_grant_reply() & rights.get_allow_grant_reply(),
+            );
         }
         CapTag::CapNotificationCap => {
             new_cap.set_nf_can_send(cap.get_nf_can_send() & rights.get_allow_write());

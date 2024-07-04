@@ -6,6 +6,7 @@ extern "C" {
     pub fn tcbDebugRemove(tcb: *mut tcb_t);
     pub fn handleUnknownSyscall(w: usize);
     pub fn fastpath_restore(badge: usize, msgInfo: usize, cur_thread: *mut tcb_t);
+    pub fn kernel_stack_alloc();
 }
 
 #[cfg(feature = "ENABLE_SMP")]
@@ -20,5 +21,5 @@ extern "C" {
     pub fn clh_is_self_in_queue() -> bool;
     pub fn clh_lock_release(cpu: usize);
     pub fn clh_lock_acquire(cpu_idx: usize, irq_path: bool);
-    
+
 }

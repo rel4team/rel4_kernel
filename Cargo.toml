@@ -8,18 +8,31 @@ name = "rustlib"
 path = "src/lib.rs"
 crate-type = ["staticlib"]
 
+[workspace]
+members = [
+    ".",
+    "sel4_common",
+    "sel4_cspace",
+    "sel4_ipc",
+    "sel4_vspace",
+    "sel4_task",
+]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 buddy_system_allocator = "0.6"
-riscv = { git = "https://gitee.com/rcore-os/riscv", features = ["inline-asm"] }
+riscv = { git = "https://github.com/rcore-os/riscv", features = ["inline-asm"] }
+aarch64-cpu = "9.4.0"
 log = "0.4"
+tock-registers = "0.8"
 spin = { version = "0.9", features = ["use_ticket_mutex"] }
 sel4_common = { path = "./sel4_common" }
 sel4_cspace = { path = "./sel4_cspace" }
 sel4_vspace = { path = "./sel4_vspace"}
 sel4_task = { path = "./sel4_task" }
 sel4_ipc = { path = "./sel4_ipc" }
+
 [features]
 ENABLE_SMP = ["sel4_common/ENABLE_SMP", "sel4_task/ENABLE_SMP", "sel4_vspace/ENABLE_SMP"]
 

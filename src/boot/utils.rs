@@ -1,13 +1,11 @@
-
-
-use sel4_common::{utils::convert_to_mut_type_ref, sel4_config::*};
-use crate::config::CONFIG_ROOT_CNODE_SIZE_BITS;
-use crate::{ROUND_DOWN, ROUND_UP, BIT};
-use sel4_cspace::interface::*;
-use log::debug;
-use crate::structures::{p_region_t, region_t, v_region_t};
-use sel4_vspace::*;
 use super::ndks_boot;
+use crate::config::CONFIG_ROOT_CNODE_SIZE_BITS;
+use crate::structures::{p_region_t, region_t, v_region_t};
+use crate::{BIT, ROUND_DOWN, ROUND_UP};
+use log::debug;
+use sel4_common::{sel4_config::*, utils::convert_to_mut_type_ref};
+use sel4_cspace::interface::*;
+use sel4_vspace::*;
 
 #[inline]
 pub fn is_reg_empty(reg: &region_t) -> bool {
@@ -82,7 +80,6 @@ pub fn provide_cap(root_cnode_cap: &cap_t, cap: cap_t) -> bool {
     }
 }
 
-
 #[no_mangle]
 pub extern "C" fn map_it_pt_cap(_vspace_cap: &cap_t, _pt_cap: &cap_t) {
     let vptr = _pt_cap.get_pt_mapped_address();
@@ -91,8 +88,16 @@ pub extern "C" fn map_it_pt_cap(_vspace_cap: &cap_t, _pt_cap: &cap_t) {
     let pt_ret = lvl1pt.lookup_pt_slot(vptr);
     let targetSlot = convert_to_mut_type_ref::<pte_t>(pt_ret.ptSlot as usize);
     *targetSlot = pte_t::new(
-        pptr_to_paddr(pt) >> seL4_PageBits, 0, 0, 0, 0, 0, 0,
-        0, 0, 1
+        pptr_to_paddr(pt) >> seL4_PageBits,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
     );
     sfence();
 }
@@ -112,12 +117,19 @@ pub fn map_it_frame_cap(_vspace_cap: &cap_t, _frame_cap: &cap_t) {
 
     let targetSlot = convert_to_mut_type_ref::<pte_t>(pt_ret.ptSlot as usize);
     *targetSlot = pte_t::new(
-        pptr_to_paddr(frame_pptr) >> seL4_PageBits, 0, 1, 1, 0, 1,
-        1, 1, 1, 1
+        pptr_to_paddr(frame_pptr) >> seL4_PageBits,
+        0,
+        1,
+        1,
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
     );
     sfence();
 }
-
 
 pub fn rust_create_unmapped_it_frame_cap(pptr: pptr_t, _use_large: bool) -> cap_t {
     cap_t::new_frame_cap(0, pptr, 0, 0, 0, 0)

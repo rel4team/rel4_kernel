@@ -74,9 +74,7 @@ impl ObjectType {
         if value >= seL4_ObjectTypeCount {
             return None;
         }
-        unsafe {
-            Some(core::mem::transmute::<u8, ObjectType>(value as u8))
-        }
+        unsafe { Some(core::mem::transmute::<u8, ObjectType>(value as u8)) }
     }
 
     /// Checks if the object type is an architecture-specific type.
@@ -87,7 +85,7 @@ impl ObjectType {
     pub fn is_arch_type(self) -> bool {
         match self {
             Self::GigaPageObject | Self::NormalPageObject | Self::MegaPageObject => true,
-            _ => false
+            _ => false,
         }
     }
 }

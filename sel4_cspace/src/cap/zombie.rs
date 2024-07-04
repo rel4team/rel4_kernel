@@ -1,7 +1,6 @@
-use sel4_common::MASK;
-use sel4_common::sel4_config::wordRadix;
 use crate::cte::cte_t;
-
+use sel4_common::sel4_config::wordRadix;
+use sel4_common::MASK;
 
 use super::{cap_t, CapTag};
 
@@ -37,7 +36,6 @@ impl cap_t {
         let ptr = self.get_zombie_id() & !MASK!(radix + 1);
         self.set_zombie_id(ptr | (n & MASK!(radix + 1)));
     }
-
 }
 
 #[inline]

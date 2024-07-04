@@ -1,9 +1,12 @@
-use sel4_common::plus_define_bitfield;
-use sel4_common::registers::badgeRegister;
-use sel4_common::utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref};
-use sel4_task::{possible_switch_to, rescheduleRequired, schedule_tcb, set_thread_state, tcb_queue_t, tcb_t, ThreadState};
-use sel4_vspace::pptr_t;
 use crate::transfer::Transfer;
+use sel4_common::arch::badgeRegister;
+use sel4_common::plus_define_bitfield;
+use sel4_common::utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref};
+use sel4_task::{
+    possible_switch_to, rescheduleRequired, schedule_tcb, set_thread_state, tcb_queue_t, tcb_t,
+    ThreadState,
+};
+use sel4_vspace::pptr_t;
 
 pub const EPState_Idle: usize = EPState::Idle as usize;
 pub const EPState_Send: usize = EPState::Send as usize;
@@ -38,15 +41,16 @@ impl endpoint_t {
     #[inline]
     /// Get the state of the endpoint
     pub fn get_state(&self) -> EPState {
-        unsafe {
-            core::mem::transmute::<u8, EPState>(self.get_usize_state() as u8)
-        }
+        unsafe { core::mem::transmute::<u8, EPState>(self.get_usize_state() as u8) }
     }
 
     #[inline]
     /// Get the tcb queue of the queue
     pub fn get_queue(&self) -> tcb_queue_t {
-        tcb_queue_t { head: self.get_queue_head(), tail: self.get_queue_tail() }
+        tcb_queue_t {
+            head: self.get_queue_head(),
+            tail: self.get_queue_tail(),
+        }
     }
 
     #[inline]
@@ -128,17 +132,32 @@ impl endpoint_t {
     /// * `can_grant` - If the IPC can grant
     /// * `badge` - The badge of the IPC
     /// * `can_grant_reply` - If the IPC can grant the reply
-    pub fn send_ipc(&mut self, src_thread: &mut tcb_t, blocking: bool,
-                    do_call: bool, can_grant: bool, badge: usize, can_grant_reply: bool) {
+    pub fn send_ipc(
+        &mut self,
+        src_thread: &mut tcb_t,
+        blocking: bool,
+        do_call: bool,
+        can_grant: bool,
+        badge: usize,
+        can_grant_reply: bool,
+    ) {
         match self.get_state() {
             EPState::Idle | EPState::Send => {
                 if blocking {
-                    src_thread.tcbState.set_ts_type(ThreadState::ThreadStateBlockedOnSend as usize);
+                    src_thread
+                        .tcbState
+                        .set_ts_type(ThreadState::ThreadStateBlockedOnSend as usize);
                     src_thread.tcbState.set_blocking_object(self.get_ptr());
-                    src_thread.tcbState.set_blocking_ipc_can_grant(can_grant as usize);
+                    src_thread
+                        .tcbState
+                        .set_blocking_ipc_can_grant(can_grant as usize);
                     src_thread.tcbState.set_blocking_ipc_badge(badge);
-                    src_thread.tcbState.set_blocking_ipc_can_grant_reply(can_grant_reply as usize);
-                    src_thread.tcbState.set_blocking_ipc_is_call(do_call as usize);
+                    src_thread
+                        .tcbState
+                        .set_blocking_ipc_can_grant_reply(can_grant_reply as usize);
+                    src_thread
+                        .tcbState
+                        .set_blocking_ipc_is_call(do_call as usize);
                     schedule_tcb(src_thread);
 
                     let mut queue = self.get_queue();
@@ -224,6 +243,5 @@ impl endpoint_t {
                 }
             }
         }
-
     }
 }

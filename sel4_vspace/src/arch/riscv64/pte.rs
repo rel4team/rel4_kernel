@@ -1,14 +1,16 @@
 use core::intrinsics::unlikely;
-use sel4_common::MASK;
-use sel4_common::sel4_config::{CONFIG_PT_LEVELS, PT_INDEX_BITS, seL4_PageBits, seL4_PageTableBits};
+use sel4_common::sel4_config::{
+    seL4_PageBits, seL4_PageTableBits, CONFIG_PT_LEVELS, PT_INDEX_BITS,
+};
 use sel4_common::structures::exception_t;
 use sel4_common::utils::{convert_to_mut_type_ref, convert_to_type_ref};
+use sel4_common::MASK;
 
-
-use super::{structures::vptr_t, satp::sfence};
-use super::utils::{paddr_to_pptr, RISCV_GET_PT_INDEX};
-use super::asid::{asid_t, find_vspace_for_asid};
-use super::vm_rights::{RISCVGetWriteFromVMRights, RISCVGetReadFromVMRights};
+use super::satp::sfence;
+use crate::asid::{asid_t, find_vspace_for_asid};
+use crate::structures::vptr_t;
+use crate::utils::{paddr_to_pptr, RISCV_GET_PT_INDEX};
+use crate::vm_rights::{RISCVGetReadFromVMRights, RISCVGetWriteFromVMRights};
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -30,9 +32,18 @@ impl pte_t {
     }
 
     #[inline]
-    pub fn new(ppn: usize, sw: usize, dirty: usize, accessed: usize, global: usize, user: usize, execute: usize, write: usize,
-               read: usize, valid: usize) -> Self {
-
+    pub fn new(
+        ppn: usize,
+        sw: usize,
+        dirty: usize,
+        accessed: usize,
+        global: usize,
+        user: usize,
+        execute: usize,
+        write: usize,
+        read: usize,
+        valid: usize,
+    ) -> Self {
         pte_t {
             words: [0
                 | (ppn & 0xfffffffffffusize) << 10
@@ -77,8 +88,16 @@ impl pte_t {
         let write = read;
         let exec = read;
         Self::new(
-            ppn, 0, is_leaf as usize, is_leaf as usize, 1,
-            0, exec as usize, write as usize,read as usize, 1
+            ppn,
+            0,
+            is_leaf as usize,
+            is_leaf as usize,
+            1,
+            0,
+            exec as usize,
+            write as usize,
+            read as usize,
+            1,
         )
     }
 
@@ -121,7 +140,8 @@ impl pte_t {
 
     #[inline]
     pub fn is_pte_table(&self) -> bool {
-        self.get_vaild() != 0 && !(self.get_read() != 0 ||self.get_write() != 0 || self.get_execute() != 0)
+        self.get_vaild() != 0
+            && !(self.get_read() != 0 || self.get_write() != 0 || self.get_execute() != 0)
     }
 
     #[inline]
@@ -144,10 +164,10 @@ impl pte_t {
             },
         };
 
-        while unsafe {(*ret.ptSlot).is_pte_table()} && level > 0 {
+        while unsafe { (*ret.ptSlot).is_pte_table() } && level > 0 {
             level -= 1;
             ret.ptBitsLeft -= PT_INDEX_BITS;
-            pt = unsafe {(*ret.ptSlot).get_pte_from_ppn_mut() as *mut pte_t};
+            pt = unsafe { (*ret.ptSlot).get_pte_from_ppn_mut() as *mut pte_t };
             ret.ptSlot = unsafe { pt.add((vptr >> ret.ptBitsLeft) & MASK!(PT_INDEX_BITS)) };
         }
         ret

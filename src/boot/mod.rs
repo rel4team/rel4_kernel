@@ -1,39 +1,45 @@
-
+mod interface;
 mod mm;
 mod root_server;
 mod untyped;
 mod utils;
-mod interface;
 
 use core::mem::size_of;
 
-use crate::deps::{tcbDebugAppend, init_plat};
+use crate::arch::{init_cpu, init_freemem};
+use crate::ffi::{init_plat, tcbDebugAppend};
 use crate::{BIT, ROUND_UP};
-use sel4_common::sel4_config::{PADDR_TOP, KERNEL_ELF_BASE, seL4_PageBits, PAGE_BITS};
+#[cfg(target_arch = "aarch64")]
+use aarch64_cpu::asm::barrier::{dsb, isb, SY};
+#[cfg(target_arch = "aarch64")]
+use aarch64_cpu::registers::*;
 use log::debug;
+use sel4_common::sel4_config::{seL4_PageBits, KERNEL_ELF_BASE, PADDR_TOP, PAGE_BITS};
 use spin::Mutex;
-use riscv::register::stvec;
-use riscv::register::utvec::TrapMode;
 
-
-use crate::boot::mm::init_freemem;
+#[cfg(target_arch = "aarch64")]
+use crate::arch::{cleanInvalidateL1Caches, invalidateLocalTLB};
 use crate::boot::root_server::root_server_init;
 use crate::boot::untyped::create_untypeds;
-use crate::boot::utils::paddr_to_pptr_reg;
-use crate::interrupt::set_sie_mask;
-use sel4_common::sbi::{set_timer, get_time};
-use crate::structures::{ndks_boot_t, region_t, p_region_t, seL4_BootInfo, seL4_BootInfoHeader, seL4_SlotRegion, v_region_t};
+pub use crate::boot::utils::paddr_to_pptr_reg;
 use crate::config::*;
+use crate::structures::{
+    ndks_boot_t, p_region_t, region_t, seL4_BootInfo, seL4_BootInfoHeader, seL4_SlotRegion,
+    v_region_t,
+};
 
-use sel4_vspace::*;
-use sel4_task::*;
+#[cfg(target_arch = "aarch64")]
+pub use mm::reserve_region;
+pub use mm::{avail_p_regs_addr, avail_p_regs_size, res_reg, rust_init_freemem};
 pub use root_server::rootserver;
-pub use utils::{write_slot, provide_cap};
+use sel4_task::*;
+use sel4_vspace::*;
 
 #[cfg(feature = "ENABLE_SMP")]
-use crate::{
-    deps::{clh_lock_init, clh_lock_acquire}
-};
+pub use utils::{provide_cap, write_slot};
+
+#[cfg(feature = "ENABLE_SMP")]
+use crate::ffi::{clh_lock_acquire, clh_lock_init};
 
 #[cfg(feature = "ENABLE_SMP")]
 use core::arch::asm;
@@ -54,24 +60,6 @@ pub static mut ndks_boot: ndks_boot_t = ndks_boot_t {
     slot_pos_cur: seL4_NumInitialCaps,
 };
 
-
-fn init_cpu() {
-    activate_kernel_vspace();
-    extern "C" {
-        fn trap_entry();
-    }
-    unsafe {
-        stvec::write(trap_entry as usize, TrapMode::Direct);
-    }
-    #[cfg(feature = "ENABLE_SMP")] {
-        set_sie_mask(BIT!(SIE_SEIE) | BIT!(SIE_STIE) | BIT!(SIE_SSIE));
-    }
-    #[cfg(not(feature = "ENABLE_SMP"))] {
-        set_sie_mask(BIT!(SIE_SEIE) | BIT!(SIE_STIE));
-    }
-    set_timer(get_time() + RESET_CYCLES);
-}
-
 fn calculate_extra_bi_size_bits(size: usize) -> usize {
     if size == 0 {
         return 0;
@@ -85,7 +73,11 @@ fn calculate_extra_bi_size_bits(size: usize) -> usize {
     return msb;
 }
 
-fn init_dtb(dtb_size: usize, dtb_phys_addr: usize, extra_bi_size:&mut usize) -> Option<p_region_t> {
+fn init_dtb(
+    dtb_size: usize,
+    dtb_phys_addr: usize,
+    extra_bi_size: &mut usize,
+) -> Option<p_region_t> {
     let mut dtb_p_reg = p_region_t { start: 0, end: 0 };
     if dtb_size > 0 {
         let dtb_phys_end = dtb_phys_addr + dtb_size;
@@ -113,7 +105,6 @@ fn init_dtb(dtb_size: usize, dtb_phys_addr: usize, extra_bi_size:&mut usize) -> 
     }
     Some(dtb_p_reg)
 }
-
 
 fn init_bootinfo(dtb_size: usize, dtb_phys_addr: usize, extra_bi_size: usize) {
     let mut extra_bi_offset = 0;
@@ -145,7 +136,7 @@ fn init_bootinfo(dtb_size: usize, dtb_phys_addr: usize, extra_bi_size: usize) {
     }
 }
 
-fn bi_finalise(dtb_size: usize, dtb_phys_addr: usize, extra_bi_size: usize,) {
+fn bi_finalise(dtb_size: usize, dtb_phys_addr: usize, extra_bi_size: usize) {
     unsafe {
         (*ndks_boot.bi_frame).empty = seL4_SlotRegion {
             start: ndks_boot.slot_pos_cur,
@@ -162,20 +153,21 @@ fn init_core_state(scheduler_action: *mut tcb_t) {
             tcbDebugAppend(scheduler_action);
         }
         let idle_thread = {
-            #[cfg(not(feature = "ENABLE_SMP"))] {
+            #[cfg(not(feature = "ENABLE_SMP"))]
+            {
                 ksIdleThread as *mut tcb_t
             }
-            #[cfg(feature = "ENABLE_SMP")] {
+            #[cfg(feature = "ENABLE_SMP")]
+            {
                 ksSMP[cpu_id()].ksIdleThread as *mut tcb_t
             }
         };
-        
+
         tcbDebugAppend(idle_thread);
         set_current_scheduler_action(scheduler_action as usize);
         set_current_thread(get_idle_thread());
     }
 }
-
 
 pub fn try_init_kernel(
     ui_p_reg_start: usize,
@@ -184,7 +176,7 @@ pub fn try_init_kernel(
     v_entry: usize,
     dtb_phys_addr: usize,
     dtb_size: usize,
-    ki_boot_end: usize
+    ki_boot_end: usize,
 ) -> bool {
     sel4_common::logging::init();
     debug!("hello logging");
@@ -194,10 +186,11 @@ pub fn try_init_kernel(
         end: kpptr_to_paddr(ki_boot_end as usize),
     };
     let boot_mem_reuse_reg = paddr_to_pptr_reg(&boot_mem_reuse_p_reg);
-    let ui_reg = paddr_to_pptr_reg(&p_region_t {
+    let ui_p_reg = p_region_t {
         start: ui_p_reg_start,
         end: ui_p_reg_end,
-    });
+    };
+    let ui_reg = paddr_to_pptr_reg(&ui_p_reg);
 
     let mut extra_bi_size = 0;
     let ui_v_reg = v_region_t {
@@ -208,7 +201,13 @@ pub fn try_init_kernel(
     let bi_frame_vptr = ipcbuf_vptr + BIT!(PAGE_BITS);
     let extra_bi_frame_vptr = bi_frame_vptr + BIT!(BI_FRAME_SIZE_BITS);
     rust_map_kernel_window();
+    #[cfg(target_arch = "riscv64")]
     init_cpu();
+    #[cfg(target_arch = "aarch64")]
+    if init_cpu() == false {
+        debug!("ERROR: CPU init failed");
+        return false;
+    }
 
     unsafe {
         init_plat();
@@ -234,30 +233,48 @@ pub fn try_init_kernel(
         );
         return false;
     }
-    if !init_freemem(
-        ui_reg.clone(),
-        dtb_p_reg.unwrap().clone(),
-    ) {
+    #[cfg(target_arch = "aarch64")]
+    if !init_freemem(ui_p_reg.clone(), dtb_p_reg.unwrap().clone()) {
+        debug!("ERROR: free memory management initialization failed\n");
+        return false;
+    }
+    #[cfg(target_arch = "riscv64")]
+    if !init_freemem(ui_reg.clone(), dtb_p_reg.unwrap().clone()) {
         debug!("ERROR: free memory management initialization failed\n");
         return false;
     }
 
-    if let Some((initial_thread, root_cnode_cap)) = root_server_init(it_v_reg, extra_bi_size_bits, ipcbuf_vptr,
-        bi_frame_vptr, extra_bi_size, extra_bi_frame_vptr, ui_reg, pv_offset, v_entry) {
+    if let Some((initial_thread, root_cnode_cap)) = root_server_init(
+        it_v_reg,
+        extra_bi_size_bits,
+        ipcbuf_vptr,
+        bi_frame_vptr,
+        extra_bi_size,
+        extra_bi_frame_vptr,
+        ui_reg,
+        pv_offset,
+        v_entry,
+    ) {
         create_idle_thread();
+        #[cfg(target_arch = "aarch64")]
+        cleanInvalidateL1Caches();
         init_core_state(initial_thread);
         if !create_untypeds(&root_cnode_cap, boot_mem_reuse_reg) {
             debug!("ERROR: could not create untypteds for kernel image boot memory");
         }
         unsafe {
             (*ndks_boot.bi_frame).sharedFrames = seL4_SlotRegion { start: 0, end: 0 };
-    
+
             bi_finalise(dtb_size, dtb_phys_addr, extra_bi_size);
-    
         }
+        #[cfg(target_arch = "aarch64")]
+        cleanInvalidateL1Caches();
+        #[cfg(target_arch = "aarch64")]
+        invalidateLocalTLB();
         // debug!("release_secondary_cores start");
         *ksNumCPUs.lock() = 1;
-        #[cfg(feature = "ENABLE_SMP")] {
+        #[cfg(feature = "ENABLE_SMP")]
+        {
             unsafe {
                 clh_lock_init();
                 release_secondary_cores();
@@ -270,7 +287,7 @@ pub fn try_init_kernel(
     } else {
         return false;
     }
-    
+
     true
 }
 

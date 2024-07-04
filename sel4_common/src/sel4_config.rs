@@ -18,9 +18,17 @@ pub const RISCV_Mega_Page: usize = 1;
 pub const RISCV_Giga_Page: usize = 2;
 pub const RISCV_Tera_Page: usize = 3;
 
+pub const ARM_Small_Page: usize = 0;
+pub const ARM_Large_Page: usize = 1;
+pub const ARM_Huge_Page: usize = 2;
+
 pub const RISCVPageBits: usize = 12;
 pub const RISCVMegaPageBits: usize = 21;
 pub const RISCVGigaPageBits: usize = 30;
+
+pub const ARMSmallPageBits: usize = 12;
+pub const ARMLargePageBits: usize = 21;
+pub const ARMHugePageBits: usize = 30;
 
 pub const PT_INDEX_BITS: usize = 9;
 pub const CONFIG_PT_LEVELS: usize = 3;
@@ -28,7 +36,6 @@ pub const seL4_PageBits: usize = 12;
 pub const seL4_PageTableBits: usize = 12;
 pub const seL4_HugePageBits: usize = 30;
 pub const seL4_LargePageBits: usize = 21;
-
 
 // ASID relevant
 pub const asidLowBits: usize = 9;
@@ -48,7 +55,6 @@ pub const PPTR_BASE: usize = 0xFFFFFFC000000000;
 pub const PADDR_BASE: usize = 0x0;
 pub const PPTR_BASE_OFFSET: usize = PPTR_BASE - PADDR_BASE;
 pub const PADDR_TOP: usize = PPTR_TOP - PPTR_BASE_OFFSET;
-
 
 // scheduler relevant
 pub const CONFIG_NUM_DOMAINS: usize = 1;
@@ -89,7 +95,6 @@ pub const seL4_RevokeFirst: usize = 9;
 pub const seL4_NotEnoughMemory: usize = 10;
 pub const seL4_NumErrors: usize = 11;
 
-
 // msg info
 pub const seL4_MsgMaxLength: usize = 120;
 pub const seL4_MsgExtraCapBits: usize = 2;
@@ -99,8 +104,6 @@ pub const MessageID_Exception: usize = 1;
 
 pub const seL4_IPCBufferSizeBits: usize = 10;
 
-
 pub const CONFIG_RESET_CHUNK_BITS: usize = 8;
 
 pub const CONFIG_KERNEL_STACK_BITS: usize = 12;
-

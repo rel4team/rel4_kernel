@@ -1,21 +1,21 @@
 pub mod decode;
-mod invoke_tcb;
 mod invoke_cnode;
-mod invoke_untyped;
-mod invoke_mmu_op;
 pub mod invoke_irq;
+mod invoke_mmu_op;
+mod invoke_tcb;
+mod invoke_untyped;
 
 use core::intrinsics::unlikely;
 
-use sel4_common::{structures::exception_t, message_info::seL4_MessageInfo_t, fault::seL4_Fault_t};
 use log::debug;
-use sel4_common::registers::{capRegister, msgInfoRegister, n_msgRegisters};
-use sel4_task::{get_currenct_thread, ThreadState, set_thread_state};
+use sel4_common::arch::{capRegister, msgInfoRegister, n_msgRegisters};
+use sel4_common::{fault::seL4_Fault_t, message_info::seL4_MessageInfo_t, structures::exception_t};
+use sel4_task::{get_currenct_thread, set_thread_state, ThreadState};
 
 use crate::kernel::boot::current_fault;
 use crate::syscall::invocation::decode::decode_invocation;
-use crate::syscall::{handle_fault, lookup_extra_caps_with_buf};
 use crate::syscall::syscall_reply::{reply_error_from_kernel, reply_success_from_kernel};
+use crate::syscall::{handle_fault, lookup_extra_caps_with_buf};
 
 #[no_mangle]
 pub fn handleInvocation(isCall: bool, isBlocking: bool) -> exception_t {
@@ -49,16 +49,16 @@ pub fn handleInvocation(isCall: bool, isBlocking: bool) -> exception_t {
         length = n_msgRegisters;
     }
 
-    let cap = unsafe {(*(lu_ret.slot)).cap};
+    let cap = unsafe { (*(lu_ret.slot)).cap };
     let status = decode_invocation(
         info.get_label(),
         length,
-        unsafe {&mut *lu_ret.slot },
+        unsafe { &mut *lu_ret.slot },
         &cap,
         cptr,
         isBlocking,
         isCall,
-        buffer
+        buffer,
     );
     if status == exception_t::EXCEPTION_PREEMTED {
         return status;
