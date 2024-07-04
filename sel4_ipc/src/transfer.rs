@@ -13,7 +13,7 @@ use sel4_cspace::interface::*;
 use sel4_task::{possible_switch_to, set_thread_state, tcb_t, ThreadState};
 use sel4_vspace::pptr_t;
 
-/// The trait for IPC transfer
+/// The trait for IPC transfer, please see doc.md for more details
 pub trait Transfer {
     fn cancel_ipc(&mut self);
 

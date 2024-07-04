@@ -120,8 +120,8 @@ impl endpoint_t {
         }
     }
 
-    /// Send an IPC to the endpoint
-    /// # Arguments
+    /// Send an IPC to the endpoint, if the endpoint is idle or send, the tcb will be blocked immediately
+    /// , otherwise the thread will do ipc transfer to the destination thread(queue head)
     /// * `src_thread` - The source thread to send the IPC
     /// * `blocking` - If the IPC is blocking
     /// * `do_call` - If the IPC is a call
@@ -173,7 +173,8 @@ impl endpoint_t {
         }
     }
 
-    /// Receive an IPC from the endpoint
+    /// Receive an IPC from the endpoint, if the endpoint is idle or recv, the tcb will be blocked immediately
+    /// , otherwise the thread will be transferred from the src thread(queue head)
     /// # Arguments
     /// * `thread` - The thread to receive the IPC
     /// * `is_blocking` - If the IPC is blocking
