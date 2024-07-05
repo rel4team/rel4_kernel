@@ -64,14 +64,5 @@ jobs:
       continue-on-error: true
     - run: cat rel4_kernel/build/1.log
     - name: Check Result
-      run: cat rel4_kernel/build/1.log | grep "All is well in the universe"
-    - name: Check Result
-      run: |
-        #!/bin/bash
-        
-        # Check Result
-        grep -q "rel4_kernel: PANICED" rel4_kernel/build/1.log
-        if [ $? -eq 0 ]; then
-          echo "Kernel Was Paniced"
-          exit 1
-        fi
+      run: rel4_kernel/.github/workflows/parse.py rel4_kernel/build/1.log
+
