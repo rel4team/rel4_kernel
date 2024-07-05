@@ -20,7 +20,7 @@ pub enum EPState {
     Recv = 2,
 }
 
-/// The structure of an endpoint, which is used to send and receive IPC
+// The structure of an endpoint, which is used to send and receive IPC
 plus_define_bitfield! {
     endpoint_t, 2, 0, 0, 0 => {
         new, 0 => {

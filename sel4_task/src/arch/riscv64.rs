@@ -7,7 +7,7 @@ use sel4_common::BIT;
 
 /// This is `arch_tcb_t` in the sel4_c_impl.
 #[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ArchTCB {
     pub registers: [usize; CONTEXT_REG_NUM],
 }
@@ -40,7 +40,7 @@ impl ArchTCB {
     }
 
     /// Config the registers fot the idle thread.
-    pub fn config_idle_thread(mut self) {
+    pub fn config_idle_thread(&mut self) {
         self.set_register(NextIP, idle_thread as usize);
         self.set_register(SSTATUS, SSTATUS_SPP | SSTATUS_SPIE);
         self.set_register(
