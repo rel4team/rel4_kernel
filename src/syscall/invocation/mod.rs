@@ -8,7 +8,7 @@ mod invoke_untyped;
 use core::intrinsics::unlikely;
 
 use log::debug;
-use sel4_common::arch::{capRegister, msgInfoRegister, n_msgRegisters};
+use sel4_common::arch::{msgRegisterNum, ArchReg};
 use sel4_common::{fault::seL4_Fault_t, message_info::seL4_MessageInfo_t, structures::exception_t};
 use sel4_task::{get_currenct_thread, set_thread_state, ThreadState};
 
@@ -20,8 +20,9 @@ use crate::syscall::{handle_fault, lookup_extra_caps_with_buf};
 #[no_mangle]
 pub fn handleInvocation(isCall: bool, isBlocking: bool) -> exception_t {
     let thread = get_currenct_thread();
-    let info = seL4_MessageInfo_t::from_word_security(thread.tcbArch.get_register(msgInfoRegister));
-    let cptr = thread.tcbArch.get_register(capRegister);
+    let info =
+        seL4_MessageInfo_t::from_word_security(thread.tcbArch.get_register(ArchReg::MsgInfo));
+    let cptr = thread.tcbArch.get_register(ArchReg::Cap);
     let lu_ret = thread.lookup_slot(cptr);
     if unlikely(lu_ret.status != exception_t::EXCEPTION_NONE) {
         debug!("Invocation of invalid cap {:#x}.", cptr);
@@ -45,8 +46,8 @@ pub fn handleInvocation(isCall: bool, isBlocking: bool) -> exception_t {
     }
 
     let mut length = info.get_length();
-    if unlikely(length > n_msgRegisters && buffer.is_none()) {
-        length = n_msgRegisters;
+    if unlikely(length > msgRegisterNum && buffer.is_none()) {
+        length = msgRegisterNum;
     }
 
     let cap = unsafe { (*(lu_ret.slot)).cap };

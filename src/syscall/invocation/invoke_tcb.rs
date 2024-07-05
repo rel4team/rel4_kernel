@@ -8,10 +8,7 @@ use sel4_cspace::interface::{cap_t, cte_insert, cte_t, same_object_as};
 use sel4_ipc::{notification_t, Transfer};
 use sel4_task::{get_currenct_thread, rescheduleRequired, set_thread_state, tcb_t, ThreadState};
 
-use crate::{
-    config::{frameRegisters, gpRegisters, n_frameRegisters, n_gpRegisters},
-    syscall::{do_bind_notification, safe_unbind_notification, utils::get_syscall_arg},
-};
+use crate::syscall::{do_bind_notification, safe_unbind_notification, utils::get_syscall_arg};
 
 pub fn invoke_tcb_read_registers(
     src: &mut tcb_t,
@@ -28,41 +25,42 @@ pub fn invoke_tcb_read_registers(
     }
     if call {
         let mut op_ipc_buffer = thread.lookup_mut_ipc_buffer(true);
-        thread.tcbArch.set_register(badgeRegister, 0);
+        thread.tcbArch.set_register(ArchReg::Badge, 0);
         let mut i: usize = 0;
-        while i < n && i < n_frameRegisters && i < n_msgRegisters {
+        while i < n && i < frameRegNum && i < msgRegisterNum {
             // setRegister(thread, msgRegister[i], getRegister(src, frameRegisters[i]));
             thread
                 .tcbArch
-                .set_register(msgRegister[i], src.tcbArch.get_register(frameRegisters[i]));
+                .set_register(ArchReg::Msg(i), src.tcbArch.get_register(ArchReg::Frame(i)));
             i += 1;
         }
 
         if let Some(ipc_buffer) = op_ipc_buffer.as_deref_mut() {
-            while i < n && i < n_frameRegisters {
-                ipc_buffer.msg[i] = src.tcbArch.get_register(frameRegisters[i]);
+            while i < n && i < frameRegNum {
+                ipc_buffer.msg[i] = src.tcbArch.get_register(ArchReg::Frame(i));
                 i += 1;
             }
         }
         let j = i;
         i = 0;
-        while i < n_gpRegisters && i + n_frameRegisters < n && i + n_frameRegisters < n_msgRegisters
+        while i < gpRegNum && i + frameRegNum < n && i + frameRegNum < msgRegisterNum
         {
             thread.tcbArch.set_register(
-                msgRegister[i + n_frameRegisters],
-                src.tcbArch.get_register(gpRegisters[i]),
+                // msgRegister[i + frameRegNum],
+                ArchReg::Msg(i + frameRegNum),
+                src.tcbArch.get_register(ArchReg::GP(i)),
             );
             i += 1;
         }
 
         if let Some(ipc_buffer) = op_ipc_buffer {
-            while i < n_gpRegisters && i + n_frameRegisters < n {
-                ipc_buffer.msg[i + n_frameRegisters] = src.tcbArch.get_register(gpRegisters[i]);
+            while i < gpRegNum && i + frameRegNum < n {
+                ipc_buffer.msg[i + frameRegNum] = src.tcbArch.get_register(ArchReg::GP(i));
                 i += 1;
             }
         }
         thread.tcbArch.set_register(
-            msgInfoRegister,
+            ArchReg::MsgInfo,
             seL4_MessageInfo_t::new(0, 0, 0, i + j).to_word(),
         );
     }
@@ -77,27 +75,27 @@ pub fn invoke_tcb_write_registers(
     _arch: usize,
     buffer: Option<&seL4_IPCBuffer>,
 ) -> exception_t {
-    if n > n_frameRegisters + n_gpRegisters {
-        n = n_frameRegisters + n_gpRegisters;
+    if n > frameRegNum + gpRegNum {
+        n = frameRegNum + gpRegNum;
     }
 
     let mut i = 0;
-    while i < n_frameRegisters && i < n {
+    while i < frameRegNum && i < n {
         dest.tcbArch
-            .set_register(frameRegisters[i], get_syscall_arg(i + 2, buffer));
+            .set_register(ArchReg::Frame(i), get_syscall_arg(i + 2, buffer));
         i += 1;
     }
     i = 0;
-    while i < n_gpRegisters && i + n_frameRegisters < n {
+    while i < gpRegNum && i + frameRegNum < n {
         dest.tcbArch.set_register(
-            gpRegisters[i],
-            get_syscall_arg(i + n_frameRegisters + 2, buffer),
+            ArchReg::GP(i),
+            get_syscall_arg(i + frameRegNum + 2, buffer),
         );
         i += 1;
     }
 
     dest.tcbArch
-        .set_register(NextIP, dest.tcbArch.get_register(FaultIP));
+        .set_register(ArchReg::NextIP, dest.tcbArch.get_register(ArchReg::FaultIP));
 
     if resumeTarget != 0 {
         // cancel_ipc(dest);
@@ -130,9 +128,9 @@ pub fn invoke_tcb_copy_registers(
         dest.restart();
     }
     if transferFrame != 0 {
-        for i in 0..n_gpRegisters {
+        for i in 0..gpRegNum {
             dest.tcbArch
-                .set_register(gpRegisters[i], src.tcbArch.get_register(gpRegisters[i]));
+                .set_register(ArchReg::GP(i), src.tcbArch.get_register(ArchReg::GP(i)));
         }
     }
     if dest.is_current() {
@@ -243,7 +241,7 @@ pub fn invoke_tcb_unbind_notification(tcb: &mut tcb_t) -> exception_t {
 
 #[inline]
 pub fn invoke_tcb_set_tls_base(thread: &mut tcb_t, base: usize) -> exception_t {
-    thread.tcbArch.set_register(TLS_BASE, base);
+    thread.tcbArch.set_register(ArchReg::TlsBase, base);
     if thread.is_current() {
         rescheduleRequired();
     }

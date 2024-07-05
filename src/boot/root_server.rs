@@ -10,7 +10,7 @@ use crate::structures::{
 };
 use crate::{BIT, ROUND_DOWN};
 use log::debug;
-use sel4_common::arch::{capRegister, NextIP};
+use sel4_common::arch::{ArchReg, ArchTCB};
 use sel4_common::sel4_config::{
     asidLowBits, seL4_PageBits, seL4_PageTableBits, seL4_SlotBits, seL4_TCBBits, tcbBuffer,
     tcbCTable, tcbVTable, wordBits, CONFIG_MAX_NUM_NODES, CONFIG_NUM_DOMAINS, CONFIG_PT_LEVELS,
@@ -161,8 +161,8 @@ unsafe fn create_initial_thread(
     );
 
     tcb.tcbIPCBuffer = ipcbuf_vptr;
-    tcb.tcbArch.set_register(capRegister, bi_frame_vptr);
-    tcb.tcbArch.set_register(NextIP, ui_v_entry);
+    tcb.tcbArch.set_register(ArchReg::Cap, bi_frame_vptr);
+    tcb.tcbArch.set_register(ArchReg::NextIP, ui_v_entry);
     tcb.tcbMCP = seL4_MaxPrio;
     tcb.tcbPriority = seL4_MaxPrio;
     set_thread_state(tcb, ThreadState::ThreadStateRunning);

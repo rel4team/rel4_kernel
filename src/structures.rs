@@ -29,6 +29,7 @@ pub struct v_region_t {
     pub end: usize,
 }
 
+#[allow(non_camel_case_types)]
 pub type seL4_SlotPos = usize;
 
 #[repr(C)]
@@ -91,6 +92,7 @@ pub struct rootserver_mem_t {
 }
 
 #[derive(PartialEq)]
+#[allow(dead_code)]
 pub enum cap_tag_t {
     cap_null_cap = 0,
     cap_untyped_cap = 2,

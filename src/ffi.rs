@@ -6,7 +6,6 @@ extern "C" {
     pub fn tcbDebugRemove(tcb: *mut tcb_t);
     pub fn handleUnknownSyscall(w: usize);
     pub fn fastpath_restore(badge: usize, msgInfo: usize, cur_thread: *mut tcb_t);
-    pub fn kernel_stack_alloc();
 }
 
 #[cfg(feature = "ENABLE_SMP")]

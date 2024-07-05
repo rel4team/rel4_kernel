@@ -1,4 +1,4 @@
-use sel4_common::arch::msgInfoRegister;
+use sel4_common::arch::ArchReg;
 use sel4_common::utils::MAX_FREE_INDEX;
 use sel4_common::MASK;
 use sel4_common::{
@@ -14,7 +14,7 @@ use sel4_vspace::{
     set_asid_pool_by_index, sfence, unmapPage, vm_attributes_t,
 };
 
-use crate::{config::badgeRegister, kernel::boot::current_lookup_fault, utils::clear_memory};
+use crate::{kernel::boot::current_lookup_fault, utils::clear_memory};
 
 pub fn invoke_page_table_unmap(cap: &mut cap_t) -> exception_t {
     if cap.get_pt_is_mapped() != 0 {
@@ -56,10 +56,10 @@ pub fn invoke_page_table_map(
 pub fn invoke_page_get_address(vbase_ptr: usize, call: bool) -> exception_t {
     let thread = get_currenct_thread();
     if call {
-        thread.tcbArch.set_register(badgeRegister, 0);
+        thread.tcbArch.set_register(ArchReg::Badge, 0);
         let length = thread.set_mr(0, vbase_ptr);
         thread.tcbArch.set_register(
-            msgInfoRegister,
+            ArchReg::MsgInfo,
             seL4_MessageInfo_t::new(0, 0, 0, length).to_word(),
         );
     }

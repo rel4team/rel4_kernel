@@ -1,5 +1,7 @@
 #![allow(unused)]
+mod arch_tcb;
 mod registers;
+pub use arch_tcb::ArchTCB;
 pub use registers::*;
 
 pub fn set_timer(timer: usize) {

@@ -48,6 +48,7 @@ use core::arch::asm;
 use sel4_common::utils::cpu_id;
 
 pub static ksNumCPUs: Mutex<usize> = Mutex::new(0);
+#[cfg(feature = "ENABLE_SMP")]
 pub static node_boot_lock: Mutex<usize> = Mutex::new(0);
 
 #[no_mangle]

@@ -33,6 +33,7 @@ pub enum IRQState {
 }
 
 #[cfg(not(feature = "ENABLE_SMP"))]
+#[allow(dead_code)]
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum IRQState {
     IRQInactive = 0,

@@ -3,7 +3,7 @@ pub mod syscall_reply;
 pub mod utils;
 
 use core::intrinsics::unlikely;
-use sel4_common::arch::capRegister;
+use sel4_common::arch::ArchReg;
 use sel4_common::fault::{lookup_fault_t, seL4_Fault_t, FaultType};
 use sel4_common::sel4_config::tcbCaller;
 
@@ -156,7 +156,7 @@ fn handle_reply() {
 
 fn handle_recv(block: bool) {
     let current_thread = get_currenct_thread();
-    let ep_cptr = current_thread.tcbArch.get_register(capRegister);
+    let ep_cptr = current_thread.tcbArch.get_register(ArchReg::Cap);
     let lu_ret = current_thread.lookup_slot(ep_cptr);
     if lu_ret.status != exception_t::EXCEPTION_NONE {
         unsafe {

@@ -1,5 +1,5 @@
 use crate::transfer::Transfer;
-use sel4_common::arch::badgeRegister;
+use sel4_common::arch::ArchReg;
 use sel4_common::plus_define_bitfield;
 use sel4_common::utils::{convert_to_mut_type_ref, convert_to_option_mut_type_ref};
 use sel4_task::{
@@ -214,7 +214,7 @@ impl endpoint_t {
                     self.set_queue(&queue);
                 } else {
                     // NBReceive failed
-                    thread.tcbArch.set_register(badgeRegister, 0);
+                    thread.tcbArch.set_register(ArchReg::Badge, 0);
                 }
             }
             EPState::Send => {

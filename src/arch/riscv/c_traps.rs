@@ -27,7 +27,7 @@ use sel4_common::utils::cpu_id;
 pub fn restore_user_context() {
     unsafe {
         // debug!("restore_user_context");
-        let cur_thread_reg: usize = get_currenct_thread().tcbArch.registers.as_ptr() as usize;
+        let cur_thread_reg: usize = get_currenct_thread().tcbArch.raw_ptr();
         #[cfg(feature = "ENABLE_SMP")]
         {
             if clh_is_self_in_queue() {

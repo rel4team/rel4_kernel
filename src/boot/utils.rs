@@ -130,16 +130,3 @@ pub fn map_it_frame_cap(_vspace_cap: &cap_t, _frame_cap: &cap_t) {
     );
     sfence();
 }
-
-pub fn rust_create_unmapped_it_frame_cap(pptr: pptr_t, _use_large: bool) -> cap_t {
-    cap_t::new_frame_cap(0, pptr, 0, 0, 0, 0)
-}
-
-pub fn write_it_asid_pool(it_ap_cap: &cap_t, it_lvl1pt_cap: &cap_t) {
-    let ap = it_ap_cap.get_cap_ptr();
-    unsafe {
-        let ptr = (ap + 8 * IT_ASID) as *mut usize;
-        *ptr = it_lvl1pt_cap.get_cap_ptr();
-        riscvKSASIDTable[IT_ASID >> asidLowBits] = ap as *mut asid_pool_t;
-    }
-}

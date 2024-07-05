@@ -19,13 +19,6 @@ pub fn read_stval() -> usize {
     todo!("read_stval")
 }
 
-pub extern "C" fn write_stvec(_val: usize) {
-    // unsafe {
-    //     asm!("csrw stvec , {}",in(reg) val);
-    // }
-    todo!("write_stvec")
-}
-
 pub fn read_sip() -> usize {
     // let temp: usize;
     // unsafe {
@@ -51,24 +44,6 @@ pub fn read_scause() -> usize {
     // }
     // temp
     todo!("read_scause")
-}
-
-pub fn read_sepc() -> usize {
-    // let temp: usize;
-    // unsafe {
-    //     asm!("csrr {}, sepc",out(reg)temp);
-    // }
-    // temp
-    todo!("read_sepc")
-}
-
-pub fn read_sstatus() -> usize {
-    // let temp: usize;
-    // unsafe {
-    //     asm!("csrr {}, sstatus",out(reg)temp);
-    // }
-    // temp
-    todo!("read_sstatus")
 }
 
 #[no_mangle]

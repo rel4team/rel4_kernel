@@ -4,6 +4,7 @@
 }, BIT};*/
 
 use log::debug;
+use sel4_common::arch::{frameRegNum, gpRegNum};
 use sel4_common::message_info::MessageLabel;
 use sel4_common::sel4_config::{
     seL4_IllegalOperation, seL4_InvalidCapability, seL4_RangeError, seL4_TruncatedMessage,
@@ -17,7 +18,6 @@ use sel4_ipc::notification_t;
 use sel4_task::{get_currenct_thread, set_thread_state, tcb_t, ThreadState};
 
 use crate::{
-    config::{n_frameRegisters, n_gpRegisters},
     kernel::boot::{current_syscall_error, get_extra_cap_by_index},
     syscall::{
         is_valid_vtable_root,
@@ -133,7 +133,7 @@ fn decode_read_registers(
     }
     let flags = get_syscall_arg(0, buffer);
     let n = get_syscall_arg(1, buffer);
-    if n < 1 || n > n_frameRegisters + n_gpRegisters {
+    if n < 1 || n > frameRegNum + gpRegNum {
         debug!(
             "TCB ReadRegisters: Attempted to read an invalid number of registers:{}",
             n
@@ -141,7 +141,7 @@ fn decode_read_registers(
         unsafe {
             current_syscall_error._type = seL4_RangeError;
             current_syscall_error.rangeErrorMin = 1;
-            current_syscall_error.rangeErrorMax = n_frameRegisters + n_gpRegisters;
+            current_syscall_error.rangeErrorMax = frameRegNum + gpRegNum;
             return exception_t::EXCEPTION_SYSCALL_ERROR;
         }
     }

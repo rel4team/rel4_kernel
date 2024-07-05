@@ -7,7 +7,7 @@ use crate::{
     BIT, IS_ALIGNED, MASK,
 };
 use log::debug;
-use sel4_common::arch::{msgRegister, n_msgRegisters};
+use sel4_common::arch::{msgRegisterNum, ArchReg};
 use sel4_common::fault::*;
 use sel4_common::sel4_config::seL4_MinUntypedBits;
 use sel4_common::{
@@ -49,9 +49,9 @@ pub fn OFFSET_TO_FREE_IDNEX(offset: usize) -> usize {
 #[no_mangle]
 pub fn getSyscallArg(i: usize, ipc_buffer: *const usize) -> usize {
     unsafe {
-        return if i < n_msgRegisters {
+        return if i < msgRegisterNum {
             // return getRegister(get_currenct_thread() as *const tcb_t, msgRegister[i]);
-            get_currenct_thread().tcbArch.get_register(msgRegister[i])
+            get_currenct_thread().tcbArch.get_register(ArchReg::Msg(i))
         } else {
             assert_ne!(ipc_buffer as usize, 0);
             let ptr = ipc_buffer.add(i + 1);
@@ -76,10 +76,10 @@ pub fn lookup_extra_caps_with_buf(thread: &tcb_t, buf: Option<&seL4_IPCBuffer>) 
 
 #[inline]
 pub fn get_syscall_arg(i: usize, ipc_buffer: Option<&seL4_IPCBuffer>) -> usize {
-    if i < n_msgRegisters {
-        return get_currenct_thread().tcbArch.get_register(msgRegister[i]);
+    match i < msgRegisterNum {
+        true => get_currenct_thread().tcbArch.get_register(ArchReg::Msg(i)),
+        false => ipc_buffer.unwrap().msg[i],
     }
-    return ipc_buffer.unwrap().msg[i];
 }
 
 #[inline]

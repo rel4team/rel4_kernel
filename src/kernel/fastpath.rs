@@ -112,12 +112,8 @@ pub fn fastpath_mi_check(msgInfo: usize) -> bool {
 #[inline]
 #[no_mangle]
 pub fn fastpath_copy_mrs(length: usize, src: &mut tcb_t, dest: &mut tcb_t) {
-    let mut reg: usize;
-    for i in 0..length {
-        reg = msgRegister[0] + i;
-        dest.tcbArch
-            .set_register(reg, src.tcbArch.get_register(reg));
-    }
+    dest.tcbArch
+        .copy_range(&src.tcbArch, msgRegister[0]..msgRegister[0] + length);
 }
 
 // #[inline]

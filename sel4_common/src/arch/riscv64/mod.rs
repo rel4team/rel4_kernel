@@ -1,7 +1,9 @@
 //! SBI (RISC-V Supervisor Binary Interface) wrapper
 #![allow(unused)]
 
+mod arch_tcb;
 mod registers;
+pub use arch_tcb::ArchTCB;
 pub use registers::*;
 use riscv::register::time;
 
