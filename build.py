@@ -31,8 +31,9 @@ def exec_shell(shell_command):
     return ret_code == 0
 
 def clean_config():
-    shell_command = "cd ../kernel && git checkout 552f173d3d7780b33184ebedefc58329ea5de3ba"
-    exec_shell(shell_command)
+    # shell_command = "cd ../kernel && git checkout 552f173d3d7780b33184ebedefc58329ea5de3ba"
+    # exec_shell(shell_command)
+    pass
 
 if __name__ == "__main__":
     args = parse_args()
