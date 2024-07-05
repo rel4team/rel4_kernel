@@ -9,11 +9,11 @@
 //! `seL4_Fault_CapFault`, `seL4_Fault_UnknownSyscall`, `seL4_Fault_UserException`, and `seL4_Fault_VMFault`.
 //!
 //! Additionally, it defines constants for specific fields in the `seL4_VMFault_Msg` and `seL4_CapFault_Msg` structs.
-//! 
+//!
 //! The `LookupFaultType` enum represents different types of lookup faults, such as InvalidRoot,
 //! MissingCap, DepthMismatch, and GuardMismatch. The `lookup_fault_t` struct provides methods
 //! to get the lookup fault type.
-//! 
+//!
 //! The module also defines constants for specific lookup fault types, such as `lookup_fault_invalid_root`,
 //! `lookup_fault_missing_capability`, `lookup_fault_depth_mismatch`, and `lookup_fault_guard_mismatch`.
 //!

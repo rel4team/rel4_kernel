@@ -1,13 +1,13 @@
 use crate::deps::kernel_stack_alloc;
 use crate::idle_thread;
 use sel4_common::arch::NextIP;
-use sel4_common::arch::{CONTEXT_REG_NUM, sp, SSTATUS, SSTATUS_SPIE, SSTATUS_SPP};
+use sel4_common::arch::{sp, CONTEXT_REG_NUM, SSTATUS, SSTATUS_SPIE, SSTATUS_SPP};
 use sel4_common::sel4_config::CONFIG_KERNEL_STACK_BITS;
 use sel4_common::BIT;
 
 /// This is `arch_tcb_t` in the sel4_c_impl.
 #[repr(C)]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct ArchTCB {
     pub registers: [usize; CONTEXT_REG_NUM],
 }
@@ -19,8 +19,9 @@ impl Default for ArchTCB {
         Self { registers }
     }
 }
+
 impl ArchTCB {
-	/// Set the register of the TCB
+    /// Set the register of the TCB
     /// # Arguments
     /// * `reg` - The register index.
     /// * `w` - The value to set.
@@ -28,7 +29,7 @@ impl ArchTCB {
     pub fn set_register(&mut self, reg: usize, w: usize) {
         self.registers[reg] = w;
     }
-	/// Get the register value of the TCB
+    /// Get the register value of the TCB
     /// # Arguments
     /// * `reg` - The register index.
     /// # Returns
@@ -39,7 +40,7 @@ impl ArchTCB {
     }
 
     /// Config the registers fot the idle thread.
-    pub fn config_idle_thread(&mut self) {
+    pub fn config_idle_thread(mut self) {
         self.set_register(NextIP, idle_thread as usize);
         self.set_register(SSTATUS, SSTATUS_SPP | SSTATUS_SPIE);
         self.set_register(

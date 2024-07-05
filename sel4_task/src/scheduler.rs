@@ -1,5 +1,5 @@
 //! This module contains the implementation of the scheduler for the sel4_task crate.
-//! 
+//!
 //! It includes functions and data structures related to task scheduling and thread management.
 //! The scheduler supports Symmetric Multiprocessing (SMP) and provides functionality for choosing
 //! new threads to run, managing ready queues, and handling domain scheduling.

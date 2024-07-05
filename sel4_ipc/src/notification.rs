@@ -14,7 +14,7 @@ pub enum NtfnState {
     Active = 2,
 }
 
-/// The structure of a notification, which is used to send and receive signals
+// The structure of a notification, which is used to send and receive signals
 plus_define_bitfield! {
     notification_t, 4, 0, 0, 0 => {
         new, 0 => {
@@ -119,7 +119,7 @@ impl notification_t {
     }
 
     #[inline]
-    /// Send a signal to the notification. 
+    /// Send a signal to the notification.
     /// 1: If the notification is idle, the badge is sent to the bound tcb if it exists, otherwise the notification is set to active.
     /// 2: If the notification is waiting, the badge is sent to the head of the queue.
     /// 3: If the notification is active, the badge is added to the message identifier.

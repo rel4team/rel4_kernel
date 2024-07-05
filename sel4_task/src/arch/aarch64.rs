@@ -17,14 +17,14 @@ impl Default for ArchTCB {
     }
 }
 impl ArchTCB {
-	/// Set the register of the TCB
+    /// Set the register of the TCB
     /// # Arguments
     /// * `reg` - The register index.
     /// * `w` - The value to set.
     pub fn set_register(&mut self, reg: usize, w: usize) {
         self.registers[reg] = w;
     }
-	/// Get the register value of the TCB
+    /// Get the register value of the TCB
     /// # Arguments
     /// * `reg` - The register index.
     /// # Returns

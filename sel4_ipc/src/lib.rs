@@ -1,5 +1,5 @@
 //! This crate implements the IPC mechanism of seL4, including the endpoint, notification, and transfer.
-//! 
+//!
 //! See more details in ../doc.md
 #![feature(core_intrinsics)]
 #![no_std]

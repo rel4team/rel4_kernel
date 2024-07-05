@@ -1,18 +1,18 @@
 //! This file contains the implementation of the `seL4_MessageInfo_t` struct and its associated methods.
-//! 
+//!
 //! The `seL4_MessageInfo_t` struct represents a message info in the seL4 microkernel. It provides methods for creating, converting, and accessing the fields of a message info.
-//! 
+//!
 //! # Examples
-//! 
+//!
 //! Creating a new `seL4_MessageInfo_t` from a word:
-//! 
+//!
 //! ```
 //! let word = 0x12345678;
 //! let message_info = seL4_MessageInfo_t::from_word(word);
 //! ```
-//! 
+//!
 //! Getting the label of the message:
-//! 
+//!
 //! ```
 //! let label = message_info.get_label();
 //! ```
