@@ -1,27 +1,30 @@
 use crate::deps::kernel_stack_alloc;
 use crate::idle_thread;
 use sel4_common::arch::NextIP;
-use sel4_common::arch::{n_contextRegisters, sp, SSTATUS, SSTATUS_SPIE, SSTATUS_SPP};
+use sel4_common::arch::{CONTEXT_REG_NUM, sp, SSTATUS, SSTATUS_SPIE, SSTATUS_SPP};
 use sel4_common::sel4_config::CONFIG_KERNEL_STACK_BITS;
 use sel4_common::BIT;
+
+/// This is `arch_tcb_t` in the sel4_c_impl.
 #[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct arch_tcb_t {
-    pub registers: [usize; n_contextRegisters],
+#[derive(Debug, PartialEq, Clone)]
+pub struct ArchTCB {
+    pub registers: [usize; CONTEXT_REG_NUM],
 }
 
-impl Default for arch_tcb_t {
+impl Default for ArchTCB {
     fn default() -> Self {
-        let mut registers = [0; n_contextRegisters];
+        let mut registers = [0; CONTEXT_REG_NUM];
         registers[SSTATUS] = 0x00040020;
         Self { registers }
     }
 }
-impl arch_tcb_t {
+impl ArchTCB {
 	/// Set the register of the TCB
     /// # Arguments
     /// * `reg` - The register index.
     /// * `w` - The value to set.
+    #[inline]
     pub fn set_register(&mut self, reg: usize, w: usize) {
         self.registers[reg] = w;
     }
@@ -30,15 +33,18 @@ impl arch_tcb_t {
     /// * `reg` - The register index.
     /// # Returns
     /// The value of the register.
+    #[inline]
     pub fn get_register(&self, reg: usize) -> usize {
         self.registers[reg]
     }
-}
-pub fn Arch_configureIdleThread(mut tcbArch: arch_tcb_t) {
-    tcbArch.set_register(NextIP, idle_thread as usize);
-    tcbArch.set_register(SSTATUS, SSTATUS_SPP | SSTATUS_SPIE);
-    tcbArch.set_register(
-        sp,
-        kernel_stack_alloc as usize + BIT!(CONFIG_KERNEL_STACK_BITS),
-    );
+
+    /// Config the registers fot the idle thread.
+    pub fn config_idle_thread(&mut self) {
+        self.set_register(NextIP, idle_thread as usize);
+        self.set_register(SSTATUS, SSTATUS_SPP | SSTATUS_SPIE);
+        self.set_register(
+            sp,
+            kernel_stack_alloc as usize + BIT!(CONFIG_KERNEL_STACK_BITS),
+        );
+    }
 }

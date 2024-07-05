@@ -552,14 +552,15 @@ pub fn activateThread() {
 #[cfg(not(feature = "ENABLE_SMP"))]
 /// Create the idle thread.
 pub fn create_idle_thread() {
-    use crate::{deps::ksIdleThreadTCB, Arch_configureIdleThread};
+    use crate::deps::ksIdleThreadTCB;
 
     unsafe {
         let pptr = ksIdleThreadTCB as usize as *mut usize;
         ksIdleThread = pptr.add(TCB_OFFSET) as usize;
         // let tcb = convert_to_mut_type_ref::<tcb_t>(ksIdleThread as usize);
         let tcb = get_idle_thread();
-        Arch_configureIdleThread(tcb.tcbArch);
+        // Arch_configureIdleThread(tcb.tcbArch);
+        tcb.tcbArch.config_idle_thread();
         set_thread_state(tcb, ThreadState::ThreadStateIdleThreadState);
     }
 }

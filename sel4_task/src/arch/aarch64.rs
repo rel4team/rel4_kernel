@@ -1,19 +1,22 @@
 use crate::idle_thread;
-use sel4_common::arch::{n_contextRegisters, ELR_EL1, SPSR_EL1};
+use sel4_common::arch::{CONTEXT_REG_NUM, ELR_EL1, SPSR_EL1};
+
+/// This is `arch_tcb_t` in the sel4_c_impl.
 #[repr(C)]
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub struct arch_tcb_t {
-    pub registers: [usize; n_contextRegisters],
+pub struct ArchTCB {
+    registers: [usize; CONTEXT_REG_NUM],
 }
 
-impl Default for arch_tcb_t {
+/// Implements the Default for the `ArchTCB`
+impl Default for ArchTCB {
     fn default() -> Self {
-        let mut registers = [0; n_contextRegisters];
+        let mut registers = [0; CONTEXT_REG_NUM];
         registers[SPSR_EL1] = (1 << 6) | 5 | (1 << 8);
         Self { registers }
     }
 }
-impl arch_tcb_t {
+impl ArchTCB {
 	/// Set the register of the TCB
     /// # Arguments
     /// * `reg` - The register index.
@@ -29,8 +32,10 @@ impl arch_tcb_t {
     pub fn get_register(&self, reg: usize) -> usize {
         self.registers[reg]
     }
-}
-pub fn Arch_configureIdleThread(mut tcbArch: arch_tcb_t) {
-    tcbArch.set_register(ELR_EL1, idle_thread as usize);
-    tcbArch.set_register(SPSR_EL1, (1 << 6) | 5 | (1 << 8));
+
+    /// Config the registers fot the idle thread.
+    pub fn config_idle_thread(&mut self) {
+        self.set_register(ELR_EL1, idle_thread as usize);
+        self.set_register(SPSR_EL1, (1 << 6) | 5 | (1 << 8));
+    }
 }

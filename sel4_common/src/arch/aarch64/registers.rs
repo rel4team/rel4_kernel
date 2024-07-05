@@ -53,7 +53,9 @@ pub const TPIDR_EL0: usize = 35;
 pub const TLS_BASE: usize = TPIDR_EL0;
 //     /* user readonly thread ID register. */
 //     TPIDRRO_EL0                 = 36,
-pub const n_contextRegisters: usize = 37;
+// pub const n_contextRegisters: usize = 37;
+// This is n_context registers
+pub const CONTEXT_REG_NUM: usize = 37;
 pub const n_exceptionMessage: usize = 3;
 pub const n_syscallMessage: usize = 12;
 pub const n_msgRegisters: usize = 4;

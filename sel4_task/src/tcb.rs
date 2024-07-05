@@ -25,14 +25,14 @@ use super::structures::lookupSlot_raw_ret_t;
 
 use super::thread_state::*;
 
-use crate::arch::arch_tcb_t;
+use crate::arch::ArchTCB;
 
 #[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone)]
 /// Structure for the TCB
 pub struct tcb_t {
     /// The architecture registers of the TCB
-    pub tcbArch: arch_tcb_t,
+    pub tcbArch: ArchTCB,
     /// The state of the TCB
     pub tcbState: thread_state_t,
     /// The bound notification of the TCB
@@ -79,7 +79,7 @@ impl tcb_t {
     #[inline]
     /// Initialize the TCB
     pub fn init(&mut self) {
-        self.tcbArch = arch_tcb_t::default();
+        self.tcbArch = ArchTCB::default();
     }
 
     #[inline]

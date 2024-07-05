@@ -38,7 +38,9 @@ pub const SCAUSE: usize = 31;
 pub const SSTATUS: usize = 32;
 pub const FaultIP: usize = 33;
 pub const NextIP: usize = 34;
-pub const n_contextRegisters: usize = 35;
+// pub const n_contextRegisters: usize = 35;
+// This is n_context registers
+pub const CONTEXT_REG_NUM: usize = 35;
 pub const n_msgRegisters: usize = 4;
 pub const msgRegister: [usize; n_msgRegisters] = [11, 12, 13, 14];
 

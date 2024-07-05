@@ -132,7 +132,7 @@ unsafe fn create_initial_thread(
 ) -> *mut tcb_t {
     let tcb = convert_to_mut_type_ref::<tcb_t>(rootserver.tcb + TCB_OFFSET);
     tcb.tcbTimeSlice = CONFIG_TIME_SLICE;
-    tcb.tcbArch = arch_tcb_t::default();
+    tcb.tcbArch = ArchTCB::default();
 
     let cnode = convert_to_mut_type_ref::<cte_t>(root_cnode_cap.get_cap_ptr());
     let ipc_buf_slot = cnode.get_offset_slot(seL4_CapInitThreadIPCBuffer);
