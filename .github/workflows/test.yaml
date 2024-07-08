@@ -31,7 +31,7 @@ jobs:
         components: rust-src
         rustflags: 
     - name: Make rel4_kernel
-      run: cd rel4_kernel && make run
+      run: cd rel4_kernel && make ARCH${{ matrix.arch }} run
     - name: Build kernel
       run: cd kernel && cmake cmake -DCROSS_COMPILER_PREFIX=${{ matrix.arch }}-linux-gnu- -C kernel-settings-${{ matrix.arch }}.cmake -G Ninja -S . -B build
     - name: Build Kernel
