@@ -11,6 +11,9 @@ jobs:
       image: trustworthysystems/sel4
       volumes:
         - .:/code
+    strategy:
+      matrix:
+        arch: [riscv64, aarch64]
     steps:
     - uses: actions/checkout@v4
       with:
@@ -21,7 +24,7 @@ jobs:
         path: kernel
         repository: rel4team/seL4_c_impl
     - name: Install generaic tools
-      run: apt update && apt install -y wget gcc-riscv64-linux-gnu
+      run: apt update && apt install -y wget gcc-${{ matrix.arch }}-linux-gnu
     - uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
         toolchain: nightly-2024-02-01
@@ -30,7 +33,7 @@ jobs:
     - name: Make rel4_kernel
       run: cd rel4_kernel && make run
     - name: Build kernel
-      run: cd kernel && cmake cmake -DCROSS_COMPILER_PREFIX=riscv64-linux-gnu- -C kernel-settings-riscv64.cmake -G Ninja -S . -B build
+      run: cd kernel && cmake cmake -DCROSS_COMPILER_PREFIX=${{ matrix.arch }}-linux-gnu- -C kernel-settings-${{ matrix.arch }}.cmake -G Ninja -S . -B build
     - name: Build Kernel
       run: cd kernel && ninja -C build
   sel4-test:
