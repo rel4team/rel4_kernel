@@ -12,6 +12,7 @@ use crate::common::{structures::{exception_t, seL4_IPCBuffer}, sel4_config::seL4
 use crate::cspace::interface::{cte_t, cap_t, CapTag};
 use crate::task_manager::ipc::{endpoint_t, notification_t};
 use log::debug;
+#[cfg(feature = "ENABLE_UINTC")]
 use crate::async_runtime::NewBuffer;
 use crate::common::sel4_config::seL4_TruncatedMessage;
 use crate::task_manager::{set_thread_state, get_currenct_thread, ThreadState, tcb_t};

@@ -12,6 +12,7 @@
 #![feature(stdsimd)]
 #![feature(linkage)]
 #![feature(generic_const_exprs)]
+#![feature(stmt_expr_attributes)]
 
 extern crate core;
 extern crate alloc;

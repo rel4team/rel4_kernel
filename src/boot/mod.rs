@@ -40,8 +40,6 @@ use crate::{
 
 #[cfg(feature = "ENABLE_SMP")]
 use core::arch::asm;
-use crate::smp::cpu_index_to_id;
-use crate::uintc::test_uintr;
 
 pub static ksNumCPUs: Mutex<usize> = Mutex::new(0);
 pub static node_boot_lock: Mutex<usize> = Mutex::new(0);
@@ -78,9 +76,6 @@ fn init_cpu() {
     #[cfg(feature = "ENABLE_UINTC")]
     crate::uintc::init();
 
-    // unsafe {
-    //     test_uintr(cpu_index_to_id(cpu_id()));
-    // }
 }
 
 fn calculate_extra_bi_size_bits(size: usize) -> usize {

@@ -20,6 +20,7 @@ use crate::syscall::syscall_reply::{reply_error_from_kernel, reply_success_from_
 pub fn handleInvocation(isCall: bool, isBlocking: bool) -> exception_t {
     let thread = get_currenct_thread();
     let info = seL4_MessageInfo_t::from_word_security(thread.get_register(msgInfoRegister));
+    // debug!("handleInvocation: {:?}", info.get_label());
     let cptr = thread.get_register(capRegister);
     let lu_ret = thread.lookup_slot(cptr);
     if unlikely(lu_ret.status != exception_t::EXCEPTION_NONE) {

@@ -8,10 +8,9 @@ use crate::common::utils::convert_to_mut_type_ref_unsafe;
 use super::{FaultIP, NextIP, SSTATUS, SSTATUS_SPP, SSTATUS_SPIE, sp, set_thread_state, ThreadState};
 
 use super::{tcb::tcb_t, tcb_queue_t};
-
+use crate::common::utils::cpu_id;
 #[cfg(feature = "ENABLE_SMP")]
 use crate::{
-    common::utils::cpu_id,
     deps::{doMaskReschedule, ksIdleThreadTCB, kernel_stack_alloc}
 };
 use crate::boot::cpu_prio;

@@ -34,7 +34,6 @@ features = [
 ]
 
 [features]
-default = ["ENABLE_SMP", "ENABLE_UINTC"]
 ENABLE_SMP = []
 ENABLE_UINTC = []
 board_qemu = []

@@ -5,6 +5,8 @@ use rv_plic::{Priority, PLIC};
 use crate::common::sel4_config::PPTR_BASE_OFFSET;
 use crate::common::utils::cpu_id;
 use crate::config::IRQConst::PLIC_NET;
+
+#[cfg(feature = "ENABLE_SMP")]
 use crate::smp::cpu_index_to_id;
 
 pub trait PlicTrait {
@@ -58,12 +60,20 @@ pub fn get_context(hart_id: usize, mode: char) -> usize {
 
 const CPU_IDX: usize = 0;
 
+fn get_hart_id(cpu_idx: usize) -> usize {
+    #[cfg(feature = "ENABLE_SMP")] {
+        crate::smp::cpu_index_to_id(cpu_idx)
+    }
+    #[cfg(not(feature = "ENABLE_SMP"))]
+    0
+}
+
 impl PlicTrait for RVPlic {
     #[cfg(feature = "board_qemu")]
     fn get_claim() -> usize {
         // debug!("get_claim");
         let mut kernel_irq = irqInvalid;
-        let hart_id = cpu_index_to_id(CPU_IDX);
+        let hart_id = get_hart_id(CPU_IDX);
         let context = get_context(hart_id, 'S');
 
         if let Some(irq) = RVPlic::claim(context) {
@@ -81,7 +91,7 @@ impl PlicTrait for RVPlic {
     #[cfg(feature = "board_lrv")]
     fn get_claim() -> usize {
         let mut kernel_irq = irqInvalid;
-        let hart_id = cpu_index_to_id(CPU_IDX);
+        let hart_id = get_hart_id(CPU_IDX);
         let context = get_context(hart_id, 'S');
 
         if let Some(irq) = RVPlic::claim(context) {
@@ -97,7 +107,7 @@ impl PlicTrait for RVPlic {
     #[cfg(feature = "board_qemu")]
     fn mask_irq(disable: bool, irq: usize) {
         if irq == PLIC_NET as usize {
-            let hart_id = cpu_index_to_id(CPU_IDX);
+            let hart_id = get_hart_id(CPU_IDX);
             let context = get_context(hart_id, 'S');
             if disable {
                 RVPlic::disable(context, 8);
@@ -112,7 +122,7 @@ impl PlicTrait for RVPlic {
     #[cfg(feature = "board_lrv")]
     fn mask_irq(disable: bool, irq: usize) {
         if irq == PLIC_NET as usize {
-            let hart_id = cpu_index_to_id(CPU_IDX);
+            let hart_id = get_hart_id(CPU_IDX);
             let context = get_context(hart_id, 'S');
             if disable {
                 RVPlic::disable(context, 3);
@@ -128,7 +138,7 @@ impl PlicTrait for RVPlic {
 
     #[cfg(feature = "board_qemu")]
     fn init_hart() {
-        let hart_id = cpu_index_to_id(cpu_id());
+        let hart_id = get_hart_id(cpu_id());
         let context = get_context(hart_id, 'S');
         for irq in 1..=8 {
             RVPlic::disable(context, irq);
@@ -138,7 +148,7 @@ impl PlicTrait for RVPlic {
 
     #[cfg(feature = "board_lrv")]
     fn init_hart() {
-        let hart_id = cpu_index_to_id(cpu_id());
+        let hart_id = get_hart_id(cpu_id());
         let context = get_context(hart_id, 'S');
         for irq in 1..=6 {
             RVPlic::enable(context, irq);
@@ -176,7 +186,7 @@ pub fn plic_complete_claim(irq: usize) {
 }
 #[cfg(feature = "board_lrv")]
 pub fn plic_complete_claim(irq: usize) {
-    let hart_id = cpu_index_to_id(CPU_IDX);
+    let hart_id = get_hart_id(CPU_IDX);
     let context = get_context(hart_id, 'S');
     if irq == PLIC_NET as usize {
         // debug!("plic complete: {}", irq);
