@@ -28,12 +28,13 @@ $ ./simulate -b <your qemu path> -M virt --cpu-num <cpu-num> #(1 or 4)
 ## Run rust demo on qemu
 Clone rust-root-task-demo first
 ```shell
-git clone https://github.com/rel4team/rust-root-task-demo.git projects/rust-root-task-demo
+git clone --recursive https://github.com/rel4team/rust-root-task-demo.git projects/rust-root-task-demo
 ```
 
 install header file
 ```shell
 # in rel4_kernel dir
+$ make env
 $ ./build.py -c 4 -u -i
 ```
 
@@ -50,5 +51,6 @@ Build binary image:
 
 Run test
 ```shell
+# the qemu need to support User Interrupt, please clone https://github.com/rel4team/qemu and buld it.
 ./simulate -b <your qemu path> -M virt --cpu-num 4
 ```
