@@ -30,10 +30,13 @@ pub fn handleInterruptEntry() -> exception_t {
     let scause = scause::read();
     match scause.cause() {
         scause::Trap::Interrupt(scause::Interrupt::SupervisorExternal) => {
-            // debug!("SupervisorExternal");
+            debug!("SupervisorExternal");
         }
         scause::Trap::Interrupt(scause::Interrupt::UserExternal) => {
             debug!("UserExternal");
+        }
+        scause::Trap::Interrupt(scause::Interrupt::SupervisorSoft) => {
+            debug!("SupervisorSoft");
         }
         _ => {
 

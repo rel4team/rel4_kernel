@@ -12,7 +12,9 @@ crate-type = ["staticlib"]
 
 [dependencies]
 buddy_system_allocator = "0.6"
-riscv = { git = "https://gitee.com/rcore-os/riscv", features = ["inline-asm"] }
+riscv = { git = "https://github.com/duskmoon314/riscv", branch = "extN", features = [
+    "inline-asm",
+] }
 bit_field = "0.10"
 log = "0.4"
 spin = { version = "0.9", features = ["use_ticket_mutex"] }
@@ -21,6 +23,9 @@ rv-plic = { git = "https://github.com/duskmoon314/rv-plic" }
 virtio-drivers = { git = "https://github.com/rcore-os/virtio-drivers", rev = "a35c6e6" }
 axi-ethernet = { git = "https://github.com/zflcs/axi-ethernet.git" }
 axi-dma = { git = "https://github.com/rel4team/axi-dma.git" }
+lazy_init = { git = "https://github.com/Starry-OS/lazy_init.git" }
+taic-driver = { path = "./taic-driver" }
+axconfig = { git = "https://github.com/Starry-OS/axconfig.git" }
 
 [dependencies.smoltcp]
 git = "https://github.com/smoltcp-rs/smoltcp.git"

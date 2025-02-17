@@ -221,6 +221,7 @@ pub fn try_init_kernel(
     init_cpu();
     init_irq_controller();
     init_hart();
+    crate::taic_test::start();
     // net_init();
 
     let dtb_p_reg = init_dtb(dtb_size, dtb_phys_addr, &mut extra_bi_size);

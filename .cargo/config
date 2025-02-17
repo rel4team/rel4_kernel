@@ -1,0 +1,6 @@
+[build]
+target = "riscv64imac-unknown-none-elf"
+
+[env]
+AX_WORK_DIR = { value = "./", relative = true }
+AX_PLATFORM = { value = "riscv64-qemu-virt" }

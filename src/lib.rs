@@ -9,10 +9,10 @@
 #![allow(while_true)]
 #![feature(alloc_error_handler)]
 #![feature(panic_info_message)]
-#![feature(stdsimd)]
 #![feature(linkage)]
 #![feature(generic_const_exprs)]
 #![feature(stmt_expr_attributes)]
+#![feature(ptr_from_ref)]
 
 extern crate core;
 extern crate alloc;
@@ -48,6 +48,7 @@ mod uintr;
 mod async_runtime;
 // mod device;
 
+mod taic_test;
 
 #[no_mangle]
 pub extern "C" fn halt() {

@@ -25,6 +25,9 @@ def parse_args():
     parser.add_argument('-u', '--uintr', dest="uintr_enable", action="store_true",
                             help="uintr support")
 
+    parser.add_argument('-t', '--taic', dest="taic_enable", action="store_true",
+                        help="taic support")
+
     parser.add_argument('-c', '--cpu', dest="cpu_nums", type=int,
                         help="kernel & qemu cpu nums", default=1)
 
