@@ -9,7 +9,7 @@ use crate::task_manager::{tcb_t, get_currenct_thread, ipc::notification_t};
 use crate::uintr;
 use crate::uintr::uipi_send;
 use crate::vspace::{checkVPAlignment, kpptr_to_paddr, pptr_to_paddr, find_vspace_for_asid, vm_attributes_t, pte_t};
-use crate::uintc::{KERNEL_SENDER_POOL_IDX, NET_UINTR_IDX, UIntrReceiver, UIntrSTEntry};
+// use crate::uintc::{KERNEL_SENDER_POOL_IDX, NET_UINTR_IDX, UIntrReceiver, UIntrSTEntry};
 use core::sync::atomic::Ordering::SeqCst;
 use core::intrinsics::unlikely;
 use crate::common::sbi::get_time;
@@ -108,10 +108,10 @@ pub async fn async_syscall_handler(ntfn_cap: cap_t, new_buffer_cap: cap_t, tcb: 
 }
 
 unsafe fn send_async_syscall_uintr(offset: usize) {
-    let uist_idx = *KERNEL_SENDER_POOL_IDX.lock();
-    let frame_addr = crate::uintc::UINTR_ST_POOL.as_ptr().offset((uist_idx * core::mem::size_of::<UIntrSTEntry>() * crate::uintc::config::UINTC_ENTRY_NUM) as isize) as usize;
-    uintr::suist::write((1 << 63) | (1 << 44) | (kpptr_to_paddr(frame_addr) >> 0xC));
-    uipi_send(offset);
+    // let uist_idx = *KERNEL_SENDER_POOL_IDX.lock();
+    // let frame_addr = crate::uintc::UINTR_ST_POOL.as_ptr().offset((uist_idx * core::mem::size_of::<UIntrSTEntry>() * crate::uintc::config::UINTC_ENTRY_NUM) as isize) as usize;
+    // uintr::suist::write((1 << 63) | (1 << 44) | (kpptr_to_paddr(frame_addr) >> 0xC));
+    // uipi_send(offset);
 }
 
 fn handle_async_unknown_label(item: &mut IPCItem, tcb: &mut tcb_t) {

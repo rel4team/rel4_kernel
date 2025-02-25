@@ -107,7 +107,7 @@ impl LocalQueue {
 impl Drop for LocalQueue {
     fn drop(&mut self) {
         let flq = self.taic.regs().flq();
-        log::info!("free local queue {:#x}", self.queue_idx());
+        // log::info!("free local queue {:#x}", self.queue_idx());
         flq.write(|w| unsafe { w.bits(self.queue_idx() as _) });
     }
 }

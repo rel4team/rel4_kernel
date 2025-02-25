@@ -12,7 +12,7 @@ use crate::config::{irqInvalid, maxIRQ};
 use crate::interrupt::*;
 use crate::riscv::resetTimer;
 #[cfg(feature = "ENABLE_UINTC")]
-use crate::uintc::{KERNEL_SENDER_POOL_IDX, NET_UINTR_IDX, UIntrReceiver, UIntrSTEntry};
+// use crate::uintc::{KERNEL_SENDER_POOL_IDX, NET_UINTR_IDX, UIntrReceiver, UIntrSTEntry};
 #[cfg(feature = "ENABLE_UINTC")]
 use crate::{uintr, uintr::uipi_send};
 
@@ -63,11 +63,11 @@ static mut SECOND_TIMER_CNT: usize = 0;
 
 #[cfg(feature = "ENABLE_UINTC")]
 pub unsafe fn send_net_uintr() {
-    let uist_idx = *KERNEL_SENDER_POOL_IDX.lock();
-    let offset = *NET_UINTR_IDX.lock();
-    let frame_addr = crate::uintc::UINTR_ST_POOL.as_ptr().offset((uist_idx * core::mem::size_of::<UIntrSTEntry>() * crate::uintc::config::UINTC_ENTRY_NUM) as isize) as usize;
-    uintr::suist::write((1 << 63) | (1 << 44) | (kpptr_to_paddr(frame_addr) >> 0xC));
-    uipi_send(offset);
+    // let uist_idx = *KERNEL_SENDER_POOL_IDX.lock();
+    // let offset = *NET_UINTR_IDX.lock();
+    // let frame_addr = crate::uintc::UINTR_ST_POOL.as_ptr().offset((uist_idx * core::mem::size_of::<UIntrSTEntry>() * crate::uintc::config::UINTC_ENTRY_NUM) as isize) as usize;
+    // uintr::suist::write((1 << 63) | (1 << 44) | (kpptr_to_paddr(frame_addr) >> 0xC));
+    // uipi_send(offset);
 }
 
 #[no_mangle]

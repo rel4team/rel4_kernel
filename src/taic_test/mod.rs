@@ -25,9 +25,9 @@ fn enq_deq_test() {
     }
     for _i in 0..NUM {
         let deq_start = riscv::register::cycle::read();
-        let _ = lq0.task_dequeue();
+        let c = lq0.task_dequeue();
         let deq_end = riscv::register::cycle::read();
-        deq_cycles.push(deq_end - deq_start);
+        deq_cycles.push(c);
     }
     debug!("Enq cycles: {:?}", enq_cycles);
     debug!("---------------------------------");
@@ -68,9 +68,9 @@ fn sexint_latency_test() {
 
 pub fn start() {
     // enq_deq_test();
-    sexint_latency_test();
+    // // sexint_latency_test();
 
     // loop {
-    //
+    
     // }
 }

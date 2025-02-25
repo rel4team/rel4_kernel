@@ -22,8 +22,8 @@ plus_define_bitfield! {
             queue_head, get_queue_head, set_queue_head, 1, 0, 39, 0, true,
             queue_tail, get_queue_tail, set_queue_tail, 0, 25, 39, 0, true,
             state, get_usize_state, set_state, 0, 0, 2, 0, false,
-            os_id, get_os_id, set_os_id, 4, 9, 9, 0, false,
-            process_id, get_process_id, set_process_id, 4, 0, 9, 0, false
+            uintr_flag, get_uintr_flag, set_uintr_flag, 4, 9, 1, 0, false,
+            recv_idx, get_recv_idx, set_recv_idx, 4, 0, 9, 0, false
         }
     }
 }

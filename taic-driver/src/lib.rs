@@ -35,6 +35,22 @@ impl Taic {
         }
     }
 
+    pub fn alloc_lq_without(&self, osid: usize, processid: usize) -> Option<LocalQueue> {
+        let alq = self.regs().alq();
+        alq.write(|w| unsafe { w.bits(osid as _) });
+        alq.write(|w| unsafe { w.bits(processid as _) });
+        let idx = alq.read().bits() as usize;
+        if idx == usize::MAX {
+            None
+        } else {
+            let gq_idx = (idx >> 32) & 0xffffffff;
+            let lq_idx = idx & 0xffffffff;
+            let lq_base = self.base + 0x1000 + (gq_idx * self.lq_num + lq_idx) * 0x1000;
+            Some(LocalQueue::new(lq_base, self.clone()))
+        }
+
+    }
+
     pub fn sim_extint(&self, irq: usize) {
         self.regs().sim_extint(irq).sim_extint().write(|w| unsafe { w.bits(1 as _) });
     }

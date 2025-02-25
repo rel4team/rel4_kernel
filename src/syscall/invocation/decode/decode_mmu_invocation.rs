@@ -205,6 +205,7 @@ fn decode_frame_map(length: usize, frame_slot: &mut cte_t, buffer: Option<&seL4_
         let lu_ret = lvl1pt.lookup_pt_slot(vaddr);
         if lu_ret.ptBitsLeft != pageBitsForSize(frame_size) {
             unsafe {
+                debug!("RISCVPageMap: lookup failed. {} {}", lu_ret.ptBitsLeft, frame_size);
                 current_lookup_fault = lookup_fault_missing_capability_new(lu_ret.ptBitsLeft);
                 current_syscall_error._type = seL4_FailedLookup;
                 current_syscall_error.failedLookupWasSource = false as usize;
@@ -247,6 +248,7 @@ fn decode_frame_map(length: usize, frame_slot: &mut cte_t, buffer: Option<&seL4_
         }
         invoke_page_map(&mut frame_slot.cap.clone(), w_rights_mask, vaddr, asid, attr, pt_slot, frame_slot)
     } else {
+        debug!("RISCVPageMap: get_vspace failed.");
         return exception_t::EXCEPTION_SYSCALL_ERROR; 
     }
 }
