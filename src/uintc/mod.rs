@@ -136,16 +136,16 @@ pub fn init() {
 
 #[inline]
 pub fn uintr_save() {
-    let current = get_currenct_thread();
-    current.uintr_inner.uepc = uintr::uepc::read();
-    if let Some(ntfn) = convert_to_option_type_ref::<notification_t>(current.tcbBoundNotification) {
-        let recv_idx = ntfn.get_recv_idx();
-        unsafe {
-            if let Some(lq) = LQ_MAP.get(&recv_idx) {
-                lq.whart(cpu_index_to_id(get_currenct_cpu_index()));
-            }
-        }
-    }
+    // let current = get_currenct_thread();
+    // current.uintr_inner.uepc = uintr::uepc::read();
+    // if let Some(ntfn) = convert_to_option_type_ref::<notification_t>(current.tcbBoundNotification) {
+    //     let recv_idx = ntfn.get_recv_idx();
+    //     unsafe {
+    //         if let Some(lq) = LQ_MAP.get(&recv_idx) {
+    //             lq.whart(usize::MAX);
+    //         }
+    //     }
+    // }
 }
 
 #[inline]
@@ -160,19 +160,19 @@ pub fn uintr_return() {
 }
 
 unsafe fn uirs_restore() { 
-    use riscv::register::{sideleg, uie, ustatus, utvec, uepc};
-    let current = get_currenct_thread();
-    sideleg::set_usoft();
-    uepc::write(current.uintr_inner.uepc);
-    utvec::write(current.uintr_inner.utvec, utvec::TrapMode::Direct);
-    uie::set_usoft();
-    ustatus::set_uie();
-    if let Some(ntfn) = convert_to_option_type_ref::<notification_t>(current.tcbBoundNotification) {
-        let recv_idx = ntfn.get_recv_idx();
-        if let Some(lq) = LQ_MAP.get(&recv_idx) {
-            lq.whart(cpu_index_to_id(get_currenct_cpu_index()));
-        }
-    }
+    // use riscv::register::{sideleg, uie, ustatus, utvec, uepc};
+    // let current = get_currenct_thread();
+    // sideleg::set_usoft();
+    // uepc::write(current.uintr_inner.uepc);
+    // utvec::write(current.uintr_inner.utvec, utvec::TrapMode::Direct);
+    // uie::set_usoft();
+    // ustatus::set_uie();
+    // if let Some(ntfn) = convert_to_option_type_ref::<notification_t>(current.tcbBoundNotification) {
+    //     let recv_idx = ntfn.get_recv_idx();
+    //     if let Some(lq) = LQ_MAP.get(&recv_idx) {
+    //         lq.whart(cpu_index_to_id(get_currenct_cpu_index()));
+    //     }
+    // }
 }
 
 unsafe fn uist_init() {
