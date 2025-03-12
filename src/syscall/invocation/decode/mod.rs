@@ -94,11 +94,13 @@ pub fn decode_invocation(label: MessageLabel, length: usize, slot: &mut cte_t, c
                     //注册发送端，获取sender_id
                     let sender_id = crate::uintc::register_sender_async_syscall(cap);
                     debug!("UintrRegisterAsyncSyscall: sender id = {:?}", sender_id);
+                    crate::async_runtime::register_receiver(1,1);//1号用户态线程，1号内核协程
+                    crate::async_runtime::register_sender(1);//1号用户态线程
                     //生成异步系统调用处理协程并将cid保存至tcb
                     let cid = coroutine_spawn(Box::pin(async_syscall_handler(*cap, new_buffer_cap, get_currenct_thread(), sender_id as usize)));
                     get_currenct_thread().asyncSysHandlerCid = Some(cid);
                     debug!("UintrRegisterAsyncSyscall: coroutine id = {:?}", cid);
-                    unsafe {
+                    unsafe { 
                         NEW_BUFFER_MAP.push(NewBufferMap {
                             buf: &mut *(new_buffer_cap.get_frame_base_ptr() as *mut NewBuffer),
                             cid,

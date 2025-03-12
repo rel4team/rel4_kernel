@@ -26,10 +26,10 @@ impl LocalQueue {
 
     pub fn task_dequeue(&self) -> Option<usize> {
         let taskid = self.regs().task_dequeue().read().bits() as usize;
-        log::info!("{:#x}, task_dequeue: {:#X}", self.queue_idx(), taskid);
         if taskid == 0 {
             None
         } else {
+            log::info!("{:#x}, task_dequeue: {:#X}", self.queue_idx(), taskid);
             Some(taskid)
         }
     }
@@ -93,13 +93,16 @@ impl LocalQueue {
         &self
             .regs()
             .register_extint(irq)
-            .register_extint().write(|w| unsafe { w.bits(handler as _) });
+            .register_extint()
+            .write(|w| unsafe { w.bits(handler as _) });
     }
 
     fn queue_idx(&self) -> usize {
+        log::info!("self_base{:#x}, taic_base: {:#X},lq_num : {:#x}", self.base, self.taic.base,self.taic.lq_num);
         let queue_idx = (self.base - self.taic.base - 0x1000) / 0x1000;
         let gq_idx = queue_idx / self.taic.lq_num;
         let lq_idx = queue_idx % self.taic.lq_num;
+        log::info!("gq{:#x}, lq: {:#X}", gq_idx,lq_idx);
         (gq_idx << 32) | lq_idx
     }
 }

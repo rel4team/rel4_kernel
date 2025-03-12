@@ -6,15 +6,18 @@ use crate::common::utils::cpu_id;
 
 const TAIC_BASE: usize = axconfig::PHYS_VIRT_OFFSET + axconfig::MMIO_REGIONS[1].0;
 const LQ_NUM: usize = 8;
-const TAIC: Taic = Taic::new(TAIC_BASE, LQ_NUM);
+pub const TAIC: Taic = Taic::new(TAIC_BASE, LQ_NUM);
 static mut START: usize = 0;
 static mut INT_LATENCY: Vec<usize> = Vec::new();
-const NUM: usize = 1000;
+const NUM: usize = 10;
 static LQ: LazyInit<LocalQueue> = LazyInit::new();
 
 fn enq_deq_test() {
     debug!("Start Taic enq & deq test ...");
     let lq0 = TAIC.alloc_lq(1, 2).unwrap();
+    let lq1 = TAIC.alloc_lq(1, 2).unwrap();
+    let lq2 = TAIC.alloc_lq(1, 3).unwrap();
+    let lq3 = TAIC.alloc_lq(1, 7).unwrap();
     let mut enq_cycles = Vec::new();
     let mut deq_cycles = Vec::new();
     for i in 0..NUM {
@@ -22,6 +25,15 @@ fn enq_deq_test() {
         lq0.task_enqueue(i);
         let enq_end = riscv::register::cycle::read();
         enq_cycles.push(enq_end - enq_start);
+    }
+    for i in 0..NUM {
+        lq1.task_enqueue(i);
+    }
+    for i in 0..NUM {
+        lq2.task_enqueue(i);
+    }
+    for i in 0..NUM {
+        lq3.task_enqueue(i);
     }
     for _i in 0..NUM {
         let deq_start = riscv::register::cycle::read();
@@ -67,8 +79,8 @@ fn sexint_latency_test() {
 
 
 pub fn start() {
-    // enq_deq_test();
     // // sexint_latency_test();
+    enq_deq_test();
 
     // loop {
     
