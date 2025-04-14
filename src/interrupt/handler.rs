@@ -107,7 +107,7 @@ pub fn handleInterrupt(irq: usize) {
                                     let new_buffer = &mut item.buf;
                                     let mut item = IPCItem::default();
                                     item.msg_info = 1;
-                                    new_buffer.req_items.write_free_item(&item).unwrap();
+                                    // new_buffer.req_items.write_free_item(&item).unwrap();
                                     if new_buffer.recv_req_status.load(SeqCst) == false {
                                         NET_INTR_CNT += 1;
                                         new_buffer.recv_req_status.store(true, SeqCst);

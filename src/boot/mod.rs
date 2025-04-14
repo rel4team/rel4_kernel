@@ -222,7 +222,7 @@ pub fn try_init_kernel(
     init_irq_controller();
     init_hart();
     // crate::taic_test::start();
-    crate::async_runtime::local_queue_init();
+    crate::async_runtime::init();
     
     // net_init();
 

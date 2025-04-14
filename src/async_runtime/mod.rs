@@ -1,5 +1,6 @@
 pub use crate::async_runtime::coroutine::CoroutineId;
 use crate::async_runtime::executor::Executor;
+use crate::taic_interface::get_lq;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::future::Future;
@@ -16,34 +17,15 @@ mod utils;
 pub use async_syscall_handler::async_syscall_handler;
 pub use new_buffer::{NewBuffer, NewBufferMap};
 
+
 pub static mut NEW_BUFFER_MAP: Vec<NewBufferMap> = Vec::new();
 
 static mut EXECUTOR: Executor = Executor::new();
 
 #[inline]
-pub fn local_queue_init() {
+pub fn init(){
     unsafe {
-        EXECUTOR.lq_init();
-    }
-}
-
-#[inline]
-pub fn register_receiver(sender_idx: usize, handler: usize) {
-    unsafe {
-        EXECUTOR.lq_register_receiver(sender_idx,handler);
-    }
-}
-
-#[inline]
-pub fn register_sender(recv_idx: usize) {
-    unsafe {
-        EXECUTOR.lq_register_sender(recv_idx);
-    }
-}
-#[inline]
-pub fn send_signal(recv_idx: usize) {
-    unsafe {
-        EXECUTOR.lq_send_signal(recv_idx);
+        EXECUTOR.init(get_lq());
     }
 }
 

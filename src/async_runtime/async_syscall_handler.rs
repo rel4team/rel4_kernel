@@ -3,6 +3,7 @@ use crate::MASK;
 use log::debug;
 use crate::async_runtime::new_buffer::{NewBuffer, IPCItem};
 use crate::async_runtime::utils::yield_now;
+use crate::async_runtime::coroutine_get_current;
 use crate::common::{utils::{convert_to_mut_type_ref, pageBitsForSize}, message_info::{AsyncMessageLabel, AsyncErrorLabel}, object::ObjectType, sbi::console_putchar, structures::exception_t, sel4_config::*};
 use crate::cspace::interface::{cap_t, cte_t, CapTag, seL4_CapRights_t};
 use crate::task_manager::{tcb_t, get_currenct_thread, ipc::notification_t};
@@ -18,7 +19,7 @@ use crate::syscall::{alignUp, FREE_INDEX_TO_OFFSET, GET_FREE_REF, invocation::{i
 use crate::syscall::utils::lookup_slot_for_cnode_op;
 use crate::config::USER_TOP;
 use crate::utils::busy_wait;
-use crate::async_runtime::{register_receiver,send_signal};
+use crate::taic_interface::{register_receiver,register_sender,send_signal};
 // 每个线程对应一个内核syscall handler协程
 // 每个线程在用户态只能发现自己的内核协程不在线
 // 当线程陷入内核去激活协程时，所有的内核协程都不在线（因为内核独占）
@@ -30,24 +31,32 @@ use crate::async_runtime::{register_receiver,send_signal};
 
 
 
-pub async fn async_syscall_handler(ntfn_cap: cap_t, new_buffer_cap: cap_t, tcb: &mut tcb_t, sender_id: usize) {
+pub async fn async_syscall_handler(
+    ntfn_cap: cap_t,
+    new_buffer_cap: cap_t,
+    tcb: &mut tcb_t,
+    process_id: usize,
+) {
     // debug!("async_syscall_handler: enter");
     // 异常处理
-    let error_id: isize = -1;
-    if sender_id == (error_id as usize) {
-        debug!("async_syscall_handler: fail to register sender!");
-        return;
-    }
+    // let error_id: isize = -1;
+    // if sender_id == (error_id as usize) {
+    //     debug!("async_syscall_handler: fail to register sender!");
+    //     return;
+    // }
     let new_buffer = convert_to_mut_type_ref::<NewBuffer>(new_buffer_cap.get_frame_base_ptr());
-    debug!("async_syscall_handler: new_buffer_cap: {}, new_buffer_ptr: {:#x}", new_buffer_cap.get_cap_ptr(), new_buffer_cap.get_frame_base_ptr());
+    // debug!("async_syscall_handler: new_buffer_cap: {}, new_buffer_ptr: {:#x}", new_buffer_cap.get_cap_ptr(), new_buffer_cap.get_frame_base_ptr());
     // let badge = ntfn_cap.get_nf_badge();
     let mut need_switch = false;
     loop {
-        //如果buffer里有东西
-        if let Some(mut item) = new_buffer.req_items.get_first_item() {
+        //如果buffer里有item
+        if let Some(idx) = new_buffer.req_items.get_first_idx() {
+        // if let Some(mut item) = new_buffer.req_items.get_first_item() {
+            let req_item = new_buffer.data[idx];//深拷贝
+            let mut item = req_item;
             need_switch = false;
-            let label: AsyncMessageLabel = AsyncMessageLabel::from(item.msg_info);
-            debug!("async_syscall_handler: handle async syscall: {:?}", label);
+            let label: AsyncMessageLabel = AsyncMessageLabel::from(req_item.msg_info);
+            // debug!("async_syscall_handler: handle async syscall: {:?}", label);
             match label {
                 AsyncMessageLabel::UntypedRetype => {
                     handle_async_untyped_retype(&mut item, tcb);
@@ -67,7 +76,12 @@ pub async fn async_syscall_handler(ntfn_cap: cap_t, new_buffer_cap: cap_t, tcb: 
                 AsyncMessageLabel::TCBUnbindNotification => {
                     handle_async_tcb_unbind_notification(&mut item, tcb);
                 }
-                AsyncMessageLabel::CNodeRevoke | AsyncMessageLabel::CNodeRotate | AsyncMessageLabel::CNodeCancelBadgedSends | AsyncMessageLabel::CNodeDelete | AsyncMessageLabel::CNodeCopy | AsyncMessageLabel::CNodeMint => {
+                AsyncMessageLabel::CNodeRevoke
+                | AsyncMessageLabel::CNodeRotate
+                | AsyncMessageLabel::CNodeCancelBadgedSends
+                | AsyncMessageLabel::CNodeDelete
+                | AsyncMessageLabel::CNodeCopy
+                | AsyncMessageLabel::CNodeMint => {
                     handle_async_cnode_syscall(&mut item, tcb, label);
                 }
                 AsyncMessageLabel::RISCVPageTableMap => {
@@ -86,30 +100,49 @@ pub async fn async_syscall_handler(ntfn_cap: cap_t, new_buffer_cap: cap_t, tcb: 
                     handle_async_unknown_label(&mut item, tcb);
                 }
             };
-            new_buffer.res_items.write_free_item(&item).unwrap();
-            if new_buffer.recv_reply_status.load(SeqCst) == false {
-                new_buffer.recv_reply_status.store(true, SeqCst);
-                send_signal(1);
-                // todo: send uintr
-                // debug!("async_syscall_handler: send uintr sender_id: {}", sender_id);
-                // unsafe {
-                //     send_async_syscall_uintr(sender_id);
-                // }
+            // new_buffer.res_items.write_free_item(&item).unwrap();
+            new_buffer.data[idx] = item;
+            
+            // debug!("[kernel] vec:{:?}",req_item.vec);
+            if req_item.vec != 0 {
+                send_signal(process_id, req_item.vec as usize);
+                // debug!("[kernel] wake coroutine recv:{:?}, vec:{:?}",process_id,req_item.vec);
+            } else{
+                new_buffer.res_items.write_free_idx(idx);
+                if new_buffer.recv_reply_status.load(SeqCst) == false {
+                    // wake dispatcher
+                    new_buffer.recv_reply_status.store(true, SeqCst);
+                    send_signal(process_id, 0);
+                    // debug!("[kernel] wake dispatcher recv:{:?}, vec:{:?}",process_id,req_item.vec);
+                }
             }
-        } else {//如果没有
+            // if new_buffer.recv_reply_status.load(SeqCst) == false {
+            //     new_buffer.recv_reply_status.store(true, SeqCst);
+            //     // send_signal(tcb.lookup_mut_ipc_buffer(true).unwrap().uintrFlag,item.cid);
+            //     register_sender(process_id,item.cid.0 as usize);
+            //     send_signal(process_id, item.cid.0 as usize);
+            //     // todo: send uintr
+            //     // debug!("async_syscall_handler: send uintr sender_id: {}", sender_id);
+            //     // unsafe {
+            //     // send_async_syscall_uintr(sender_id);
+            //     // }
+            // }
+        } else {
+            //如果没有item,阻塞自己等待接收
             // if !need_switch {
             //     need_switch = true;
             //     busy_wait(2000);
             //     continue;
             // }
-            debug!("[async_syscall_handler] all items in buffer reply");
+            // debug!("[async_syscall_handler] all items in buffer reply");
+            // register_receiver(process_id, 0,coroutine_get_current().0 as usize);
             new_buffer.recv_req_status.store(false, SeqCst);
-            register_receiver(1, 1);
             yield_now().await;
-            debug!("wake recv co");
+            // debug!("wake recv co");
         }
     }
 }
+
 
 unsafe fn send_async_syscall_uintr(offset: usize) {
     // let uist_idx = *KERNEL_SENDER_POOL_IDX.lock();
@@ -563,7 +596,7 @@ fn handle_async_page_table_unmap(item: &mut IPCItem, tcb: &mut tcb_t) {
 }
 
 fn handle_async_page_map(item: &mut IPCItem, tcb: &mut tcb_t) {
-    debug!("enter async_page_map handler");
+    // debug!("enter async_page_map handler");
     // service
     let frame_cptr = item.extend_msg[0] as usize;
     // 根据service的CPtr获取slot
@@ -587,7 +620,7 @@ fn handle_async_page_map(item: &mut IPCItem, tcb: &mut tcb_t) {
     let lvl1pt_cap = lvl1pt_slot.cap;
     // 其他
     let vaddr: usize = (item.extend_msg[2] as usize) << 12;
-    debug!("handle_async_page_map: vaddr: {:#x}", vaddr);
+    // debug!("handle_async_page_map: vaddr: {:#x}", vaddr);
     let w_rights_mask = item.extend_msg[3] as usize;
     let attr = vm_attributes_t::from_word(item.extend_msg[4] as usize);
     if let Some((lvl1pt, asid)) = get_vspace(&lvl1pt_cap) {

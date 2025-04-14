@@ -19,6 +19,12 @@ pub fn reply_success_from_kernel(thread: &mut tcb_t) {
     thread.set_register(msgInfoRegister, seL4_MessageInfo_t::new(0, 0, 0, 0).to_word());
 }
 
+#[inline]
+pub fn reply_info_from_kernel(thread: &mut tcb_t,msg_info:seL4_MessageInfo_t) {
+    thread.set_register(badgeRegister, 0);
+    thread.set_register(msgInfoRegister, msg_info.to_word());
+}
+
 pub unsafe fn set_mrs_for_syscall_error(thread: &mut tcb_t) -> usize {
     match current_syscall_error._type {
         seL4_InvalidArgument => thread.set_mr(0, current_syscall_error.invalidArgumentNumber),

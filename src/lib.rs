@@ -13,7 +13,6 @@
 #![feature(generic_const_exprs)]
 #![feature(stmt_expr_attributes)]
 #![feature(ptr_from_ref)]
-
 extern crate core;
 extern crate alloc;
 use common::sbi::shutdown;
@@ -46,6 +45,9 @@ mod uintr;
 
 #[cfg(feature = "ENABLE_UINTC")]
 mod async_runtime;
+
+#[cfg(feature = "ENABLE_UINTC")]
+mod taic_interface;
 // mod device;
 
 mod taic_test;

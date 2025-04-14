@@ -92,12 +92,21 @@ pub fn decode_invocation(label: MessageLabel, length: usize, slot: &mut cte_t, c
                     debug!("UintrRegisterAsyncSyscall: Enter");
                     let new_buffer_cap = new_buffer_slot.unwrap().cap;
                     //注册发送端，获取sender_id
-                    let sender_id = crate::uintc::register_sender_async_syscall(cap);
-                    debug!("UintrRegisterAsyncSyscall: sender id = {:?}", sender_id);
-                    crate::async_runtime::register_receiver(1,1);//1号用户态线程，1号内核协程
-                    crate::async_runtime::register_sender(1);//1号用户态线程
+                    // let sender_id = crate::uintc::register_sender_async_syscall(cap);
+                    let process_id = buffer.unwrap().uintrFlag;//进行异步系统调用注册的进程的id.
+                    //生成协程
+                    // let vec = crate::taic_interface::alloc_vec().unwrap();
+                    let cid = coroutine_spawn(Box::pin(async_syscall_handler(*cap, new_buffer_cap, get_currenct_thread(),process_id)));
+
+                    // debug!("UintrRegisterAsyncSyscall: sender id = {:?}", sender_id);
+                    crate::taic_interface::register_receiver(process_id, 0, cid.0 as usize, true, true);
+                    for vec in 0..32 {
+                        crate::taic_interface::register_sender(process_id, vec);
+                    }
+                    // crate::async_runtime::register_receiver(1,1);//1号用户态线程，0号内核协程
+                    // crate::async_runtime::register_sender(1);//1号用户态线程
                     //生成异步系统调用处理协程并将cid保存至tcb
-                    let cid = coroutine_spawn(Box::pin(async_syscall_handler(*cap, new_buffer_cap, get_currenct_thread(), sender_id as usize)));
+                    get_currenct_thread().set_mr(0,0);
                     get_currenct_thread().asyncSysHandlerCid = Some(cid);
                     debug!("UintrRegisterAsyncSyscall: coroutine id = {:?}", cid);
                     unsafe { 

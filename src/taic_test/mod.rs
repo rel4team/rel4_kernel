@@ -80,7 +80,7 @@ fn sexint_latency_test() {
 
 pub fn start() {
     // // sexint_latency_test();
-    enq_deq_test();
+    // enq_deq_test();
 
     // loop {
     
