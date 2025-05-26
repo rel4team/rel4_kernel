@@ -91,9 +91,11 @@ pub async fn async_syscall_handler(
                     handle_async_page_table_unmap(&mut item, tcb);
                 }
                 AsyncMessageLabel::RISCVPageMap => {
+                    // debug!("map, cid: {:?}", item.cid);
                     handle_async_page_map(&mut item, tcb);
                 }
                 AsyncMessageLabel::RISCVPageUnmap => {
+                    // debug!("unmap, cid: {:?}", item.cid);
                     handle_async_page_unmap(&mut item, tcb);
                 }
                 _ => {
@@ -104,6 +106,7 @@ pub async fn async_syscall_handler(
             new_buffer.data[idx] = item;
             
             // debug!("[kernel] vec:{:?}",req_item.vec);
+            // debug!("[kernel] cid:{:?}, vec: {}",req_item.cid, req_item.vec);
             if req_item.vec != 0 {
                 send_signal(process_id, req_item.vec as usize);
                 // debug!("[kernel] wake coroutine recv:{:?}, vec:{:?}",process_id,req_item.vec);
@@ -667,7 +670,7 @@ fn handle_async_page_map(item: &mut IPCItem, tcb: &mut tcb_t) {
             }
         } else {
             if pt_slot.get_vaild() != 0 {
-                debug!("handle_async_page_map: Virtual address already mapped");
+                debug!("handle_async_page_map: Virtual address already mapped: cid: {:?}", item.cid);
                 item.extend_msg[0] = AsyncErrorLabel::SyscallError.into();
                 return;
             }

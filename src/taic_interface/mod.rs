@@ -47,6 +47,10 @@ pub fn register_receiver(
     LOCAL_QUEUE.register_receiver(1, sender_idx, irq, _handler);
 }
 
+#[inline]
+pub fn bind_hart(hart_id: usize) {
+    LOCAL_QUEUE.whart(hart_id);
+}
 /**
  * @description: 将内核队列注册成信号的发送者
  * @param {usize} recv_idx    接收信号的进程id

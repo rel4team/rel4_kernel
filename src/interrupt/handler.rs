@@ -36,7 +36,9 @@ pub fn handleInterruptEntry() -> exception_t {
             debug!("UserExternal");
         }
         scause::Trap::Interrupt(scause::Interrupt::SupervisorSoft) => {
-            debug!("SupervisorSoft");
+            // debug!("SupervisorSoft");
+            #[cfg(feature = "ENABLE_UINTC")]
+            coroutine_run_until_blocked();
         }
         _ => {
 
@@ -147,8 +149,10 @@ pub fn handleInterrupt(irq: usize) {
             // if get_currenct_thread().get_ptr() != get_idle_thread().get_ptr() {
             //     coroutine_run_until_blocked();
             // }
+            
             #[cfg(feature = "ENABLE_UINTC")]
             coroutine_run_until_blocked();
+            
             timerTick();
             resetTimer();
         }

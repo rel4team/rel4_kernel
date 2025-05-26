@@ -13,6 +13,7 @@ use crate::common::utils::cpu_id;
 use crate::{
     deps::{doMaskReschedule, ksIdleThreadTCB, kernel_stack_alloc}
 };
+use crate::smp::cpu_index_to_id;
 use crate::boot::cpu_prio;
 
 #[cfg(feature = "ENABLE_SMP")]
@@ -345,7 +346,9 @@ fn chooseThread() {
             assert_ne!(thread, 0);
             convert_to_mut_type_ref::<tcb_t>(thread).switch_to_this();
         } else {
+            debug!("hello idle");
             get_idle_thread().switch_to_this();
+            crate::taic_interface::bind_hart(cpu_index_to_id(cpu_id()));
         }
     }
 }

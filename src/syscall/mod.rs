@@ -228,6 +228,8 @@ fn handle_recv(block: bool) {
 
 fn handle_yield() {
     get_currenct_thread().sched_dequeue();
+    #[cfg(feature = "ENABLE_UINTC")]
+    coroutine_run_until_blocked();
     get_currenct_thread().sched_append();
     rescheduleRequired();
 }

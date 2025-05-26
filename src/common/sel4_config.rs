@@ -72,7 +72,7 @@ pub const tcbCNodeEntries: usize = 5;
 pub const CONFIG_MAX_NUM_NODES: usize = 1;
 
 #[cfg(feature = "ENABLE_SMP")]
-pub const CONFIG_MAX_NUM_NODES: usize = 4;
+pub const CONFIG_MAX_NUM_NODES: usize = 2;
 
 // 错误码
 pub const seL4_NoError: usize = 0;
